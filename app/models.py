@@ -93,8 +93,10 @@ class RentalRequest(models.Model):
 
     @property
     def rental_days(self):
-        days = (self.end_date - self.start_date).days + 1
-        return max(days, 1)
+     if self.start_date and self.end_date:
+        return (self.end_date - self.start_date).days + 1
+     return 0
+
 
     @property
     def per_day_rent(self):
@@ -104,46 +106,47 @@ class RentalRequest(models.Model):
 
     @property
     def total_rent(self):
-        return round(self.rental_item.rent_per_day * self.rental_days, 2)
+     return self.rental_days * self.rental_item.price_per_day
+    
+def save(self, *args, **kwargs):
+    is_new = self._state.adding
 
-    def save(self, *args, **kwargs):
-        is_new = self._state.adding
+    if not self.order_id:
+        date_str = timezone.now().strftime('%Y%m')  # YYYYMM
+        prefix = f'ORD{date_str}'
+        last_order = RentalRequest.objects.filter(
+            order_id__startswith=prefix,
+            order_id__regex=r'^ORD\d{6}\d{3}$'  # Only numeric suffix
+        ).order_by('-order_id').first()
 
-        if not self.order_id:
-            date_str = timezone.now().strftime('%Y%m')  # YYYYMM
-            prefix = f'ORD{date_str}'
-            last_order = RentalRequest.objects.filter(
-                order_id__startswith=prefix,
-                order_id__regex=r'^ORD\d{6}\d{3}$'  # Only numeric suffix
-            ).order_by('-order_id').first()
+        if last_order and last_order.order_id:
+            last_number = int(last_order.order_id[-3:])  # last 3 digits
+            new_number = str(last_number + 1).zfill(3)
+        else:
+            new_number = "001"
+        self.order_id = f"{prefix}{new_number}"
 
-            if last_order and last_order.order_id:
-                last_number = int(last_order.order_id[-3:])  # last 3 digits
-                new_number = str(last_number + 1).zfill(3)
-            else:
-                new_number = "001"
-            self.order_id = f"{prefix}{new_number}"
+    # ✅ always recalc total_amount
+    self.total_amount = self.total_rent
 
-        if self.total_amount is None:
-            self.total_amount = self.total_rent
+    super().save(*args, **kwargs)
 
-        super().save(*args, **kwargs)
+    # Reduce stock only when new and approved
+    if is_new and self.status == 'approved':
+        item = self.rental_item
+        if item.available_quantity > 0:
+            item.available_quantity -= 1
+            item.update_availability()
 
-        # Reduce stock only when new and approved
-        if is_new and self.status == 'approved':
-            item = self.rental_item
-            if item.available_quantity > 0:
-                item.available_quantity -= 1
-                item.update_availability()
+    # Auto-generate receipt when approved
+    if self.status == "approved" and not self.receipt:
+        from .utils import generate_receipt
+        self.receipt.save(
+            f"receipt_{self.order_id}.pdf",
+            generate_receipt(self),
+            save=True
+        )
 
-        # Auto-generate receipt when approved
-        if self.status == "approved" and not self.receipt:
-            from .utils import generate_receipt
-            self.receipt.save(
-                f"receipt_{self.order_id}.pdf",
-                generate_receipt(self),
-                save=True
-            )
 
 class Payment(models.Model):
     rental_request = models.ForeignKey("RentalRequest", on_delete=models.CASCADE)

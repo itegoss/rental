@@ -103,16 +103,18 @@
       top: 0;
       right: 0;
       flex-direction: column;
-      background: rgb(244, 144, 144);
-      width: 75vw;
-      max-width: 340px;
-      height: 100vh;
+      background: #ec2427;
+     
+    
+      height: 30vh;
       box-shadow: -4px 0 22px rgba(60,110,50,.09);
       border-left: 1px solid #e2e2e2;
       padding: 68px 28px 0 28px;
       gap: 18px;
       z-index: 32;
       animation: slideIn .33s;
+       width: 55vw;        /* smaller percentage of screen */
+      max-width: 260px;  
     }
     .nav-links.mobile.active {
       display: flex;
@@ -432,7 +434,7 @@
 <nav>
 <div class="logo">
   <a href="{% url 'index' %}">
-    <img src="{% static 'images/logo.png' %}" alt="QuickNest Logo" />
+    <img src="{% static 'images/logo.png' %}" alt="sick bed service Logo" />
   </a>
 </div>
   <div class="nav-right">
@@ -480,7 +482,7 @@
   <div class="footer-container">
     <!-- ✅ Head Office -->
     <div class="footer-column">
-      <h4>Our Head Office</h4>
+      <h4>Address</h4>
       <p><i class="fa fa-map-marker-alt"></i> Pickup/Drop Address: Shop No. 11A, Suraj Plaza, Opp. Bank of Baroda, Near MBMC, Station Road, Bhayander (W).</p>
     </div>
     <!-- ✅ Short Links -->
@@ -488,10 +490,7 @@
       <h4>Short Links</h4>
       <ul>
         <li><a href="{% url 'items' %}">Items</a></li>
-        <li><a href="{% url 'services' %}">services
-
-        
-        </a></li>
+        <li><a href="{% url 'services' %}">services</a></li>
       </ul>
     </div>
    

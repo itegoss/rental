@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-{% block title %} Sick Bed Services -Signin{% endblock %}  
+{% block title %}Sick Bed Services - Signin{% endblock %}
 {% block content %}
+
 <style>
     body {
         background: url("{% static 'images/background.png' %}") no-repeat center center fixed;
@@ -153,6 +154,7 @@
         margin: 12px 0;
     }
 </style>
+
 <div class="signin-container">
     {% if user.is_authenticated %}
         <h3 style="text-align:center; color: green;">
@@ -211,10 +213,10 @@
         <!-- OR separator -->
         <div class="text-muted">or</div>
 
-        <!-- Google Sign-In Button -->
-        <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn-google">
-            <i class="bi bi-google"></i> Sign in with Google
-        </a>
+      <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn-google">
+    <i class="fab fa-google"></i> Sign in with Google
+</a>
+
     </form>
 </div>
 
@@ -234,5 +236,5 @@
         }
     }
 </script>
-{% endblock %}
 
+{% endblock %}

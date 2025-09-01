@@ -22,9 +22,9 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('app.urls')), 
-   
-    path('auth/', include('social_django.urls', namespace='social')),  # For social login (Google, etc.)
-]
+    path('auth/', include('social_django.urls', namespace='social')),
+
+    ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

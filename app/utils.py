@@ -48,7 +48,7 @@ def generate_receipt(order):
     p.drawString(50, y, f"Start Date: {order.start_date}"); y -= 25
     p.drawString(50, y, f"End Date: {order.end_date}"); y -= 25
     p.drawString(50, y, f"Rental Days: {order.rental_days}"); y -= 25
-    p.drawString(50, y, f"Per Day Rent: {order.rental_item.rent_per_day}"); y -= 25
+    p.drawString(50, y, f"Per Day Rent: ₹{order.rental_item.price_per_day}"); y -= 25
     p.drawString(50, y, f"Total Amount: {order.total_amount}"); y -= 25
     p.drawString(50, y, f"Payment Method: {order.payment_method}")
 

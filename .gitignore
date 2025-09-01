@@ -1,5 +1,5 @@
-*.pyc
-__pycache__/
-db.sqlite3
-/media/
-*.env
+echo *.pyc> .gitignore
+echo __pycache__/>> .gitignore
+echo db.sqlite3>> .gitignore
+echo /media/>> .gitignore
+echo *.env>> .gitignore

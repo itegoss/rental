@@ -24,7 +24,6 @@ urlpatterns = [
     path('generate_receipt/',views.generate_receipt, name='generate_receipt'),
     path("approve-order/<str:order_id>/", views.approve_order, name="approve_order"),
     path("terms/", views.terms, name="terms"),
-    path("contact/", views.contact, name="contact"),
     path("services/", views.services, name="services"),
     
 

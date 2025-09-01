@@ -172,6 +172,25 @@ h5 {
     padding-bottom: 5px;       /* Space between text and underline */
 }
 
+.deposit-line {
+  margin: 8px 0;
+  font-size: 16px;
+  color: #1f2937; /* text color */
+}
+
+.deposit-line strong {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.deposit-amount {
+  font-weight: 700;
+  color: #b91c1c;       /* red-700 */
+  background: #fee2e2;  /* red-100 */
+  padding: 2px 8px;
+  border-radius: 9999px; /* pill shape */
+}
+
 </style>
 
 <div class="buy-container">
@@ -183,7 +202,10 @@ h5 {
     <div class="item-info">
       <h2>{{ item.title }}</h2>
       <p><strong>Rent per day:</strong> ₹{{ item.price_per_day }}</p>
-      <p><strong>Deposit:</strong> ₹1,000</p>
+      <p class="deposit-line">
+          <strong>Deposit:</strong> <span class="deposit-amount">₹1,000</span>
+        </p>
+
       
       {% if item.description %}
         <p><strong>Description:</strong> {{ item.description }}</p>
@@ -245,7 +267,6 @@ h5 {
     </div>
   </div>
 </div>
-
 <script>
   const pricePerDay = Number({{ item.price_per_day|floatformat:"2"|safe }});
   const rentAmountEl = document.getElementById("rent_amount");
@@ -253,28 +274,34 @@ h5 {
   const termsCheckbox = document.getElementById("terms_checkbox");
   const submitBtn = document.getElementById("submitBtn");
 
+  // sirf YYYY-MM-DD ke hisaab se days calculate karo
+  function dateDiffInDays(start, end) {
+    const s = start.split("-").map(Number); // ["2025","08","24"] → [2025,8,24]
+    const e = end.split("-").map(Number);
+
+    const startDate = new Date(s[0], s[1] - 1, s[2]);
+    const endDate = new Date(e[0], e[1] - 1, e[2]);
+
+    // difference in days (no timezone effect)
+    const diff = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+    return diff + 1; // inclusive of start day
+  }
+
   function calculateTotal() {
     const start = document.getElementById("start_date").value;
     const end = document.getElementById("end_date").value;
 
     if (start && end) {
-      const startDate = new Date(start);
-      const endDate = new Date(end);
-
-      if (!isNaN(startDate) && !isNaN(endDate) && endDate >= startDate) {
-        const days = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+      const days = dateDiffInDays(start, end);
+      if (days > 0) {
         const rent = days * pricePerDay;
-
         totalDaysEl.innerText = days;
         rentAmountEl.innerText = rent.toFixed(2);
-      } else {
-        totalDaysEl.innerText = "-";
-        rentAmountEl.innerText = "-";
+        return;
       }
-    } else {
-      totalDaysEl.innerText = "-";
-      rentAmountEl.innerText = "-";
     }
+    totalDaysEl.innerText = "-";
+    rentAmountEl.innerText = "-";
   }
 
   document.getElementById("start_date").addEventListener("change", calculateTotal);
@@ -285,4 +312,5 @@ h5 {
     submitBtn.disabled = !termsCheckbox.checked;
   });
 </script>
+
 {% endblock %}

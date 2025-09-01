@@ -23,11 +23,12 @@ def index(request):
     rentals = RentalRequest.objects.filter(status='approved')
 
     for rental in rentals:
-        # Reminder: 1 day before end date
-        if rental.end_date - timedelta(days=1) == today and not rental.is_reminder_sent:
-            send_reminder_email(rental.user, rental)
-            rental.is_reminder_sent = True
-            rental.save(update_fields=['is_reminder_sent'])
+      if rental.end_date - timedelta(days=1) == today and not rental.is_reminder_sent:
+        rent_days = rental.rental_days   # ✅ Correct way
+        send_reminder_email(rental.user, rental)
+        rental.is_reminder_sent = True
+        rental.save(update_fields=['is_reminder_sent'])
+
 
         # Overdue: after end date
         if rental.end_date < today and not rental.is_overdue_email_sent:
@@ -297,9 +298,19 @@ def userdetail(request):
         elif any(char.isdigit() for char in address):
             messages.error(request, "Address cannot contain digits.")
         else:
-            # Create rental
-            start_date = timezone.now().date()
-            end_date = start_date + timedelta(days=3)
+    # Create rental with actual selected dates from session
+            from datetime import datetime
+
+            start_date_str = request.session.get('start_date')
+            end_date_str = request.session.get('end_date')
+
+            if not start_date_str or not end_date_str:
+                messages.error(request, "Rental dates missing. Please select again.")
+                return redirect('buy', item_id=item.id)
+
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+
             rental = RentalRequest.objects.create(
                 user=request.user,
                 rental_item=item,
@@ -322,6 +333,7 @@ def userdetail(request):
                     'pincode': '000000',
                 }
             )
+
 
             # Save session data
             request.session['user_name'] = name
@@ -391,7 +403,7 @@ def paymentmethod(request):
                     f"Total Amount: ₹{total_amount}\n"
                     f"Payment Method: Cash on Delivery\n\n"
                     f"Please come and collect your item from our service center.\n\n"
-                    "Thank you for choosing QuickNest!"
+                    "Thank you for choosing Sick Bed Services!"
                 )
                 send_mail(
                     subject,
@@ -442,25 +454,25 @@ def success(request, rental_id):
         rental_request.save()
 
         # ----------- ✉️ Send Email to the User -----------
-        subject = "QuickNest Booking Confirmed ✅"
+        subject = "Sick Bed Services Booking Confirmed "
         message = f"""
 Dear {rental_request.user.first_name or rental_request.user.username},
 
-Thank you for your booking with QuickNest! 🎉
+Thank you for your booking with Sick Bed Services! 
 
 Here are your booking details:
 
-📦 Item: {rental_request.rental_item.title}
-📅 Rental Duration: {rental_request.start_date} to {rental_request.end_date}
-📌 Order ID: {order_id}
-💳 Payment ID: {razorpay_payment_id}
+Item: {rental_request.rental_item.title}
+ Rental Duration: {rental_request.start_date} to {rental_request.end_date}
+ Order ID: {order_id}
+ Payment ID: {razorpay_payment_id}
 
 Your booking has been successfully confirmed. You can now take the item or wait for delivery as per the schedule.
 
 If you have any questions, feel free to contact our support team.
 
 Regards,  
-QuickNest Team
+Sick Bed Services Team
         """
         from_email = settings.DEFAULT_FROM_EMAIL
         recipient_list = [rental_request.user.email]
@@ -491,21 +503,26 @@ def about(request):
 
 from django.template.loader import render_to_string
 from django.core.mail import EmailMessage
-
 def send_reminder_email(user, rental):
-    subject = 'Reminder: Your Rental Ends Tomorrow - QuickNest'
+    subject = 'Reminder: Your Rental Ends Tomorrow - Sick Bed Services'
     recipient_email = user.email
 
-    context = {
-        'user': user,
-        'rental_item': rental.rental_item,
-        'end_date': rental.end_date
-    }
-
-    message = render_to_string('emails/reminder.html', context)
+    # direct inline HTML message
+    message = f"""
+    <html>
+    <body>
+        <p>Hi {user.username},</p>
+        <p>This is a reminder that your rental item <b>{rental.rental_item.title}</b> 
+        is ending on <b>{rental.end_date}</b>.</p>
+        <p>Please make sure to return it on time.</p>
+        <br>
+        <p>Regards,<br>Sick Bed Services Team</p>
+    </body>
+    </html>
+    """
 
     email = EmailMessage(subject, message, from_email=None, to=[recipient_email])
-    email.content_subtype = 'html'
+    email.content_subtype = 'html'  # important: render as HTML
 
     try:
         email.send()
@@ -515,7 +532,7 @@ def send_reminder_email(user, rental):
         print("Reminder Email Failed:", e)
 
 def send_overdue_emails(user, rental):
-    subject = 'Overdue Rental Notice - QuickNest'
+    subject = 'Overdue Rental Notice - Sick Bed Services'
     recipient_email = user.email
 
     context = {
@@ -529,7 +546,7 @@ def send_overdue_emails(user, rental):
     email = EmailMessage(
         subject=subject,
         body=message,
-        from_email=None,  # या settings.DEFAULT_FROM_EMAIL डालो
+        from_email=None,  
         to=[recipient_email]
     )
     email.content_subtype = 'html'
@@ -591,7 +608,7 @@ def payment(request, rental_id):
     # Save Payment object in DB with explicit order_id
     payment_obj = Payment.objects.create(
         rental_request=rental,
-        razorpay_order_id=razorpay_order["id"],  # ✅ save Razorpay ID separately
+        razorpay_order_id=razorpay_order["id"],  
         payment_status="PENDING",
         order_id=order_id  # Explicitly set the order_id
     )
@@ -603,13 +620,11 @@ def payment(request, rental_id):
         "total_amount": total_amount,
         "razorpay_amount": razorpay_amount,
         "razorpay_order_id": razorpay_order["id"],
-        "payment": payment_obj,   # ✅ full Payment object
+        "payment": payment_obj,  
         "custom_order_id": payment_obj.order_id,
         "rental_id": rental.id,
         "razorpay_key": "rzp_test_wH0ggQnd7iT3nB",
     }
-
-
     return render(request, "payment.html", context)
 
 
@@ -647,7 +662,7 @@ def generate_receipt(rental):
     c.drawString(50, 740, f"Rental Duration: {rental.start_date} to {rental.end_date}")
     c.drawString(50, 720, f"Total Amount: ₹{rental.total_amount}")
     c.drawString(50, 700, f"Payment Method: {rental.payment_method}")
-    c.drawString(50, 680, "Thank you for renting with QuickNest!")
+    c.drawString(50, 680, "Thank you for renting with Sick Bed Services!")
     
     c.showPage()
     c.save()
@@ -680,35 +695,6 @@ def approve_order(request, order_id):
 def terms(request):
     return render(request, 'terms.html')
 
-
-from .forms import ContactForm
-def contact(request):
-    if request.method == "POST":
-        form = ContactForm(request.POST)
-        if form.is_valid():
-            name = form.cleaned_data['name']
-            email = form.cleaned_data['email']
-            message = form.cleaned_data['message']
-
-            subject = f"New Inquiry from {name}"
-            full_message = f"Name: {name}\nEmail: {email}\n\nMessage:\n{message}"
-
-            try:
-                send_mail(
-                    subject,
-                    full_message,
-                    email,  # sender's email (from form)
-                    [' bhayander@kutchyuvaksangh.org'],  # your support/admin email
-                    fail_silently=False,
-                )
-                messages.success(request, "Your inquiry has been sent successfully. We'll get back to you soon.")
-                return redirect('contact')  # refresh page or redirect elsewhere
-            except Exception as e:
-                messages.error(request, f"Error sending email: {e}")
-    else:
-        form = ContactForm()
-
-    return render(request, "contact.html", {"form": form})
 
 from .models import Services
 def services(request):
