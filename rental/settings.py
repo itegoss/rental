@@ -113,7 +113,6 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 
 LOGIN_URL = 'login'
 LOGOUT_URL = 'logout'
