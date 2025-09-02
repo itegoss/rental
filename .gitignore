@@ -3,3 +3,7 @@ echo __pycache__/>> .gitignore
 echo db.sqlite3>> .gitignore
 echo /media/>> .gitignore
 echo *.env>> .gitignore
+
+*.pyc
+__pycache__/
+.env
