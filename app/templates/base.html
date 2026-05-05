@@ -7,16 +7,26 @@
   <!-- Fonts and Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Josefin+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 {% load static %}
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-      font-family: 'quiksand', sans-serif;
-      background: #fff;
-      color: #222;
-    }
+        :root {
+          --primary:#1b8a4b;
+          --danger:#dc3545;
+          --warning:#f0ad4e;
+          --gray:#6c757d;
+          --light:#f8f9fa;
+          --border:#e0e0e0;
+        }
+        html, body {
+          margin: 0;
+          padding: 0;
+          min-height: 100vh;
+          font-family: 'quiksand', sans-serif;
+          background: #fff;
+          color: #222;
+        }
     body {
       display: flex;
       flex-direction: column;
@@ -146,59 +156,37 @@
       padding: 2vw 3vw;
     }
     
-    /* --- Enhanced Footer Styles --- */
+    /* --- Simplified and Attractive Footer --- */
     .footer-section {
       background: #ec2427;
       color: #fff;
-      padding: 50px 20px 20px;
+      padding: 60px 20px 30px;
       font-family: 'Poppins', sans-serif;
       position: relative;
-      overflow: hidden;
-      box-shadow: 0 -5px 15px rgba(0,0,0,0.1);
-    }
-    
-    /* Decorative elements */
-    .footer-section::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 5px;
-      background: linear-gradient(90deg, #ffcc00, #ff9900, #ff6600);
+      margin-top: 40px;
     }
     
     .footer-container {
+      max-width: 1000px;
+      margin: 0 auto;
       display: flex;
-      justify-content: space-between;
-      gap: 30px;
+      justify-content: space-around;
       flex-wrap: wrap;
-      max-width: 1200px;
-      margin: auto;
-      padding-bottom: 20px;
-      position: relative;
-      z-index: 1;
+      gap: 60px;
     }
     
     .footer-column {
       flex: 1;
-      min-width: 220px;
-      margin-bottom: 20px;
-      padding: 0 10px;
-      transition: transform 0.3s ease;
-    }
-    
-    .footer-column:hover {
-      transform: translateY(-5px);
+      min-width: 280px;
+      max-width: 450px;
     }
     
     .footer-column h4 {
-      font-size: 20px;
-      margin-bottom: 20px;
-      font-weight: 600;
+      font-size: 1.3rem;
+      margin-bottom: 25px;
       position: relative;
       padding-bottom: 10px;
-      color: #fff;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 1px;
     }
@@ -210,7 +198,7 @@
       left: 0;
       width: 50px;
       height: 3px;
-      background: white;
+      background: #fff;
     }
     
     .footer-column ul {
@@ -220,18 +208,7 @@
     }
     
     .footer-column ul li {
-      margin: 12px 0;
-      position: relative;
-      padding-left: 20px;
-    }
-    
-    .footer-column ul li::before {
-      content: '▶';
-      position: absolute;
-      left: 0;
-      color: white;
-      font-size: 10px;
-      top: 5px;
+      margin-bottom: 15px;
     }
     
     .footer-column ul li a {
@@ -239,89 +216,114 @@
       text-decoration: none;
       transition: all 0.3s ease;
       display: inline-block;
+      position: relative;
     }
     
     .footer-column ul li a:hover {
-      color: white;
-      padding-left: 5px;
-      text-decoration: none;
+      color: #fff;
+      transform: translateX(5px);
     }
     
-    .footer-column p {
-      margin: 15px 0;
-      line-height: 1.6;
-      color: rgba(255, 255, 255, 0.9);
+    .footer-column ul li a::before {
+      content: '▶';
+      position: absolute;
+      left: -15px;
+      opacity: 0;
+      transition: all 0.3s ease;
+      font-size: 0.7rem;
     }
     
-    .footer-column p i {
-      color: white;
-      margin-right: 10px;
+    .footer-column ul li a:hover::before {
+      opacity: 1;
+    }
+    
+    .contact-info {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .contact-info i {
+      margin-right: 15px;
+      font-size: 1.1rem;
       width: 20px;
       text-align: center;
     }
     
-    .social-icons {
-      display: flex;
+    .parent-website {
       margin-top: 20px;
-      gap: 15px;
-    }
-    
-    .social-icons a {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
-      font-size: 18px;
-      transition: all 0.3s ease;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      align-items: flex-start;
     }
     
-    .social-icons a:hover {
-      background: white;
-      color: #b20710;
-      transform: translateY(-3px);
-      box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+    .parent-website i {
+      margin-right: 15px;
+      font-size: 1.1rem;
+      margin-top: 3px;
+    }
+    
+    .parent-website div {
+      flex: 1;
+    }
+    
+    .parent-website span {
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    .parent-website a {
+      color: rgba(255, 255, 255, 0.9);
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .parent-website a:hover {
+      color: #fff;
+      text-decoration: underline;
     }
     
     .footer-bottom {
       text-align: center;
-      padding-top: 25px;
-      margin-top: 30px;
-      border-top: 1px solid rgba(255,255,255,0.2);
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.7);
-      position: relative;
-      z-index: 1;
+      margin-top: 50px;
+      padding-top: 30px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+    }
+ 
+    .footer-logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 40px;
     }
     
-    /* Background pattern */
-    .footer-section::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 40%;
-      height: 40%;
-      background-image: 
-        radial-gradient(circle at 10% 20%, rgba(255,255,255,0.05) 0%, transparent 20%),
-        radial-gradient(circle at 90% 80%, rgba(255,255,255,0.05) 0%, transparent 20%);
-      z-index: 0;
+    .footer-logo img {
+      max-width: 150px;
+      height: auto;
+      margin-bottom: 15px;
+    }
+    
+    .footer-logo p {
+      font-size: 0.95rem;
+      color: rgba(255, 255, 255, 0.85);
+      text-align: center;
+      max-width: 400px;
+      line-height: 1.5;
     }
     
     /* Responsive adjustments */
-    @media (max-width:990px) {
-      .footer-container { 
-        flex-direction: column; 
-        padding: 0 4vw; 
-        gap: 20px;
+    @media (max-width: 768px) {
+      .footer-container {
+        flex-direction: column;
+        gap: 40px;
+        align-items: center;
       }
-      .footer-column { 
-        min-width: 0; 
+      
+      .footer-column {
+        min-width: 100%;
         text-align: center;
+        max-width: 100%;
       }
       
       .footer-column h4::after {
@@ -329,33 +331,24 @@
         transform: translateX(-50%);
       }
       
-      .footer-column ul li {
-        padding-left: 0;
-      }
-      
-      .footer-column ul li::before {
-        display: none;
-      }
-      
-      .social-icons {
+      .contact-info {
         justify-content: center;
+      }
+      
+      .parent-website {
+        justify-content: center;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      .parent-website i {
+        margin-top: 0;
       }
     }
     
     @media (max-width: 800px) {
       nav { padding: 11px 2vw;}
-      .footer-container { padding: 0 3vw; }
-    }
-    
-    @media (max-width: 620px) {
-      .footer-container { padding: 0 2vw; }
-    }
-    
-    @media (max-width: 700px) {
-      .footer-column {
-        min-width: 0;
-        margin-bottom: 25px;
-      }
     }
     
     @media (max-width: 750px) {
@@ -373,23 +366,6 @@
         gap: 9px;
       }
       .welcome-user { margin: 10px 0 0 7px; font-size: 0.97em;}
-    }
-    
-    @media (max-width: 510px) {
-      nav { padding: 7px 1vw; }
-      .welcome-user { font-size: 0.95em;}
-      .footer-section { padding-top: 30px;}
-      .footer-column { font-size: .95rem;}
-      
-      .footer-column h4 {
-        font-size: 18px;
-      }
-      
-      .social-icons a {
-        width: 35px;
-        height: 35px;
-        font-size: 16px;
-      }
     }
     
     .logo {
@@ -415,52 +391,48 @@
       outline: none;
     }
 
-    .footer-logo img {
-      max-width: 120px;
-      height: auto;
-    }
-    
-    .footer-logo p {
-      margin-top: 8px;
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.9);
-      max-width: 200px;
-    }
-
-    
   </style>
 </head>
 <body>
 <nav>
 <div class="logo">
   <a href="{% url 'index' %}">
-    <img src="{% static 'images/logo.png' %}" alt="sick bed service Logo" />
+    <img src="{% static 'images/logo1.png' %}" alt="sick bed service Logo" />
   </a>
 </div>
   <div class="nav-right">
     <!-- Desktop Links -->
     <div class="nav-links desktop" id="navLinksDesktop">
-      <a href="{% url 'index' %}">Home</a>
-      <a href="{% url 'services' %}">Services</a>
+      <!-- <a href="{% url 'index' %}">Home</a> -->
       {% if user.is_authenticated %}
+            <a href="{% url 'services' %}">Services</a>
         <a href="{% url 'items' %}">Items</a>
-        <a href="{% url 'logout' %}">Logout</a>
-      {% else %}
-        <a href="{% url 'signup' %}">Register</a>
-        <a href="{% url 'signin' %}">Signin</a>
+                  <a class="nav-link" href="{% url 'bookingsammry' %}">Booking Summary</a>
+
+<a href="{% url 'cart' %}" style="color:white; font-size:20px;">
+    <i class="fas fa-cart-plus"></i>
+</a>
+
+<a href="{% url 'logout' %}">
+    <i class="fas fa-sign-out-alt"></i>
+</a>      {% else %}
+        <a href="{% url 'signin' %}">Login</a>
       {% endif %}
     </div>
     <!-- Mobile Links (hidden normally, shown on toggle) -->
     <div class="nav-links mobile" id="navLinksMobile" role="menu" aria-label="Navigation Menu">
       <a href="{% url 'index' %}">Home</a>
       <a href="{% url 'services' %}">Services</a>
-
+<a href="{% url 'cart' %}" style="color:white; font-size:20px;">
+    <i class="fas fa-cart-plus"></i>
+</a>
+  <a class="nav-link" href="{% url 'bookingsammry' %}">Booking Summary</a>
       {% if user.is_authenticated %}
         <a href="{% url 'items' %}">Items</a>
-
-        <a href="{% url 'logout' %}">Logout</a>
+<a href="{% url 'logout' %}">
+    <i class="fas fa-sign-out-alt"></i> 
+</a>   
       {% else %}
-        <a href="{% url 'signup' %}">Register</a>
         <a href="{% url 'signin' %}">Signin</a>
       {% endif %}
     </div>
@@ -479,39 +451,50 @@
   {% endblock %}
 </main>
 <footer class="footer-section">
+
+  
   <div class="footer-container">
-    <!-- ✅ Head Office -->
+    <!-- Quick Links -->
     <div class="footer-column">
-      <h4>Address</h4>
-      <p><i class="fa fa-map-marker-alt"></i> Pickup/Drop Address: Shop No. 11A, Suraj Plaza, Opp. Bank of Baroda, Near MBMC, Station Road, Bhayander (W).</p>
-    </div>
-    <!-- ✅ Short Links -->
-    <div class="footer-column">
-      <h4>Short Links</h4>
+      <h4>Quick Links</h4>
       <ul>
+        <li><a href="{% url 'index' %}">Home</a></li>
+        <li><a href="{% url 'services' %}">Services</a></li>
         <li><a href="{% url 'items' %}">Items</a></li>
-        <li><a href="{% url 'services' %}">services</a></li>
       </ul>
     </div>
-   
-    <!-- ✅ Contact -->
+
+    <!-- Contact Info -->
     <div class="footer-column">
       <h4>Contact Us</h4>
-      <p><i class="fa fa-phone"></i> 9867348169</p>
-      <p><i class="fa fa-phone"></i>9820247550</p>
-      <p><i class="fa fa-envelope"></i>  bhayander@kutchyuvaksangh.org</p>
-      <div class="social-icons">
-        <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-        <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
-        <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+      <div class="contact-info">
+        <i class="fa fa-phone"></i>
+        <span>9867348169</span>
+      </div>
+      <div class="contact-info">
+        <i class="fa fa-phone"></i>
+        <span>9820247550</span>
+      </div>
+      <div class="contact-info">
+        <i class="fa fa-envelope"></i>
+        <span>bhayander@kutchyuvaksangh.org</span>
+      </div>
+      <div class="parent-website">
+        <i class="fas fa-globe"></i>
+        <div>
+          Parent Website :<a href="https://www.kutchyuvaksangh.org" target="_blank">
+            www.kutchyuvaksangh.org
+          </a>
+        </div>
       </div>
     </div>
   </div>
-  <!-- ✅ Bottom copyright -->
+
   <div class="footer-bottom">
-    <p>Copyright © 2025 Kutch Yuvak Sangh. All Rights Reserved.</p>
+    © 2026 Kutch Yuvak Sangh. All Rights Reserved.
   </div>
 </footer>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const toggleBtn = document.getElementById('toggleBtn');

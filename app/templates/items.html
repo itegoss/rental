@@ -1,283 +1,328 @@
 {% extends 'base.html' %}
 {% load static %}
-
-{% block title %} Sick Bed Services - items{% endblock %}
-
+{% block title %}Sick Bed Services - Items{% endblock %}
 {% block content %}
 <style>
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
+  :root{
+    --primary:#e50914;
+    --primary-600:#c60f14;
+    --accent:#ff6b6b;
+    --success:#28a745;
+    --danger:#dc3545;
+    --bg-grad-start:#f6f7fb;
+    --bg-grad-end:#ffffff;
+    --card-bg: #ffffff;
+    --text:#262626;
+    --muted:#6b7280;
   }
 
-  .items-heading {
-    text-align: center;
-    color: #e50914;
-    margin: 30px 0 40px;
-    font-size: 36px;
-    font-weight: 700;
-    position: relative;
-    padding-bottom: 15px;
-    font-family: 'Poppins', sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+  body{
+    background: linear-gradient(180deg,var(--bg-grad-start), var(--bg-grad-end));
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    font-family:'Poppins',sans-serif;
+    color:var(--text);
   }
 
-  .items-heading::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100px;
-    height: 4px;
-    background: linear-gradient(90deg, #e50914, #ff6b6b);
-    border-radius: 2px;
+  .container{
+    max-width:1250px;
+    margin:auto;
+    padding:36px 20px;
   }
 
-  .item-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 25px;
-    padding: 20px 0;
+  .items-heading{
+    text-align:center;
+    font-size:40px;
+    font-weight:800;
+    color:var(--primary);
+    margin-bottom:34px;
+    letter-spacing:1px;
   }
 
-  .item-card {
-    border: none;
-    border-radius: 12px;
-    overflow: hidden;
-    background: white;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-    position: relative;
+  .items-heading::after{
+    content:'';
+    display:block;
+    width:140px;
+    height:6px;
+    margin:10px auto 0;
+    background:linear-gradient(90deg,var(--primary),var(--accent));
+    border-radius:8px;
+    opacity:0.95;
   }
 
-  .item-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 15px 30px rgba(229, 9, 20, 0.15);
+  .item-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:26px;
+    align-items:start;
   }
 
-  .item-image-container {
-    position: relative;
-    overflow: hidden;
-    height: 200px;
+  .item-card{
+    background:var(--card-bg);
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 8px 30px rgba(16,24,40,0.06);
+    transform:translateY(18px);
+    transition:transform 420ms cubic-bezier(.2,.9,.2,1), box-shadow 280ms ease, opacity 420ms ease;
+    opacity:0;
+    will-change:transform,opacity;
   }
 
-  .item-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
+  .item-card.visible{
+    transform:none;
+    opacity:1;
   }
 
-  .item-card:hover .item-image {
-    transform: scale(1.05);
+  .item-card:hover{
+    transform:translateY(-8px) scale(1.01);
+    box-shadow:0 20px 50px rgba(16,24,40,0.12);
   }
 
-  .availability-badge {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  .item-image-container{
+    position:relative;
+    height:220px;
+    overflow:hidden;
   }
 
-  .available-badge {
-    background: rgba(40, 167, 69, 0.9);
-    color: white;
+  .item-image{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    transition:transform 650ms cubic-bezier(.2,.9,.2,1);
+    display:block;
   }
 
-  .not-available-badge {
-    background: rgba(220, 53, 69, 0.9);
-    color: white;
+  .item-card:hover .item-image{
+    transform:scale(1.06) rotateZ(0.01deg);
   }
 
-  .item-info {
-    padding: 20px;
+  .availability-badge{
+    position:absolute;
+    top:14px;
+    right:14px;
+    padding:8px 14px;
+    font-size:12px;
+    font-weight:700;
+    border-radius:999px;
+    color:#fff;
+    text-transform:uppercase;
+    box-shadow:0 6px 18px rgba(0,0,0,0.12);
   }
 
-  .item-title {
-    margin: 0 0 10px;
-    font-size: 20px;
-    color: #333;
-    font-weight: 600;
-    font-family: 'Poppins', sans-serif;
-    line-height: 1.3;
+  .available-badge{ background: linear-gradient(90deg,var(--success), #1f9a44); }
+  .not-available-badge{ background: linear-gradient(90deg,var(--danger), #b71c1c); }
+
+  .item-info{
+    padding:18px 20px 24px;
+    text-align:center;
   }
 
-  .item-price {
-    font-size: 22px;
-    color: #e50914;
-    font-weight: 700;
-    margin: 15px 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .item-title{ font-size:18px; font-weight:700; margin-bottom:8px; color:var(--text); }
+  .item-price{ font-size:18px; font-weight:800; color:var(--primary); }
+  .item-deposit{ font-size:13px; font-weight:700; color:var(--muted); margin-top:6px; }
+
+  .item-availability{ margin:10px 0; font-size:14px; color:var(--muted); }
+
+  .next-date{ display:block; font-size:13px; color:var(--muted); margin-top:6px; }
+
+  .buy-now-btn{
+    width:86%;
+    margin:14px auto 0;
+    padding:12px 18px;
+    border-radius:999px;
+    border:none;
+    background:linear-gradient(135deg,var(--primary),var(--primary-600));
+    color:#fff;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+    transition:transform 240ms ease, box-shadow 240ms ease;
+    box-shadow:0 8px 22px rgba(229,9,20,0.18);
+    display:inline-block;
   }
 
-  .item-price::before {
-    content: '₹';
-    margin-right: 5px;
-    font-size: 18px;
-  }
+  .buy-now-btn:hover{ transform:translateY(-4px) scale(1.01); box-shadow:0 14px 34px rgba(229,9,20,0.22); }
+  .buy-now-btn.disabled{ background:#e6e6e6; box-shadow:none; cursor:not-allowed; }
+  .buy-now-btn.notify-btn{ background:linear-gradient(135deg,#28a745,#20c997); box-shadow:0 8px 22px rgba(40,167,69,0.18); }
 
-  .item-price::after {
-    content: '/day';
-    font-size: 14px;
-    font-weight: 400;
-    color: #666;
-    margin-left: 5px;
-  }
+  .no-items{ grid-column:1/-1; background:#fff; border-radius:16px; padding:48px 30px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.06); }
+  .no-items p{ font-size:16px; color:var(--muted); }
 
-  .item-availability {
-    font-weight: 600;
-    margin: 15px 0;
-    font-size: 15px;
-    text-align: center;
-  }
-
-  .available {
-    color: #28a745;
-  }
-
-  .not-available {
-    color: #dc3545;
-  }
-
-  .next-date {
-    font-size: 14px;
-    color: #555;
-    margin-top: 8px;
-    display: block;
-    text-align: center;
-  }
-
-  .buy-now-btn {
-    display: block;
-    background: linear-gradient(135deg, #e50914 0%, #b20710 100%);
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 6px;
-    margin: 20px auto 0;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    width: 80%;
-    text-align: center;
-    box-shadow: 0 4px 10px rgba(229, 9, 20, 0.3);
-    font-family: 'Poppins', sans-serif;
-    letter-spacing: 0.5px;
-  }
-
-  .buy-now-btn:hover {
-    background: linear-gradient(135deg, #b20710 0%, #e50914 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(229, 9, 20, 0.4);
-  }
-
-  .buy-now-btn:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
-  }
-
-  .no-items {
-    text-align: center;
-    padding: 50px 20px;
-    color: #666;
-    font-size: 18px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    max-width: 600px;
-    margin: 40px auto;
-  }
-
-  @media (max-width: 768px) {
-    .items-heading {
-      font-size: 28px;
-    }
-    
-    .item-grid {
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 20px;
-    }
-    
-    .item-info {
-      padding: 15px;
-    }
-    
-    .item-title {
-      font-size: 18px;
-    }
-    
-    .item-price {
-      font-size: 20px;
-    }
-  }
+  @media(max-width:768px){ .items-heading{font-size:28px;} .item-image-container{height:180px;} }
 </style>
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    const cards = document.querySelectorAll('.item-card');
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries, obs) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            obs.unobserve(entry.target);
+          }
+        });
+      }, {threshold: 0.12});
+      cards.forEach(c => io.observe(c));
+    } else {
+      cards.forEach(c => c.classList.add('visible'));
+    }
+  });
+</script>
 
 <div class="container">
+
   <h1 class="items-heading">Available Rental Items</h1>
 
   <div class="item-grid">
-    {% for item in items %}
-      <div class="item-card">
-        <div class="item-image-container">
-          {% if item.image %}
-            <img src="{{ item.image.url }}" alt="{{ item.title }}" class="item-image">
-          {% else %}
-            <img src="{% static 'images/default-placeholder.png' %}" alt="No Image" class="item-image">
-          {% endif %}
-          <div class="availability-badge {% if item.available %}available-badge{% else %}not-available-badge{% endif %}">
-            {% if item.available %}Available{% else %}Unavailable{% endif %}
-          </div>
-        </div>
 
-        <div class="item-info">
-          <h3 class="item-title">{{ item.title }}</h3>
-          <p class="item-price">{{ item.price_per_day }}</p>
-          
-          <div class="item-availability">
-            {% if item.available %}
-              {% if item.available_quantity > 1 %}
-                <span class="available">{{ item.available_quantity }} items available</span>
-              {% else %}
-                <span class="available"> 1 Available</span>
-              {% endif %}
-            {% else %}
-              <span class="not-available">Not Available</span>
-              {% if item.next_available_date %}
-                <span class="next-date">
-                  Next Available On: {{ item.next_available_date|date:"F j, Y" }}
-                </span>
-              {% endif %}
-            {% endif %}
-          </div>
-        </div>
+  {% for item in items %}
+    <div class="item-card">
 
-        {% if item.available %}
-          <a href="{% url 'buy' item.id %}" class="buy-now-btn">Rent Now</a>
+      <div class="item-image-container">
+        {% if item.image %}
+          <img src="{{ item.image.url }}" alt="{{ item.title }}" class="item-image">
         {% else %}
-          <button class="buy-now-btn" disabled>Unavailable</button>
+          <img src="{% static 'images/default-placeholder.png' %}" alt="No Image" class="item-image">
+        {% endif %}
+
+        <div class="availability-badge {% if item.available_quantity > 0 %}available-badge{% else %}not-available-badge{% endif %}">
+          {% if item.available_quantity > 0 %}Available{% else %}Out of Stock{% endif %}
+        </div>
+      </div>
+
+      <div class="item-info">
+        <h3 class="item-title">{{ item.title }}</h3>
+        <p class="item-price">₹{{ item.price_per_day }} / day</p>
+
+        <div class="item-availability">
+          {% if item.available_quantity > 0 %}
+            <span class="available">{{ item.available_quantity }} left</span>
+          {% else %}
+            <span class="not-available">Out of Stock</span>
+            {% if item.next_available_date %}
+              <span class="next-date">
+                Next Available On: {{ item.next_available_date|date:"F j, Y" }}
+              </span>
+            {% endif %}
+          {% endif %}
+        </div>
+
+        {% if item.available_quantity > 0 %}
+          <form action="{% url 'add_to_cart' item.id %}" method="POST">
+            {% csrf_token %}
+            <button type="submit" class="buy-now-btn">Rent Now</button>
+          </form>
+        {% else %}
+          <button class="buy-now-btn notify-btn" onclick="openNotifyModal('{{ item.id }}', '{{ item.title }}')">Notify Me</button>
         {% endif %}
       </div>
-    {% empty %}
-      <div class="no-items">
-        <i class="fas fa-box-open" style="font-size: 48px; color: #e50914; margin-bottom: 15px;"></i>
-        <p>No items found at the moment.</p>
-        <p style="font-size: 16px; margin-top: 10px;">Please check back later or contact us for more information.</p>
-      </div>
-    {% endfor %}
+
+    </div>
+  {% empty %}
+    <div class="no-items">
+      <i class="fas fa-box-open" style="font-size:52px;color:var(--primary);margin-bottom:15px;"></i>
+      <p>No items found at the moment.</p>
+      <p>Please check back later or contact us.</p>
+    </div>
+  {% endfor %}
+
   </div>
 </div>
+
+<div id="notifyModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeNotifyModal()">&times;</span>
+    <h2>Notify Me When Available</h2>
+    <p id="modalItemTitle"></p>
+    <form id="notifyForm" action="{% url 'notify_request' %}" method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="item_id" id="modalItemId">
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="form-group">
+        <label for="mobile">Mobile:</label>
+        <input type="tel" id="mobile" name="mobile" required>
+      </div>
+      <button type="submit" class="submit-btn">Notify Me</button>
+    </form>
+  </div>
+</div>
+
+<style>
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+  }
+  .modal-content {
+    background-color: #fff;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 400px;
+    border-radius: 8px;
+  }
+  .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .close:hover {
+    color: black;
+  }
+  .form-group {
+    margin-bottom: 15px;
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+  }
+  .form-group input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  .submit-btn {
+    background: var(--primary);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+  }
+  .submit-btn:hover {
+    background: var(--primary-600);
+  }
+</style>
+
+<script>
+  function openNotifyModal(itemId, itemTitle) {
+    document.getElementById('modalItemId').value = itemId;
+    document.getElementById('modalItemTitle').textContent = itemTitle;
+    document.getElementById('notifyModal').style.display = 'block';
+  }
+
+  function closeNotifyModal() {
+    document.getElementById('notifyModal').style.display = 'none';
+  }
+
+  window.onclick = function(event) {
+    if (event.target == document.getElementById('notifyModal')) {
+      closeNotifyModal();
+    }
+  }
+</script>
+
 {% endblock %}

@@ -12,13 +12,13 @@
         background-size: cover;
     }
 
-    .welcome-text {
-        text-align: center;
-        color: black;
-        font-size: 2rem;
-        margin-top: 60px;
-        font-weight: 600;
-    }
+   .welcome-text {
+    text-align: center;
+    color: #000;
+    font-size: 2rem;
+    margin-top: 60px;
+    font-weight: 400;
+}
 
     .signup-container {
         background: rgba(255, 255, 255, 0.15);
@@ -102,11 +102,33 @@
         margin-bottom: 10px;
         text-align: center;
     }
-</style>
 
+  /* GOOGLE BUTTON */
+.btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: #db4437;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    margin-top: 15px;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.btn-google:hover {
+    background-color: #c1351d;
+    transform: translateY(-2px);
+}
+</style>
 <div class="welcome-text">
-    Welcome to QuickNest – Create Your Free Account
+    Welcome to QuickNest Create your account to continue
 </div>
+
 
 <div class="signup-container">
     <h2>Create Account</h2>
@@ -122,7 +144,8 @@
     <form method="POST">
         {% csrf_token %}
         <input type="text" name="username" placeholder="Username" required>
-        <input type="email" name="email" placeholder="Email" required>
+        <input type="email" name="email" placeholder="Email">
+        <input type="text" name="mobile" placeholder="Mobile (e.g. 9876543210)" required>
 
         <div class="password-wrapper">
             <input type="password" id="password" name="password" placeholder="Password" required>
@@ -137,9 +160,27 @@
         <button type="submit">Sign Up</button>
     </form>
 
+        {% if show_otp %}
+        <div style="margin-top:20px;padding:16px;border-top:1px solid #eee;">
+            <h3>Enter OTP sent to {{ mobile }}</h3>
+            {% if debug_otp %}
+                <p style="color:#b71c1c;font-weight:700">DEBUG OTP: {{ debug_otp }}</p>
+            {% endif %}
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="mobile" value="{{ mobile }}" />
+                <input type="text" name="otp" placeholder="6-digit OTP" style="width:100%;padding:8px;margin:8px 0;" required />
+                <button type="submit" style="padding:10px 14px;background:var(--primary);color:#fff;border:none;border-radius:4px;">Verify & Continue</button>
+            </form>
+        </div>
+        {% endif %}
+
     <div class="extra-links">
         <p><a href="{% url 'signin' %}">Already have an account? Log in</a></p>
     </div>
+          <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn-google">
+    <i class="fab fa-google"></i> Sign in with Google
+</a>
 </div>
 
 <script>

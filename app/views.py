@@ -1,36 +1,60 @@
-from datetime import datetime
+from datetime import datetime, date, timedelta
+from decimal import Decimal
+from collections import defaultdict
+from io import BytesIO
+import os
+import re
+import uuid
+import random
+from django.conf import settings
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, JsonResponse
+from django.urls import reverse
+from django.utils import timezone
+from django.db import transaction
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout as auth_logout
-from django.contrib.auth.hashers import make_password 
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
-from django.shortcuts import render, redirect, get_object_or_404
-import re
-from .models import RentalItem, RentalRequest, UserDetail
-from decimal import Decimal
-from django.core.mail import send_mail 
-from django.utils import timezone
-from datetime import timedelta
-from django.conf import settings
+from django.template.loader import render_to_string
 import razorpay
-from .utils import send_overdue_email
-from .utils import generate_order_id
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A5
+from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
+from django.core.files.base import ContentFile
+from urllib3 import request
 
-from django.db import transaction
-
+from .models import (
+    Inventory,
+    History,
+    UserDetail,
+    Payment,
+    Services,
+    Cart,
+    CartItem,
+    Receipt,
+    Customer,
+    NotifyRequest,
+)
+from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, send_whatsapp_message
 
 def index(request):
+    if request.user.is_authenticated and request.user.is_superuser:
+        if not request.session.get("details_filled"):
+            return redirect("userdetail")
+
     today = timezone.now().date()
-    rentals = RentalRequest.objects.filter(status='approved')
+    rentals = History.objects.filter(status='approved')
 
     for rental in rentals:
-      if rental.end_date - timedelta(days=1) == today and not rental.is_reminder_sent:
-        rent_days = rental.rental_days   # ✅ Correct way
-        send_reminder_email(rental.user, rental)
-        rental.is_reminder_sent = True
-        rental.save(update_fields=['is_reminder_sent'])
+        if rental.end_date - timedelta(days=1) == today and not rental.is_reminder_sent:
+            send_reminder_email(rental.user, rental)
+            rental.is_reminder_sent = True
+            rental.save(update_fields=['is_reminder_sent'])
 
-
-        # Overdue: after end date
         if rental.end_date < today and not rental.is_overdue_email_sent:
             send_overdue_email(rental.user, rental)
             rental.is_overdue_email_sent = True
@@ -39,73 +63,124 @@ def index(request):
     return render(request, 'index.html')
 
 
-# Logout view
 def logout(request):
+    if request.user.is_authenticated:
+        Cart.objects.filter(user=request.user).delete()
+
     auth_logout(request)
     return redirect('signin')
 
-# Signup view
 def signup(request):
     if request.method == 'POST':
+        if request.POST.get('otp'):
+            mobile = request.POST.get('mobile')
+            otp = request.POST.get('otp')
+
+            otp_data = request.session.get('otp_data')
+            if not otp_data:
+                messages.error(request, "No OTP session found. Please register again.")
+                return redirect('signup')
+
+            digits = re.sub(r"\D", "", str(mobile or ""))
+            try:
+                exp = datetime.fromisoformat(otp_data.get('expires'))
+            except Exception:
+                exp = None
+
+            if exp and timezone.now() > exp:
+                request.session.pop('otp_data', None)
+                messages.error(request, "OTP expired. Please register again.")
+                return redirect('signup')
+
+            if digits != otp_data.get('mobile') or otp != otp_data.get('otp'):
+                messages.error(request, "Invalid OTP or mobile number.")
+                ctx = {'show_otp': True, 'mobile': digits}
+                if getattr(settings, 'DEBUG', False):
+                    ctx['debug_otp'] = otp_data.get('otp')
+                return render(request, 'signup.html', ctx)
+
+            username = otp_data.get('username')
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                messages.error(request, "User not found; please register again.")
+                return redirect('signup')
+
+            ab = getattr(settings, 'AUTHENTICATION_BACKENDS', None)
+            backend = ab[0] if ab else 'django.contrib.auth.backends.ModelBackend'
+            user.backend = backend
+            login(request, user)
+            request.session.pop('otp_data', None)
+            messages.success(request, "Registration complete and logged in.")
+            return redirect('index')
+
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
         confirm_password = request.POST.get('confirm_password')
+        mobile = request.POST.get('mobile')
 
-        # Basic checks
-        if not all([username, email, password, confirm_password]):
+        if not all([username, password, confirm_password]):
             messages.error(request, "Please fill all fields.")
-            return redirect('signup')
+            return render(request, 'signup.html')
 
         if password != confirm_password:
             messages.error(request, "Password and confirm password do not match.")
-            return redirect('signup')
+            return render(request, 'signup.html')
 
         if len(password) < 6:
             messages.error(request, "Password must be at least 6 characters long.")
-            return redirect('signup')
+            return render(request, 'signup.html')
 
         if username[0].isdigit():
             messages.error(request, "Username should not start with a digit.")
-            return redirect('signup')
-
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            messages.error(request, "Enter a valid email address.")
-            return redirect('signup')
+            return render(request, 'signup.html')
 
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username already taken.")
-            return redirect('signup')
+            return render(request, 'signup.html')
 
-        if User.objects.filter(email=email).exists():
-            messages.error(request, "Email already registered.")
-            return redirect('signup')
-
-        # Password strength checks
         if not re.search(r'[A-Z]', password):
             messages.error(request, "Password must contain at least one uppercase letter.")
-            return redirect('signup')
+            return render(request, 'signup.html')
 
         if not re.search(r'[a-z]', password):
             messages.error(request, "Password must contain at least one lowercase letter.")
-            return redirect('signup')
+            return render(request, 'signup.html')
 
         if not re.search(r'\d', password):
             messages.error(request, "Password must contain at least one digit.")
-            return redirect('signup')
+            return render(request, 'signup.html')
 
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
             messages.error(request, "Password must contain at least one special character.")
-            return redirect('signup')
+            return render(request, 'signup.html')
 
-        # Create user
         user = User.objects.create_user(username=username, email=email, password=password)
         user.save()
-        messages.success(request, "Account created successfully! Please log in.")
-        return redirect('signin')
+
+        digits = re.sub(r"\D", "", str(mobile or ""))
+        otp = str(random.randint(100000, 999999))
+        expires = (timezone.now() + timedelta(minutes=5)).isoformat()
+
+        request.session['otp_data'] = {
+            'mobile': digits,
+            'otp': otp,
+            'expires': expires,
+            'username': username,
+        }
+
+        message = f"Your QuickNest OTP is {otp}. It expires in 5 minutes."
+        send_whatsapp_message(digits, message)
+
+        messages.success(request, "Account created. OTP sent via WhatsApp (simulated if not configured).")
+        ctx = {'show_otp': True, 'mobile': digits}
+        if getattr(settings, 'DEBUG', False):
+            ctx['debug_otp'] = otp
+        return render(request, 'signup.html', ctx)
 
     return render(request, 'signup.html')
-# Signin view
+
 def signin(request):
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -117,17 +192,17 @@ def signin(request):
 
         try:
             user = User.objects.get(username=username)
-
-            # Check if password is only digits
             if password.isdigit():
                 messages.error(request, "Password should contain alphabets or special characters.", extra_tags="signin")
                 return redirect('signin')
 
-            # Authenticate user
             authenticated_user = authenticate(request, username=username, password=password)
             if authenticated_user is not None:
                 login(request, authenticated_user)
                 messages.success(request, "Login successful.", extra_tags="signin")
+
+                if authenticated_user.is_superuser:
+                    return redirect('userdetail')
                 return redirect('index')
             else:
                 messages.error(request, "Invalid username or password.", extra_tags="signin")
@@ -139,7 +214,93 @@ def signin(request):
     return render(request, 'signin.html')
 
 
-# Forgot password (step 1: enter username)
+def signin_mobile(request):
+    """Start login via mobile number. Generates OTP and sends via WhatsApp.
+    - POST with `mobile` sends OTP and shows verify page
+    - GET renders a simple mobile input form
+    """
+    if request.method == 'POST':
+        mobile = request.POST.get('mobile')
+        if not mobile:
+            messages.error(request, "Please enter a mobile number.")
+            return redirect('signin_mobile')
+
+        digits = re.sub(r"\D", "", mobile)
+        if not digits:
+            messages.error(request, "Enter a valid mobile number.")
+            return redirect('signin_mobile')
+
+        otp = str(random.randint(100000, 999999))
+        expires = (timezone.now() + timedelta(minutes=5)).isoformat()
+
+        request.session['otp_data'] = {
+            'mobile': digits,
+            'otp': otp,
+            'expires': expires,
+        }
+
+        message = f"Your QuickNest OTP is {otp}. It expires in 5 minutes."
+        send_whatsapp_message(digits, message)
+
+        messages.success(request, "OTP sent via WhatsApp (simulated if not configured).")
+        return redirect('verify_otp')
+
+    return render(request, 'signin_mobile.html')
+
+def verify_otp(request):
+    """Verify OTP entered by user and log them in (creates user if needed)."""
+    otp_data = request.session.get('otp_data')
+
+    if request.method == 'POST':
+        mobile = request.POST.get('mobile')
+        otp = request.POST.get('otp')
+
+        if not otp_data:
+            messages.error(request, "No OTP request found. Please request a new OTP.")
+            return redirect('signin_mobile')
+
+        digits = re.sub(r"\D", "", mobile or "")
+
+        if digits != otp_data.get('mobile'):
+            messages.error(request, "Mobile number mismatch.")
+            return redirect('signin_mobile')
+        try:
+            exp = datetime.fromisoformat(otp_data.get('expires'))
+        except Exception:
+            exp = None
+
+        if exp and timezone.now() > exp:
+            request.session.pop('otp_data', None)
+            messages.error(request, "OTP expired. Please request a new one.")
+            return redirect('signin_mobile')
+
+        if otp and otp == otp_data.get('otp'):
+            username = otp_data.get('mobile')
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                user = User.objects.create_user(username=username)
+                user.set_unusable_password()
+                user.save()
+
+            ab = getattr(settings, 'AUTHENTICATION_BACKENDS', None)
+            backend = ab[0] if ab else 'django.contrib.auth.backends.ModelBackend'
+            user.backend = backend
+            login(request, user)
+            request.session.pop('otp_data', None)
+            messages.success(request, "Logged in successfully.")
+            return redirect('index')
+        else:
+            messages.error(request, "Invalid OTP.")
+            return redirect('verify_otp')
+
+    mobile_prefill = otp_data.get('mobile') if otp_data else ''
+    ctx = {'mobile': mobile_prefill}
+    if getattr(settings, 'DEBUG', False) and otp_data:
+        ctx['debug_otp'] = otp_data.get('otp')
+    return render(request, 'verify_otp.html', ctx)
+
+
 def forgot(request):
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -150,7 +311,6 @@ def forgot(request):
             messages.error(request, "Username does not exist.")
     return render(request, 'forgot.html')
 
-# Password reset view
 def resetpass(request, username):
     if request.method == 'POST':
         new_password = request.POST.get('new_password')
@@ -176,338 +336,441 @@ def resetpass(request, username):
 
     return render(request, 'resetpass.html', {'username': username})
 
-
-# List all items
 def items(request):
-    items = RentalItem.objects.all()
-    return render(request, 'items.html', {'items': items})
-from datetime import datetime, date
-from datetime import datetime, date  # Add date import
+    items = Inventory.objects.all().order_by('-available', 'title')
+    return render(request, 'items.html', {
+        'items': items
+    })
 
-def buy(request, item_id):
-    item = get_object_or_404(RentalItem, id=item_id)
-    today = date.today()
+def notify_request(request):
+    if request.method == 'POST':
+        item_id = request.POST.get('item_id')
+        email = request.POST.get('email')
+        mobile = request.POST.get('mobile')
+        item = get_object_or_404(Inventory, id=item_id)
+
+        NotifyRequest.objects.create(
+            item=item,
+            email=email,
+            mobile=mobile
+        )
+        send_notify_emails(item, email, mobile)
+        
+        messages.success(request, "We'll notify you when this item becomes available!")
+        return redirect('items')
+    
+    return redirect('items')
+
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect
+from django.db import transaction
+@transaction.atomic
+def add_to_cart(request, item_id):
+
+    if not request.user.is_authenticated:
+        messages.warning(request, "Please login to rent items")
+        return redirect('signin')
+
+    item = get_object_or_404(Inventory, id=item_id)
+
+    if item.available_quantity <= 0:
+        messages.error(request, "Item is out of stock.")
+        return redirect('items')
+
+    cart, _ = Cart.objects.get_or_create(user=request.user)
+
+    cart_item, created = CartItem.objects.get_or_create(
+        cart=cart,
+        rental_item=item
+    )
+    if created:
+        cart_item.quantity = 1
+    else:
+        cart_item.quantity += 1
+
+    cart_item.save()
+    messages.success(request, "Item added to cart.")
+    return redirect('cart')
+
+
+def cart_view(request):
+
+    cart, _ = Cart.objects.get_or_create(user=request.user)
+    cart_items = cart.items.all()
 
     if request.method == "POST":
-        start_date_str = request.POST.get('start_date')
-        end_date_str = request.POST.get('end_date')
+        start_date = request.POST.get("start_date")
+        end_date = request.POST.get("end_date")
 
-        # ✅ Debug prints (safe inside POST only)
-        print("START STR:", start_date_str)
-        print("END STR:", end_date_str)
+        if not start_date or not end_date:
+            messages.error(request, "Please select rental dates.")
+            return redirect("cart")
 
-        if not (start_date_str and end_date_str):
-            messages.error(request, "Please select start and end dates.", extra_tags="buy")
-            return redirect('buy', item_id=item_id)
+        request.session["start_date"] = start_date
+        request.session["end_date"] = end_date
+        if request.user.is_superuser and request.session.get("details_filled"):
+            if cart_items:
+                return redirect("select_delivery", pk=cart_items.first().rental_item.id)
 
-        try:
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        return redirect("userdetail")
 
-            # ✅ More debug prints
-            print("START DATE OBJECT:", start_date)
-            print("END DATE OBJECT:", end_date)
-
-            # Check 1: start date not in the past
-            if start_date < today:
-                messages.error(request, "Start date cannot be in the past.", extra_tags="buy")
-                return redirect('buy', item_id=item_id)
-
-            # Check 2: end date not in the past
-            if end_date < today:
-                messages.error(request, "End date cannot be in the past.", extra_tags="buy")
-                return redirect('buy', item_id=item_id)
-
-            # Check 3: end date >= start date
-            if end_date < start_date:
-                messages.error(request, "End date cannot be before start date.", extra_tags="buy")
-                return redirect('buy', item_id=item_id)
-
-            rent_days = (end_date - start_date).days + 1  # inclusive
-            rent_amount = rent_days * item.price_per_day
-            amount_in_paise = int(rent_amount * 100)
-
-            # Save in session
-            request.session['start_date'] = start_date_str
-            request.session['end_date'] = end_date_str
-            request.session['item_id'] = item_id
-            request.session['amount_in_paise'] = amount_in_paise
-
-            return redirect('select_delivery', pk=item_id)
-
-        except Exception as e:
-            messages.error(request, f"Invalid date format: {e}", extra_tags="buy")
-            return redirect('buy', item_id=item_id)
-
-    # For GET request, render the form
-    return render(request, "buy.html", {"item": item, "today": today})
-
+    return render(request, "cart.html", {"cart_items": cart_items})
 
 def select_delivery(request, pk):
-    item = get_object_or_404(RentalItem, pk=pk)
-    amount_in_paise = request.session.get('amount_in_paise', 0)
+    item = get_object_or_404(Inventory, pk=pk)
+    request.session['item_id'] = pk
+
+    start_date = request.session.get("start_date")
+    end_date = request.session.get("end_date")
+    try:
+        if isinstance(start_date, str):
+            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    except Exception:
+        start_date = None
+    try:
+        if isinstance(end_date, str):
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    except Exception:
+        end_date = None
+
     if request.method == 'POST':
         delivery_option = request.POST.get('delivery_option')
-        # Save delivery option in session
+        delivery_charge_str = request.POST.get('delivery_charge', '').strip()
+
         request.session['delivery_option'] = delivery_option
-        return redirect(f"/userdetail/?item_id={pk}")
+
+        rental = History.objects.filter(rental_item=item, user=request.user).last()
+        if rental:
+            if delivery_option and delivery_option.lower() == "delivery":
+                if delivery_charge_str:
+                    try:
+                        rental.delivery_charge = Decimal(re.sub(r"[^0-9.]", "", delivery_charge_str))
+                    except Exception:
+                        rental.delivery_charge = Decimal('500')
+                else:
+                    rental.delivery_charge = Decimal('500')
+            else:
+                rental.delivery_charge = Decimal('0')
+
+            rental.delivery_option = delivery_option
+            rental.save()
+
+            request.session['rental_id'] = rental.id
+            request.session['delivery_charge'] = str(rental.delivery_charge)
+        else:
+        
+            if delivery_option and delivery_option.lower() == "delivery":
+                if delivery_charge_str:
+                    try:
+                        delivery_charge_val = Decimal(re.sub(r"[^0-9.]", "", delivery_charge_str))
+                    except Exception:
+                        delivery_charge_val = Decimal('500')
+                else:
+                    delivery_charge_val = Decimal('500')
+            else:
+                delivery_charge_val = Decimal('0')
+
+            request.session['delivery_option'] = delivery_option
+            request.session['delivery_charge'] = str(delivery_charge_val)
+
+        return redirect('paymentmethod')
+
+    rental = History.objects.filter(rental_item=item, user=request.user).last()
+
+    cart_items = []
+    total_rent = 0
+    total_deposit = 0
+
+    if rental and rental.order_id:
+        related = History.objects.filter(order_id=rental.order_id, user=request.user).select_related('rental_item')
+        for r in related:
+            cart_items.append(r)
+            total_rent += r.total_rent
+            total_deposit += (r.deposit * r.quantity)
+
+    elif rental:
+        cart_items = [rental]
+        total_rent = rental.total_rent
+        total_deposit = rental.deposit * rental.quantity
+    else:
+        cart = Cart.objects.filter(user=request.user).first()
+        if cart:
+            days = 1
+            if start_date and end_date:
+                try:
+                    days = (end_date - start_date).days or 1
+                except Exception:
+                    days = 1
+
+            for ci in cart.items.select_related('rental_item'):
+                ci_total_rent = (ci.rental_item.price_per_day * days) * ci.quantity
+                cart_items.append(ci)
+                total_rent += ci_total_rent
+                total_deposit += (ci.rental_item.deposit * ci.quantity)
 
     return render(request, 'select_delivery.html', {
         'item': item,
-        'amount_in_paise': amount_in_paise
+        'rental_id': pk,
+        'cart_items': cart_items,
+        'total_rent': total_rent,
+        'total_deposit': total_deposit,
     })
-
-
-def userdetail(request):
-    # Fetch amount in paise from session (default 0)
-    raw_amount = request.session.get('amount_in_paise', 0)
-    try:
-        amount_in_paise = int(raw_amount) if raw_amount else 0
-    except (ValueError, TypeError):
-        amount_in_paise = 0
-
-    rent_amount = amount_in_paise / 100
-
-    # Get item from session
-    item_id = request.session.get('item_id')
-    item = get_object_or_404(RentalItem, id=item_id) if item_id else None
-
-    # Delivery option
-    delivery_option = (
-        request.session.get('delivery_option') or
-        request.POST.get('delivery_option') or
-        request.GET.get('delivery_option')
-    )
-    delivery_charge = 50 if delivery_option == 'Delivery' else 0
-    total_amount = rent_amount + delivery_charge
-
-    if request.method == 'POST':
-        name = request.POST.get('name', '').strip()
-        email = request.POST.get('email', '').strip()
-        phone = request.POST.get('phone', '').strip()
-        aadhar = request.POST.get('aadhar', '').strip()
-        address = request.POST.get('address', '').strip()
-
-        # Validation
-        if not all([name, email, phone, aadhar, address]):
-            messages.error(request, "Please fill in all fields.")
-        elif not phone.isdigit() or len(phone) != 10:
-            messages.error(request, "Phone number must be 10 digits and numeric.")
-        elif not aadhar.isdigit() or len(aadhar) != 12:
-            messages.error(request, "Aadhaar number must be 12 digits and numeric.")
-        elif any(char.isdigit() for char in address):
-            messages.error(request, "Address cannot contain digits.")
-        else:
-    # Create rental with actual selected dates from session
-            from datetime import datetime
-
-            start_date_str = request.session.get('start_date')
-            end_date_str = request.session.get('end_date')
-
-            if not start_date_str or not end_date_str:
-                messages.error(request, "Rental dates missing. Please select again.")
-                return redirect('buy', item_id=item.id)
-
-            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-
-            rental = RentalRequest.objects.create(
-                user=request.user,
-                rental_item=item,
-                start_date=start_date,
-                end_date=end_date,
-                payment_method='online',  # default, updated in paymentmethod if COD
-                total_amount=total_amount
-            )
-
-            # Save user details
-            UserDetail.objects.update_or_create(
-                user=request.user,
-                defaults={
-                    'phone': phone,
-                    'aadhar': aadhar,
-                    'email': email,
-                    'address_line1': address,
-                    'city': '',
-                    'state': '',
-                    'pincode': '000000',
-                }
-            )
-
-
-            # Save session data
-            request.session['user_name'] = name
-            request.session['user_email'] = email
-            request.session['user_phone'] = phone
-            request.session['user_aadhar'] = aadhar
-            request.session['user_address'] = address
-            request.session['delivery_option'] = delivery_option
-            request.session['rental_id'] = rental.id
-
-            # Redirect to paymentmethod view
-            return redirect('paymentmethod')
-
-    # GET request or validation failed
-    return render(request, 'userdetail.html', {
-        'item': item,
-        'rent_amount': rent_amount,
-        'delivery_charge': delivery_charge,
-        'total_amount': total_amount,
-        'delivery_option': delivery_option,
-    })
-
+from datetime import datetime
 @transaction.atomic
 def paymentmethod(request):
-    rental_id = request.session.get('rental_id')
-    if not rental_id:
-        messages.error(request, "Rental not found. Please fill your details again.")
-        return redirect('userdetail')
 
-    rental = get_object_or_404(RentalRequest, id=rental_id)
-    total_amount = rental.total_amount
+    cart = Cart.objects.filter(user=request.user).first()
 
-    # Create or get existing Payment object for the rental
-    payment_obj, created = Payment.objects.get_or_create(
-        rental_request=rental,
-        defaults={
-            'payment_status': 'PENDING',
-            'order_id': generate_order_id()  # Make sure your generate_order_id() returns a unique ID
-        }
-    )
+    renter_name = request.session.get("renter_name")
+    patient_name = request.session.get("patient_name")
+    phone = request.session.get("phone")
+    address = request.session.get("address")
+
+    start_date = request.session.get("start_date")
+    end_date = request.session.get("end_date")
+
+    try:
+        if isinstance(start_date, str):
+            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+    except Exception:
+        start_date = None
+
+    try:
+        if isinstance(end_date, str):
+            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    except Exception:
+        end_date = None
+
+    delivery_option = request.session.get('delivery_option')
+    delivery_charge = 500 if delivery_option == "Delivery" else 0
+
+    order_id = generate_sequential_order_id()
 
     if request.method == 'POST':
         payment_method = request.POST.get('payment_method')
+        created_rentals = []
 
-        if payment_method == 'online':
-            # Redirect to payment view for Razorpay processing
-            return redirect('payment', rental_id=rental.id)
+        if not cart:
+            messages.error(request, "Your cart is empty.")
+            return redirect('cart')
 
-        elif payment_method == 'cod':
-            rental.payment_method = 'cod'
-            rental.save()
+        for ci in cart.items.select_related("rental_item"):
+            item = ci.rental_item
+            if item.available_quantity < ci.quantity:
+                messages.error(request, f"{item.title} is out of stock.")
+                return redirect('cart')
 
-            # Update payment object for COD
-            payment_obj.payment_status = 'SUCCESS'
-            payment_obj.payment_id = None
-            payment_obj.razorpay_order_id = None
-            payment_obj.save()
+            rental = History.objects.create(
+                user=request.user,
+                renter_name=renter_name,
+                patient_name=patient_name,
+                phone=phone,
+                address=address,
+                rental_item=item,
+                start_date=start_date,
+                end_date=end_date,
+                quantity=ci.quantity,
+                deposit=item.deposit,
+                payment_method=payment_method.lower(),
+                order_id=order_id,
+                delivery_option=delivery_option.lower() if delivery_option else None,
+                delivery_charge=delivery_charge,
+            )
 
-            # ✅ Send email confirmation for COD
-            recipient_email = rental.user.email
-            if recipient_email:
-                subject = "Booking Confirmed - Cash on Delivery"
-                message = (
-                    f"Dear {rental.user.get_full_name() or rental.user.username},\n\n"
-                    f"Your booking has been confirmed!\n\n"
-                    f"Item: {rental.rental_item.title}\n"
-                    f"Total Amount: ₹{total_amount}\n"
-                    f"Payment Method: Cash on Delivery\n\n"
-                    f"Please come and collect your item from our service center.\n\n"
-                    "Thank you for choosing Sick Bed Services!"
+            try:
+                to_phone = rental.phone
+                if not to_phone:
+                    try:
+                        ud = UserDetail.objects.filter(user=request.user).first()
+                        to_phone = ud.phone if ud else None
+                    except Exception:
+                        to_phone = None
+
+                if to_phone:
+                    to_digits = re.sub(r"\D", "", str(to_phone))
+                    customer_name = rental.renter_name or (request.user.get_full_name() or request.user.username)
+                    msg = (
+                        f"Hi {customer_name}, your rental request {rental.order_id} for '{item.title}' "
+                        f"(Qty: {rental.quantity}) from {rental.start_date} to {rental.end_date} has been submitted. "
+                        "We'll notify you when it's confirmed. - QuickNest"
+                    )
+                    send_whatsapp_message(to_digits, msg)
+            except Exception as e:
+                print(f"[whatsapp notify error] {e}")
+
+            created_rentals.append(rental)
+
+        print("HISTORY CREATED")
+
+        
+        cart.delete()
+
+        # ================= PAYMENT =================
+        if payment_method.lower() == 'online':
+            return redirect('payment', rental_id=created_rentals[0].id)
+
+        elif payment_method.lower() in ['cod', 'cash on delivery']:
+            for rental in created_rentals:
+                rental.payment_method = 'cod'
+                rental.status = 'approved'
+                rental.save(update_fields=['payment_method', 'status'])
+
+                item = rental.rental_item
+                try:
+                    item.update_availability()
+                except Exception:
+                    try:
+                        item.save()
+                    except Exception:
+                        pass
+
+                Payment.objects.create(
+                    rental_request=rental,
+                    payment_status='SUCCESS',
+                    order_id=generate_order_id()
                 )
-                send_mail(
-                    subject,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [recipient_email],
-                    fail_silently=False,
-                )
 
-            messages.success(request, "Order placed successfully with Cash on Delivery! Confirmation email sent.")
-            return redirect('success', rental_id=rental.id)
+            messages.success(request, "Order placed successfully with Cash on Delivery!")
+
+            return redirect('success', rental_id=created_rentals[0].id)
 
         else:
             messages.error(request, "Please select a valid payment method.")
 
-    return render(request, 'paymentmethod.html', {'total_amount': total_amount})
+    return render(request, 'paymentmethod.html', {
+        'delivery_charge': delivery_charge,
+        'delivery_option': delivery_option
+    })
 
-
-from .models import Payment, RentalRequest
-from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
+from .models import Receipt
 @csrf_exempt
-
 def success(request, rental_id):
-    if request.method == "GET":
-        razorpay_payment_id = request.GET.get('razorpay_payment_id')
-        request.session.pop('razorpay_order_id', None)
-        razorpay_signature = request.GET.get('razorpay_signature')
+    if request.method != "GET":
+        return HttpResponse("Method not allowed", status=405)
 
-        rental_request = get_object_or_404(RentalRequest, id=rental_id)
+    razorpay_payment_id = request.GET.get("razorpay_payment_id")
+    razorpay_signature = request.GET.get("razorpay_signature")
+    donate_deposit = request.GET.get("donate_deposit") == "true"
 
-        # ✅ Fetch existing Payment record
-        try:
-          payment = Payment.objects.filter(rental_request=rental_request).order_by('-payment_date').first()
-        except Payment.DoesNotExist:
-            return HttpResponse("Payment record not found", status=404)
+    rental = get_object_or_404(History, id=rental_id)
 
-        # ✅ Update payment details only
-        payment.payment_id = razorpay_payment_id
-        payment.payment_status = "Success"
-        payment.save()
+    payment = Payment.objects.filter(
+        rental_request=rental
+    ).order_by("-payment_date").first()
 
-        # ✅ Always use DB-generated order_id
-        order_id = payment.order_id  
+    if not payment:
+        return HttpResponse("Payment record not found", status=404)
 
-        # Approve rental request
-        rental_request.status = "approved"
-        rental_request.save()
+    related_rentals = History.objects.filter(
+        user=rental.user,
+        order_id=rental.order_id
+    ).select_related("rental_item")
 
-        # ----------- ✉️ Send Email to the User -----------
-        subject = "Sick Bed Services Booking Confirmed "
-        message = f"""
-Dear {rental_request.user.first_name or rental_request.user.username},
+    payment.payment_id = razorpay_payment_id
+    payment.payment_status = "SUCCESS"
+    payment.save(update_fields=["payment_id", "payment_status"])
 
-Thank you for your booking with Sick Bed Services! 
+    # ================== ADJUST STOCK NOW (ORDER CONFIRMED) ==================
 
-Here are your booking details:
+    with transaction.atomic():
+        to_process = related_rentals.exclude(status="approved")
+        for rr in to_process:
+            item = rr.rental_item
+            rr.status = "approved"
+            rr.save(update_fields=["status"]) 
 
-Item: {rental_request.rental_item.title}
- Rental Duration: {rental_request.start_date} to {rental_request.end_date}
- Order ID: {order_id}
- Payment ID: {razorpay_payment_id}
+            try:
+                item.update_availability()
+                item.save(update_fields=["available_quantity", "booked_quantity", "available", "next_available_date"])
+            except Exception:
+                item.save()
 
-Your booking has been successfully confirmed. You can now take the item or wait for delivery as per the schedule.
+    grouped_items = defaultdict(lambda: {
+        "title": "",
+        "quantity": 0,
+        "price_per_day": 0,
+        "deposit": 0,
+        "rent": 0,
+        "total": 0
+    })
 
-If you have any questions, feel free to contact our support team.
+    for rr in related_rentals:
+        key = rr.rental_item.id
 
-Regards,  
-Sick Bed Services Team
-        """
-        from_email = settings.DEFAULT_FROM_EMAIL
-        recipient_list = [rental_request.user.email]
+        grouped_items[key]["title"] = rr.rental_item.title
+        grouped_items[key]["price_per_day"] = rr.rental_item.price_per_day
+        grouped_items[key]["deposit"] = rr.deposit
+        grouped_items[key]["quantity"] += rr.quantity          # ✅ FIX
+        grouped_items[key]["rent"] += rr.total_rent            # ✅ FIX
 
-        try:
-            send_mail(subject, message, from_email, recipient_list)
-        except Exception as e:
-            print("Email failed:", e)
+    # ================== CONVERT TO LIST ==================
+    item_totals = []
+    for item in grouped_items.values():
+        item["total"] = item["rent"]
+        item_totals.append(item)
 
-        # ----------- Render Success Page -----------
-        return render(request, "success.html", {
-            "rental": rental_request,
-            "payment_id": razorpay_payment_id,
-            "order_id": order_id,
-            "signature": razorpay_signature,
-            "message": "Thank you for your booking! Your payment has been received successfully."
-        })
+    # ================== FINAL TOTALS ==================
+    total_quantity = sum(item["quantity"] for item in item_totals)
+    total_rent = sum(item["rent"] for item in item_totals)
+    total_deposit = sum(item["deposit"] * item["quantity"] for item in item_totals)
 
-    return HttpResponse("Method not allowed", status=405)
+    delivery_option = rental.delivery_option
+    delivery_charge = 500 if delivery_option == "delivery" else 0
 
+    if donate_deposit:
+        total_amount = total_rent + delivery_charge
+        for rr in related_rentals:
+            rr.deposit_donated = True
+            rr.save(update_fields=["deposit_donated"])
+        payment.amount = total_amount
+        payment.save(update_fields=["amount"])
+    else:
+        total_amount = total_rent + total_deposit + delivery_charge
+    user_detail = UserDetail.objects.filter(user=rental.user).first()
+
+    customer_name = rental.renter_name or (user_detail.patient_name if user_detail else (rental.user.get_full_name() or rental.user.username))
+    customer_phone = rental.phone or (user_detail.phone if user_detail else None)
+    customer_address = rental.address or (user_detail.address_line1 if user_detail else None)
+    customer_patient_name = rental.patient_name or (user_detail.patient_name if user_detail else None)
+
+    existing = rental.receipts.order_by('-created_at').first()
+    if not existing:
+        content_file = generate_receipt(rental)
+        new_receipt = Receipt.objects.create(rental_request=rental, receipt_type="booking")
+        new_receipt.file.save(f"receipt_{rental.order_id}.pdf", content_file)
+        new_receipt.save()
+
+    for k in ("renter_name", "patient_name", "phone", "address", "start_date", "end_date", "details_filled", "delivery_option", "delivery_charge", "rental_id", "item_id"):
+        request.session.pop(k, None)
+
+    return render(request, "success.html", {
+    "rental": rental,
+    "payment": payment,
+    "order_id": rental.order_id,
+    "item_totals": item_totals,
+    "total_quantity": total_quantity,
+    "total_deposit": total_deposit,
+    "total_rent": total_rent,
+    "total_amount": total_amount,
+    "delivery_charge": delivery_charge,
+    "delivery_option": delivery_option,
+    "signature": razorpay_signature, 
+    "user_detail": user_detail,
+    "customer_name": customer_name,
+    "customer_phone": customer_phone,
+    "customer_address": customer_address,
+    "patient_name": customer_patient_name,
+    })
 
 
 def about(request):
     return render(request, 'about.html')
 
 
-
-
-from django.template.loader import render_to_string
-from django.core.mail import EmailMessage
 def send_reminder_email(user, rental):
     subject = 'Reminder: Your Rental Ends Tomorrow - Sick Bed Services'
     recipient_email = user.email
 
-    # direct inline HTML message
     message = f"""
     <html>
     <body>
@@ -520,16 +783,9 @@ def send_reminder_email(user, rental):
     </body>
     </html>
     """
-
-    email = EmailMessage(subject, message, from_email=None, to=[recipient_email])
-    email.content_subtype = 'html'  # important: render as HTML
-
-    try:
-        email.send()
-        rental.is_reminder_sent = True
-        rental.save()
-    except Exception as e:
-        print("Reminder Email Failed:", e)
+    print(f"[email suppressed] Reminder for {recipient_email} Subject: {subject}")
+    rental.is_reminder_sent = True
+    rental.save()
 
 def send_overdue_emails(user, rental):
     subject = 'Overdue Rental Notice - Sick Bed Services'
@@ -542,85 +798,129 @@ def send_overdue_emails(user, rental):
     }
 
     message = render_to_string('emails/overdue.html', context)
+    print(f"[email suppressed] Overdue notice for {recipient_email} Subject: {subject}")
+    rental.is_overdue_email_sent = True
+    rental.save()
 
-    email = EmailMessage(
-        subject=subject,
-        body=message,
-        from_email=None,  
-        to=[recipient_email]
-    )
-    email.content_subtype = 'html'
 
+def send_notify_emails(item, user_email, user_mobile):
+    from django.core.mail import send_mail
+    from django.conf import settings
+    
+    user_subject = f'Notification Request Received - {item.title}'
+    user_message = f"""
+    <html>
+    <body>
+        <p>Hi,</p>
+        <p>Thank you for your interest in <b>{item.title}</b>.</p>
+        <p>We have received your notification request and will email you as soon as this item becomes available.</p>
+        <p>Item Details:</p>
+        <ul>
+            <li>Price per day: ₹{item.price_per_day}</li>
+            <li>Deposit: ₹{item.deposit}</li>
+        </ul>
+        <br>
+        <p>Regards,<br>QuickNest Team</p>
+    </body>
+    </html>
+    """
+    
+    admin_subject = f'New Notify Request - {item.title}'
+    admin_message = f"""
+    <html>
+    <body>
+        <p>New notification request received.</p>
+        <p>Item: {item.title}</p>
+        <p>User Email: {user_email}</p>
+        <p>User Mobile: {user_mobile}</p>
+        <br>
+        <p>Please restock this item soon.</p>
+    </body>
+    </html>
+    """
+    
     try:
-        email.send()
-        print(f"Overdue notice sent to {recipient_email}")
-        rental.is_overdue_email_sent = True
-        rental.save()
+        send_mail(
+            user_subject,
+            '',
+            settings.DEFAULT_FROM_EMAIL,
+            [user_email],
+            html_message=user_message
+        )
+        print(f"✅ Notification email sent to user: {user_email}")
     except Exception as e:
-        print(f"Overdue email failed for {recipient_email}: {str(e)}")
+        print(f"❌ Failed to send user email: {e}")
+    
+    try:
+        send_mail(
+            admin_subject,
+            '',
+            settings.DEFAULT_FROM_EMAIL,
+            [settings.ADMIN_EMAIL],
+            html_message=admin_message
+        )
+        print(f"✅ Notification email sent to admin: {settings.ADMIN_EMAIL}")
+    except Exception as e:
+        print(f"❌ Failed to send admin email: {e}")
+
 
 def payment(request, rental_id):
-    rental = get_object_or_404(RentalRequest, id=rental_id)
-    item = rental.rental_item
+    rental = get_object_or_404(History, id=rental_id)
     user = request.user
 
-    # Rent calculation
-    rent_days = (rental.end_date - rental.start_date).days
-    total_amount = int(rent_days * item.price_per_day)  # in rupees
+    if rental.order_id:
+        related_rentals = History.objects.filter(order_id=rental.order_id, user=rental.user).select_related('rental_item')
+    else:
+        related_rentals = [rental]
 
-    # Razorpay requires amount in paise
-    razorpay_amount = total_amount * 100
+    from decimal import Decimal as _Decimal
+    total_amount = sum(((_Decimal(rr.total_rent) if rr.total_rent is not None else _Decimal('0')) for rr in related_rentals), _Decimal('0'))
+    total_deposit = sum(((_Decimal(rr.deposit) * _Decimal(rr.quantity) if rr.deposit is not None else _Decimal('0')) for rr in related_rentals), _Decimal('0'))
 
-    # Razorpay client
+    if rental.delivery_charge:
+        try:
+            total_amount += _Decimal(str(rental.delivery_charge))
+        except Exception:
+            total_amount += _Decimal('0')
+
+    total_amount += total_deposit
+
+    razorpay_amount = int((total_amount * _Decimal('100')))
+
     client = razorpay.Client(auth=("rzp_test_wH0ggQnd7iT3nB", "eZseshY3oSsz2fcHZkTiSlCm"))
 
-    # Create Razorpay Order
     data = {
         "amount": razorpay_amount,
         "currency": "INR",
         "receipt": f"rental_rcpt_{rental.id}",
         "payment_capture": 1
     }
+
     razorpay_order = client.order.create(data=data)
 
-    # Generate custom order_id before creating Payment object
-    today = timezone.now().strftime("%Y%m%d")  # daily prefix
-    prefix = f"ORD{today}"
-
-    last_order = (
-        Payment.objects.filter(order_id__startswith=prefix)
-        .order_by("order_id")
-        .last()
-    )
-
-    if last_order:
-        match = re.search(r"(\d{3})$", last_order.order_id)
-        if match:
-            last_number = int(match.group(1))
-            new_number = str(last_number + 1).zfill(3)
-        else:
-            new_number = "001"
-    else:
-        new_number = "001"
-
-    order_id = f"{prefix}{new_number}"
-
-    # Save Payment object in DB with explicit order_id
     payment_obj = Payment.objects.create(
         rental_request=rental,
-        razorpay_order_id=razorpay_order["id"],  
-        payment_status="PENDING",
-        order_id=order_id  # Explicitly set the order_id
+        amount=total_amount,
+        payment_status="Pending"
     )
 
-    # Context for template
+    payment_obj.order_id = generate_order_id()
+    payment_obj.save()
+
+    try:
+        rent_days = (rental.end_date - rental.start_date).days
+    except Exception:
+        rent_days = 1
+
     context = {
         "user": user,
-        "item_name": item.title,
+        "items": related_rentals,
+        "rent_days": rent_days,
         "total_amount": total_amount,
+        "total_deposit": total_deposit,
         "razorpay_amount": razorpay_amount,
         "razorpay_order_id": razorpay_order["id"],
-        "payment": payment_obj,  
+        "payment": payment_obj,
         "custom_order_id": payment_obj.order_id,
         "rental_id": rental.id,
         "razorpay_key": "rzp_test_wH0ggQnd7iT3nB",
@@ -628,75 +928,428 @@ def payment(request, rental_id):
     return render(request, "payment.html", context)
 
 
-
 def generate_order_id():
-    today = timezone.now().strftime("%Y%m%d")
+    today = timezone.now().strftime("%Y%m") 
     prefix = f"ORD{today}"
 
     last_order = Payment.objects.filter(order_id__startswith=prefix).order_by("order_id").last()
-    
-    if last_order:
+
+    if last_order and last_order.order_id:
         match = re.search(r"(\d{3})$", last_order.order_id)
         if match:
-            last_number = int(match.group(1))
-            new_number = str(last_number + 1).zfill(3)
+            last_num = int(match.group(1)) + 1
+            new_num = str(last_num).zfill(3)
         else:
-            new_number = "001"
+            new_num = "001"
     else:
-        new_number = "001"
+        new_num = "001"
 
-    return f"{prefix}{new_number}"
-
-from reportlab.pdfgen import canvas
-from io import BytesIO
-from django.core.files.base import ContentFile
-
-def generate_receipt(rental):
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer)
-    c.setFont("Helvetica", 12)
-    
-    c.drawString(50, 800, f"Order ID: {rental.order_id}")
-    c.drawString(50, 780, f"Customer: {rental.user.username}")
-    c.drawString(50, 760, f"Item: {rental.rental_item.title}")
-    c.drawString(50, 740, f"Rental Duration: {rental.start_date} to {rental.end_date}")
-    c.drawString(50, 720, f"Total Amount: ₹{rental.total_amount}")
-    c.drawString(50, 700, f"Payment Method: {rental.payment_method}")
-    c.drawString(50, 680, "Thank you for renting with Sick Bed Services!")
-    
-    c.showPage()
-    c.save()
-    
-    buffer.seek(0)
-    file_name = f"receipt_{rental.order_id}.pdf"
-    rental.receipt.save(file_name, ContentFile(buffer.read()))
-    buffer.close()
-    rental.save()
-
+    return f"{prefix}{new_num}"
 
 
 def approve_order(request, order_id):
-    order = get_object_or_404(RentalRequest, order_id=order_id)
-
-    # Approve the order
+    order = get_object_or_404(History, order_id=order_id)
     order.status = "approved"
     order.save()
 
-    # Generate receipt if not exists
-    if not order.receipt:
-        order.receipt.save(
-            f"receipt_{order.order_id}.pdf",
-            generate_receipt(order)
-        )
+    if not order.receipts.exists():
+        content_file = generate_receipt(order)
+        new_receipt = Receipt.objects.create(rental_request=order, receipt_type='booking')
+        new_receipt.file.save(f"receipt_{order.order_id}.pdf", content_file)
+        new_receipt.save()
 
     return redirect("order_detail", order_id=order.order_id)
-
 
 def terms(request):
     return render(request, 'terms.html')
 
-
-from .models import Services
 def services(request):
     all_services = Services.objects.all()
     return render(request, 'services.html', {'services': all_services})
+
+from django.utils import timezone
+@transaction.atomic
+def userdetail(request):
+    is_admin = request.user.is_superuser
+    cart = Cart.objects.filter(user=request.user).first()
+    cart_items = cart.items.select_related("rental_item") if cart else []
+    customers = []
+
+    if is_admin and request.session.get("details_filled"):
+        if cart_items:
+            return redirect("select_delivery", pk=cart_items.first().rental_item.id)
+        else:
+            return redirect("items")
+
+    if request.method == "POST":
+
+        if is_admin and not request.session.get("details_filled"):
+            request.session["renter_name"] = request.POST.get("name") or request.user.username
+            request.session["patient_name"] = request.POST.get("patient_name")
+            request.session["phone"] = request.POST.get("phone")
+            request.session["address"] = request.POST.get("address")
+            request.session["start_date"] = request.POST.get("start_date")
+            request.session["end_date"] = request.POST.get("end_date")
+            request.session["details_filled"] = True
+
+            return redirect("items")
+
+        if not cart_items:
+            messages.error(request, "Your cart is empty.")
+            return redirect("cart")
+
+        order_id = generate_sequential_order_id()
+
+        phone = request.POST.get("phone", "").strip()
+        id_proof_type = request.POST.get("id_proof_type", "").strip()
+        id_proof_number = request.POST.get("id_proof_number", "").strip()
+        address = request.POST.get("address", "").strip()
+        email = request.POST.get("email", "").strip()
+        patient_name = request.POST.get("patient_name", "").strip()
+
+        start_date = datetime.strptime(request.session.get("start_date"), "%Y-%m-%d").date()
+        end_date = datetime.strptime(request.session.get("end_date"), "%Y-%m-%d").date()
+
+        first_cart_item = cart_items.first()
+        rental_item_id = first_cart_item.rental_item.id
+
+        with transaction.atomic():
+
+            if not is_admin:
+                UserDetail.objects.update_or_create(
+                    user=request.user,
+                    defaults={
+                        "phone": phone,
+                        "id_proof_type": id_proof_type,
+                        "id_proof_number": id_proof_number,
+                        "address_line1": address,
+                        "email": email or None,
+                        "patient_name": patient_name,
+                    }
+                )
+
+            for ci in cart_items:
+                History.objects.create(
+                    user=request.user,
+                    renter_name=(request.session.get("renter_name") or request.user.get_full_name() or request.user.username),
+                    rental_item=ci.rental_item,
+                    start_date=start_date,
+                    end_date=end_date,
+                    quantity=ci.quantity,
+                    deposit=ci.rental_item.deposit,
+                    payment_method="online",
+                    order_id=order_id,
+                    patient_name=(request.session.get("patient_name") or patient_name),
+                    phone=(request.session.get("phone") or phone),
+                    address=(request.session.get("address") or address),
+                )
+            try:
+                if cart:
+                    cart.delete()
+            except Exception:
+                pass
+
+        return redirect("select_delivery", pk=rental_item_id)
+
+    if not cart_items:
+        if is_admin and not request.session.get("details_filled"):
+            customers = Customer.objects.all().order_by('-created_at')
+        else:
+            messages.error(request, "Your cart is empty.")
+            return redirect("cart")
+
+    context = {
+        "items": [],
+        "rental_days": 0,
+        "total_rent": 0,
+        "total_deposit": 0,
+        "total_amount": 0,
+        "is_admin": is_admin
+    }
+
+    if is_admin and not request.session.get("details_filled"):
+        context["customers"] = customers
+
+    return render(request, "userdetail.html", context)
+
+
+
+def update_cart_item(request, item_id):
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
+
+        if action == 'increment':
+            cart_item.quantity += 1
+            cart_item.save()
+        elif action == 'decrement':
+            if cart_item.quantity > 1:
+                cart_item.quantity -= 1
+                cart_item.save()
+            else:
+                cart_item.delete()
+        return JsonResponse({'success': True, 'quantity': cart_item.quantity if cart_item.id else 0})
+
+def remove_cart_item(request, item_id):
+    if request.method == 'POST':
+        cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
+        cart_item.delete()
+        return JsonResponse({'success': True})
+
+from collections import defaultdict
+
+def bookingsammry(request):
+    rental_requests = History.objects.select_related('user', 'rental_item').order_by('-created_at')
+    if not request.user.is_staff and not request.user.is_superuser:
+        rental_requests = rental_requests.filter(user=request.user)
+
+    grouped = defaultdict(list)
+
+    for rr in rental_requests:
+        key = rr.order_id or f"SINGLE-{rr.id}"
+        grouped[key].append(rr)
+
+    booking_summaries = []
+
+    for order_id, items in grouped.items():
+        booking_summaries.append({
+            "order_id": order_id,
+            "date": items[0].created_at.date(),
+            "items": items,
+            "customer": items[0].user if request.user.is_staff or request.user.is_superuser else None,
+        })
+
+    returned_order_ids = (
+        rental_requests
+        .filter(is_returned=True)
+        .values_list('order_id', flat=True)
+        .distinct()
+    )
+
+    return render(
+        request,
+        "bookingsammry.html",
+        {
+             "booking_summaries": booking_summaries,
+            "returned_order_ids": returned_order_ids,
+        },
+    )
+
+
+@login_required
+def mark_returned(request, rental_id, item_id):
+    rr = get_object_or_404(History, id=rental_id, rental_item_id=item_id, user=request.user)
+    
+    if not rr.is_return_requested:
+        rr.is_return_requested = True
+        rr.save()
+
+        admin_email = getattr(settings, 'ADMIN_EMAIL', None)
+        subject = f'Return Request from {request.user.username}'
+        print(f"[email suppressed] To: {admin_email} Subject: {subject} User: {request.user.email} Item: {rr.rental_item}")
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'success': True})
+
+    return redirect('bookingsammry')
+
+
+def view_rental(request, rental_id):
+    rental = get_object_or_404(
+        History,
+        id=rental_id,
+        user=request.user
+    )
+    related_rentals = (
+        History.objects
+        .filter(user=request.user, order_id=rental.order_id)
+        .select_related("rental_item")
+    )
+
+    item_totals = []
+    total_rent = 0
+    total_deposit = 0
+    total_quantity = 0
+
+    for rr in related_rentals:
+        rent = rr.total_rent
+        deposit = rr.deposit * rr.quantity
+
+        item_totals.append({
+            "title": rr.rental_item.title,
+            "quantity": rr.quantity,
+            "price_per_day": rr.rental_item.price_per_day,
+            "days": rr.rental_days,
+            "rent": rent,
+            "deposit": deposit,
+            "total": rent,
+        })
+
+        total_rent += rent
+        total_deposit += deposit
+        total_quantity += rr.quantity
+
+    start_date = rental.start_date
+    end_date = rental.end_date
+    total_days = (end_date - start_date).days + 1
+    delivery_option = rental.delivery_option
+    delivery_charge = rental.delivery_charge if delivery_option == "delivery" else 0
+    total_amount = total_rent + total_deposit + delivery_charge
+    user_detail = UserDetail.objects.filter(user=request.user).first()
+
+    context = {
+        "order_id": rental.order_id,
+        "date": rental.created_at.date(),
+        "rental": rental,
+        "patient_name": rental.patient_name,
+        "user_detail": user_detail,
+        "rent_start_date": start_date,
+        "rent_end_date": end_date,
+        "total_days": total_days,
+        "return_date": end_date,
+        "item_totals": item_totals,
+        "total_quantity": total_quantity,
+        "total_rent": total_rent,
+        "total_deposit": total_deposit,
+        "delivery_charge": delivery_charge,
+        "delivery_option": delivery_option,
+        "total_amount": total_amount,
+        "payment_mode": "Online Payment",
+    }
+
+    return render(request, "success.html", context)
+
+@login_required
+@transaction.atomic
+
+def return_order(request, order_id):
+    donate_deposit = request.GET.get("donate_deposit") == "true"
+
+    rentals = (
+        History.objects
+        .select_for_update()
+        .filter(
+            user=request.user,
+            order_id=order_id,
+            is_returned=False
+        )
+        .select_related("rental_item")
+    )
+
+    if not rentals.exists():
+        messages.info(request, "Return already requested or completed.")
+        return redirect("bookingsammry")
+
+    for rr in rentals:
+        rr.is_return_requested = True
+        rr.status = "pending"      
+        if donate_deposit:
+            rr.deposit_donated = True
+            rr.save(update_fields=["is_return_requested", "status", "deposit_donated"])
+        else:
+            rr.save(update_fields=["is_return_requested", "status"])
+
+    if donate_deposit:
+        messages.success(
+            request,
+            "Return request sent successfully. Deposit donation selected. Waiting for admin approval."
+        )
+    else:
+        messages.success(
+            request,
+            "Return request sent successfully. Waiting for admin approval."
+        )
+    return redirect("bookingsammry")
+
+@login_required
+@transaction.atomic
+def return_cart_item(request, cart_item_id):
+
+    rr = get_object_or_404(
+        History.objects.select_for_update(),
+        id=cart_item_id,
+        user=request.user
+    )
+
+    if rr.is_return_requested:
+        messages.info(request, "Return request already sent.")
+        return redirect("userdetail")
+
+    rr.is_return_requested = True
+    rr.status = "pending"
+    rr.save(update_fields=["is_return_requested", "status"])
+
+    messages.success(request, "Return request sent to admin for approval.")
+    return redirect("userdetail")
+
+@login_required
+def return_receipt(request, order_id):
+
+    rentals = (
+        History.objects
+        .filter(
+            user=request.user,
+            order_id=order_id,
+            is_returned=True
+        )
+        .select_related("rental_item")
+    )
+
+    if not rentals.exists():
+        messages.error(request, "Return receipt not available.")
+        return redirect("bookingsammry")
+
+    rental = rentals.first()
+    user_detail = UserDetail.objects.filter(user=request.user).first()
+
+    grouped_items = defaultdict(lambda: {
+        "title": "",
+        "quantity": 0,
+        "deposit": 0,
+        "price_per_day": 0,
+        "days": 0,
+        "total_rent": 0,
+    })
+
+    for rr in rentals:
+        key = rr.rental_item.id
+
+        grouped_items[key]["title"] = rr.rental_item.title
+        grouped_items[key]["quantity"] += rr.quantity
+        grouped_items[key]["deposit"] += rr.deposit * rr.quantity
+        grouped_items[key]["price_per_day"] = rr.rental_item.price_per_day
+        grouped_items[key]["days"] = rr.rental_days             
+        grouped_items[key]["total_rent"] += rr.total_rent      
+
+    item_totals = list(grouped_items.values())
+    total_quantity = sum(i["quantity"] for i in item_totals)
+    total_deposit = sum(i["deposit"] for i in item_totals)
+    total_rent = rental.total_rent       
+    refund_amount = rental.refund_amount  
+    delivery_charge = rental.delivery_charge
+    return_pickup_charge = rental.return_pickup_charge
+
+    if rental.deposit_donated:
+        total_amount = total_rent + delivery_charge + return_pickup_charge
+    else:
+        total_amount = rental.total_amount  
+
+    context = {
+        "order": rental,          
+        "rental": rental,
+        "order_id": order_id,
+        "return_date": rental.actual_return_date,
+        "user_detail": user_detail,
+        "patient_name": rental.patient_name,
+        "item_totals": item_totals,
+        "total_quantity": total_quantity,
+        "total_rent": total_rent,
+        "total_deposit": total_deposit,
+        "total_amount": total_amount,
+        "refund_amount": refund_amount,
+        "delivery_option": rental.delivery_option,
+        "delivery_charge": rental.delivery_charge,
+        "return_pickup_charge": rental.return_pickup_charge,
+    }
+
+    return render(request, "return_receipt.html", context)

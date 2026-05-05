@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Your Cart{% endblock %}
+{% block content %}
+
+    <style>
+    .cart-container {
+        max-width: 1100px;
+        margin: auto;
+        padding: 20px;
+    }   
+
+    .cart-title {
+        font-size: 28px;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .cart-item-card {
+        display: flex;
+        gap: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        align-items: center;
+    }
+
+    .cart-item-image img {
+        width: 100%;
+        max-width: 260px;
+        border-radius: 10px;
+    }
+
+    .cart-item-details h3 {
+        margin-bottom: 5px;
+    }
+
+    .cart-item-details p {
+        margin: 4px 0;
+        font-size: 15px;
+    }
+
+    .qty-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .qty-controls button {
+        padding: 4px 10px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    .remove-item {
+        color: red;
+        font-size: 20px;
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    .cart-summary {
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        margin-top: 20px;
+    }
+
+    .cart-summary input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 12px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        font-weight: 500;
+    }
+
+    .cart-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+
+    .btn-secondary {
+        background: #ffffff;
+        color: #2e7d32;
+        border: 2px solid #2e7d32;
+        padding: 10px 22px;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+        background: #2e7d32;
+        color: #ffffff;
+    }
+
+    .empty-cart {
+        padding: 25px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        text-align: center;
+    }
+
+    @media (max-width: 768px) {
+        .cart-item-card {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .cart-item-image img {
+            max-width: 100%;
+        }
+
+        .qty-controls {
+            justify-content: center;
+        }
+
+        .cart-buttons {
+            flex-direction: column;
+        }
+
+        .cart-buttons button,
+        .cart-buttons a {
+            width: 100%;
+        }
+    }
+
+    .rent-btn {
+        background: linear-gradient(135deg, #d32f2f, #b71c1c);
+        color: #ffffff;
+        border: none;
+        padding: 12px 26px;
+        border-radius: 14px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 6px 16px rgba(211, 47, 47, 0.35);
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 140px;
+    }
+
+    .rent-btn:hover {
+        background: linear-gradient(135deg, #b71c1c, #7f0000);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px rgba(183, 28, 28, 0.45);
+    }
+
+    .rent-btn:active {
+        transform: scale(0.97);
+    }
+
+    @media (max-width: 768px) {
+        .rent-btn {
+            width: 100%;
+        }
+    }
+    .back-btn {
+        background: #ffffff;
+        color: #2e7d32;
+        border: 2px solid #2e7d32;
+        padding: 12px 1px;
+        border-radius: 14px;
+        font-size: 15px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.3s ease;
+        min-width: 120px;
+    }
+
+    .back-btn:hover {
+        background: #2e7d32;
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(46, 125, 50, 0.3);
+    }
+
+    .back-btn:active {
+        transform: scale(0.96);
+    }
+
+    @media (max-width: 768px) {
+        .back-btn {
+            width: 100%;
+        }
+    }
+    </style>
+<div class="cart-container">
+    <h2 class="cart-title">Your Cart</h2>
+    <hr>
+
+    {% if cart_items %}
+    <form method="POST" action="{% url 'cart' %}">
+        {% csrf_token %}
+
+        {% for item in cart_items %}
+        <div class="cart-item-card" 
+     data-item-id="{{ item.id }}"
+     data-deposit="{{ item.rental_item.deposit }}">
+            
+            <div class="cart-item-image">
+                {% if item.rental_item.image %}
+                    <img src="{{ item.rental_item.image.url }}" alt="{{ item.rental_item.title }}">
+                {% else %}
+                    <img src="{% static 'default.png' %}" alt="No Image">
+                {% endif %}
+            </div>
+
+            <div class="cart-item-details">
+                <h3>{{ item.rental_item.title }}</h3>
+                <p>{{ item.rental_item.description }}</p>
+
+                <p>
+                    <strong>Price / Day:</strong> ₹
+                    <span class="price-per-day">{{ item.rental_item.price_per_day }}</span>
+                </p>
+
+                <p>
+              <strong>Deposit:</strong> ₹{{ item.rental_item.deposit }}
+                    <small class="deposit-error" style="color:red; display:none;">
+                        Deposit must be greater than ₹100
+                    </small>
+                </p>
+
+                <div class="qty-controls">
+                    <button type="button" class="decrement">−</button>
+                    <span class="quantity">{{ item.quantity }}</span>
+                    <button type="button" class="increment">+</button>
+                    <button type="button" class="remove-item">×</button>
+                </div>
+
+                <input type="hidden" name="item_ids" value="{{ item.rental_item.id }}">
+                <input type="hidden" name="quantities" class="quantity-input" value="{{ item.quantity }}">
+            </div>
+        </div>
+        {% endfor %}
+        <div class="cart-summary">
+            <label>Start Date</label>
+            <input type="date" id="start_date" name="start_date" required>
+
+            <label>End Date</label>
+            <input type="date" id="end_date" name="end_date" required>
+
+            <div class="summary-row">
+                <span>Total Days</span>
+                <span id="total_days">-</span>
+            </div>
+
+            <div class="summary-row">
+                <span>Total Rent</span>
+                <span>₹<span id="rent_amount">-</span></span>
+            </div>
+
+            <div class="summary-row">
+                <span>Total Deposit</span>
+                <span>₹<span id="total_deposit">-</span></span>
+            </div>
+
+            <div class="summary-row">
+                <strong>Grand Total</strong>
+                <strong>₹<span id="grand_total">-</span></strong>
+            </div>
+
+            <div class="cart-buttons">
+                <button type="submit" class="rent-btn">
+                    Rent Now
+                </button>
+                <a href="{% url 'items' %}" class="back-btn">
+                    ← Back
+                </a>
+            </div>
+
+            <p style="font-size:14px; margin-top:15px; text-align:center;">
+                Deposit is fully refundable if items are returned without damage.
+            </p>
+        </div>
+    </form>
+
+    {% else %}
+        <div class="empty-cart">
+            <h4>Your cart is empty</h4>
+        </div>
+    {% endif %}
+</div>
+<script>
+function updateCartTotals() {
+    const cards = document.querySelectorAll('.cart-item-card');
+    let totalRent = 0;
+    let totalDeposit = 0;
+
+    const start = document.getElementById('start_date').value;
+    const end = document.getElementById('end_date').value;
+
+    let days = 0;
+    if (start && end) {
+        const s = new Date(start);
+        const e = new Date(end);
+        days = Math.max(0, Math.round((e - s) / 86400000) + 1);
+    }
+
+    cards.forEach(card => {
+        const price = parseFloat(card.querySelector('.price-per-day').innerText) || 0;
+        const deposit = parseFloat(card.dataset.deposit) || 0;
+        const qty = parseInt(card.querySelector('.quantity').innerText) || 1;
+        card.querySelector('.quantity-input').value = qty;
+        totalRent += price * qty * days;
+        totalDeposit += deposit * qty;
+    });
+
+    document.getElementById('total_days').innerText = days || "-";
+    document.getElementById('rent_amount').innerText = totalRent || "-";
+    document.getElementById('total_deposit').innerText = totalDeposit || "-";
+    document.getElementById('grand_total').innerText = (totalRent + totalDeposit) || "-";
+}
+
+document.addEventListener('click', e => {
+    const card = e.target.closest('.cart-item-card');
+    if (!card) return;
+
+    const qtyEl = card.querySelector('.quantity');
+    const itemId = card.dataset.itemId;
+
+    function getCookie(name) {
+        let cookieValue = null;
+        document.cookie.split(';').forEach(c => {
+            if (c.trim().startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(c.split('=')[1]);
+            }
+        });
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    if (e.target.classList.contains('increment')) {
+        fetch(`/cart/update/${itemId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrftoken,
+            },
+            body: new URLSearchParams({ action: 'increment' })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                qtyEl.innerText = data.quantity;
+                updateCartTotals();
+            }
+        });
+    }
+
+    if (e.target.classList.contains('decrement')) {
+        fetch(`/cart/update/${itemId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrftoken,
+            },
+            body: new URLSearchParams({ action: 'decrement' })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                if (data.quantity === 0) {
+                    card.remove();
+                } else {
+                    qtyEl.innerText = data.quantity;
+                }
+                updateCartTotals();
+            }
+        });
+    }
+
+    if (e.target.classList.contains('remove-item')) {
+        fetch(`/cart/remove/${itemId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+            },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                card.remove();
+                updateCartTotals();
+            }
+        });
+    }
+});
+
+document.getElementById('start_date').addEventListener('change', updateCartTotals);
+document.getElementById('end_date').addEventListener('change', updateCartTotals);
+
+document.addEventListener('DOMContentLoaded', function () {
+    updateCartTotals();
+});
+</script>
+{% endblock %}

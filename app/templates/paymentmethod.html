@@ -1,68 +1,155 @@
 {% extends 'base.html' %}
-
 {% block content %}
+
 <style>
+  #confirmOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.confirm-box {
+  background: white;
+  padding: 30px;
+  border-radius: 14px;
+  text-align: center;
+  width: 300px;
+  animation: scaleIn 0.3s ease;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.checkmark-circle {
+  width: 70px;
+  height: 70px;
+  background: #4caf50;
+  border-radius: 50%;
+  margin: 0 auto 15px;
+  position: relative;
+}
+
+.checkmark {
+  position: absolute;
+  width: 18px;
+  height: 35px;
+  border-right: 4px solid white;
+  border-bottom: 4px solid white;
+  transform: rotate(45deg);
+  left: 26px;
+  top: 15px;
+  animation: drawCheck 0.4s ease forwards;
+}
+
+@keyframes drawCheck {
+  from { height: 0; width: 0; opacity: 0; }
+  to { height: 35px; width: 18px; opacity: 1; }
+}
+
 .payment-container {
-  max-width: 360px;
-  margin: 40px auto;
-  padding: 20px 22px;
-  background: #fdfdfd;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+  max-width: 500px;
+  margin: 50px auto;
+  padding: 30px;
+  background-color: #f9fdf9;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .payment-container h2 {
   text-align: center;
-  margin-bottom: 20px;
-  color: #333;
+  margin-bottom: 25px;
+  color: #2e7d32;
+  font-size: 24px;
+  font-weight: 600;
 }
 
 .payment-option {
-  padding: 15px 18px;
+  display: flex;
+  align-items: center;
+  padding: 15px;
   margin-bottom: 15px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  border: 2px solid #e0f2e0;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  background-color: #fff;
 }
 
 .payment-option:hover {
-  border-color: #007BFF;
-  background-color: #f0f8ff;
+  border-color: #81c784;
+}
+
+.payment-option.selected {
+  border-color: #66bb6a;
+  background-color: #f1f8e9;
 }
 
 .payment-option input {
-  margin-right: 10px;
+  display: none;
+}
+
+.payment-option .icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8f5e9;
+  border-radius: 8px;
+  margin-right: 15px;
+  color: #43a047;
+}
+
+.payment-option .details h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.payment-option .details p {
+  margin: 0;
+  font-size: 14px;
+  color: #616161;
 }
 
 .payment-container button {
   width: 100%;
-  padding: 10px;
-  background-color: #007BFF;
+  padding: 12px;
+  background-color: #66bb6a;
   color: white;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 500;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.2s ease;
+  margin-top: 10px;
 }
 
 .payment-container button:hover {
-  background-color: #0056b3;
+  background-color: #4caf50;
 }
 
-@media (max-width: 400px) {
+@media (max-width: 576px) {
   .payment-container {
-    padding: 18px 14px;
+    margin: 30px 15px;
+    padding: 20px;
   }
 
   .payment-container h2 {
-    font-size: 20px;
+    font-size: 22px;
   }
 
-  .payment-container button {
-    font-size: 13.5px;
+  .payment-option {
+    padding: 12px;
   }
 }
 </style>
@@ -72,21 +159,77 @@
   <form method="POST">
     {% csrf_token %}
     
-    <div class="payment-option">
-      <label>
-        <input type="radio" name="payment_method" value="online" required>
-        Online Payment
-      </label>
+    <div class="payment-option" onclick="selectPayment(this)">
+      <input type="radio" name="payment_method" value="online" required>
+      <div class="icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+          <line x1="1" y1="10" x2="23" y2="10"></line>
+        </svg>
+      </div>
+      <div class="details">
+        <h3>Online Payment</h3>
+        <p>Pay securely using credit/debit card or UPI</p>
+      </div>
     </div>
     
-    <div class="payment-option">
-      <label>
-        <input type="radio" name="payment_method" value="cod" required>
-        Cash on Delivery
-      </label>
+    <div class="payment-option" onclick="selectPayment(this)">
+      <input type="radio" name="payment_method" value="cod" required>
+      <div class="icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <div class="details">
+        <h3>Cash on Delivery</h3>
+        <p>Pay when you receive your order</p>
+      </div>
     </div>
     
-    <button type="submit">Proceed</button>
+    <button type="submit">Proceed to Payment</button>
   </form>
+  <div id="confirmOverlay" style="display:none;">
+  <div class="confirm-box">
+    <div class="checkmark-circle">
+      <div class="checkmark"></div>
+    </div>
+    <h3>Your order is confirmed</h3>
+    <p>Please wait while we process your order…</p>
+  </div>
 </div>
+
+</div>
+
+<script>
+function selectPayment(element) {
+  document.querySelectorAll('.payment-option').forEach(option => {
+    option.classList.remove('selected');
+  });
+  
+  element.classList.add('selected');
+  
+  const radio = element.querySelector('input[type="radio"]');
+  radio.checked = true;
+}
+</script>
+
+<script>
+function selectPayment(element) {
+  document.querySelectorAll('.payment-option').forEach(option => {
+    option.classList.remove('selected');
+  });
+  element.classList.add('selected');
+  element.querySelector('input[type="radio"]').checked = true;
+}
+
+document.querySelector("form").addEventListener("submit", function(e) {
+  e.preventDefault();
+  document.getElementById("confirmOverlay").style.display = "flex";
+  setTimeout(() => {
+    e.target.submit(); 
+  }, 2000);
+});
+</script>
 {% endblock %}

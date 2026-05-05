@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Item Now Available</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #e50914;">Great News! Item Now Available</h2>
+        
+        <p>Hi,</p>
+        
+        <p>We're excited to let you know that <strong>{{ item.title }}</strong> is now back in stock!</p>
+        
+        <div style="background: #f9f9f9; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <h3 style="margin-top: 0; color: #e50914;">{{ item.title }}</h3>
+            <p><strong>Price per day:</strong> ₹{{ item.price_per_day }}</p>
+            <p><strong>Deposit:</strong> ₹{{ item.deposit }}</p>
+            <p><strong>Available Quantity:</strong> {{ item.available_quantity }}</p>
+        </div>
+        
+        <p>You can now rent this item from our website.</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{ site_url }}/items/" 
+               style="background: #e50914; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                Browse Items Now
+            </a>
+        </div>
+        
+        <p>Thank you for your patience!</p>
+        
+        <br>
+        <p>Best regards,<br>
+        QuickNest Team</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+{% block title %}Booking Successful{% endblock %}
+{% block content %}
+<style>
+.receipt-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 10px;
+    background: #f9f9f9;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    font-size: 12px;
+    line-height: 1.2;
+    border: 1px solid #c5d5c5;
+}
+
+.receipt-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.logo-container { width: 60px; }
+.logo-container img { width: 100%; }
+.receipt-title { flex: 1; text-align: center; }
+.receipt-title h2 { font-size: 15px; margin: 0; color: #1b8a4b; }
+.receipt-title p { font-size: 9px; margin: 1px 0; }
+.receipt-title h3 { font-size: 16px; margin: 2px 0; color: #1b8a4b; }
+
+.order-id {
+    text-align: center;
+    font-size: 12px;
+    padding: 4px;
+    margin: 4px 0;
+    background: #eef7f2;
+}
+
+.section-title {
+    font-size: 15px;
+    color: #1b8a4b;
+    border-bottom: 1px solid #1b8a4b;
+    margin: 5px 0 3px;
+}
+
+.info-grid { display: flex; justify-content: space-between; }
+.info-column { width: 48%; }
+.info-item p { font-size: 11px; margin: 1px 0; }
+
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4px 0;
+}
+.items-table th,
+.items-table td {
+    font-size: 10px;
+    padding: 2px;
+    border: 1px solid #ccc;
+    text-align: center;
+}
+.items-table th {
+    background: #1b8a4b;
+    color: white;
+}
+
+.delivery-summary {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 0;
+}
+.delivery-info p { font-size: 11px; }
+.total-info { text-align: right; }
+.total-amount { font-size: 13px; font-weight: bold; color: #1b8a4b; }
+
+.thank-you {
+    text-align: center;
+    font-size: 11px;
+    padding: 4px;
+    background: #e4f2e9;
+    margin-top: 4px;
+}
+
+.receipt-actions {
+    margin: 15px 0;
+    text-align: center;
+}
+.download-btn {
+    padding: 6px 12px;
+    background: #1b8a4b;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+@media print {
+    @page {
+        size: A5 landscape;
+        margin: 4mm;
+    }
+
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+    }
+
+    .receipt-actions,
+    nav, header, footer {
+        display: none !important;
+    }
+
+    #pdf-content,
+    .receipt-container {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 4px !important;
+        box-shadow: none !important;
+        background: white !important;
+    }
+
+    #pdf-content,
+    #pdf-content * {
+        opacity: 1 !important;
+        text-shadow: none !important;
+    }
+
+    .receipt-title h2,
+    .receipt-title h3,
+    .section-title,
+    .total-amount {
+        color: #000 !important;
+        font-weight: 700 !important;
+    }
+
+    .items-table th {
+        color: #fff !important;
+        border-color: #000 !important;
+    }
+
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+<div id="pdf-content">
+    <div class="receipt-container">
+        <div class="receipt-header">
+            <div class="logo-container">
+                <img src="/static/images/logo1.png" alt="Logo">
+            </div>
+
+            <div class="receipt-title">
+                <h2>Kutch Yuvak Sangh, Bhayandar</h2>
+                <h3 style="color: red;">RETURN RECEIPT</h3>
+            </div>
+        </div>
+
+        <div class="order-id">
+            <strong>Order ID:</strong> {{ order.order_id }}
+        </div>
+
+        <h3 class="section-title">Patient & Booking Details</h3>
+        <div class="info-grid">
+            <div class="info-column">
+
+                <div class="info-item">
+                    <p><strong>Renter Name :</strong>
+                        {% if order.renter_name %}{{ order.renter_name }}
+                        {% elif order.user.get_full_name %}{{ order.user.get_full_name }}
+                        {% else %}{{ order.user.username }}{% endif %}
+                    </p>
+                </div>
+
+                <div class="info-item">
+                    <p><strong>Address:</strong>
+                        {% if order.address %}{{ order.address }}
+                        {% elif order.user.userdetail.address_line1 %}{{ order.user.userdetail.address_line1 }}
+                        {% else %}N/A{% endif %}
+                    </p>
+                </div>
+
+                <div class="info-item">
+                    <p><strong>ID Proof:</strong>
+                        {% if order.user.userdetail.id_proof_type and order.user.userdetail.id_proof_number %}
+                            {{ order.user.userdetail.id_proof_type }} –
+                            {{ order.user.userdetail.id_proof_number }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="info-item">
+                    <p><strong>Contact No:</strong>
+                        {% if order.phone %}{{ order.phone }}
+                        {% elif order.user.userdetail.phone %}{{ order.user.userdetail.phone }}
+                        {% else %}N/A{% endif %}
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="info-column">
+
+                <div class="info-item">
+                    <strong>Date:</strong> {{ order.start_date|date:"d M Y" }}
+                </div>
+
+                <div class="info-item">
+                    <p><strong>Rent Period:</strong>
+                        {{ order.start_date|date:"d M Y" }}
+                        to {{ order.billing_end_date|date:"d M Y" }}
+                        ({{ order.rental_days }} Days)
+                    </p>
+                </div>
+
+                <div class="info-item">
+                    <p><strong>Return Date:</strong>
+                        {{ order.actual_return_date|date:"d M Y" }}
+                    </p>
+                </div>
+
+                <div class="info-item">
+                    <p><strong>Total Deposit:</strong> ₹{{ total_deposit }}
+                        {% if order.deposit_donated %}
+                            <span style="color: green; font-weight: bold;">(Donated)</span>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="info-item">
+                    <p><strong>Total Rent Amount:</strong> ₹{{ total_rent }}</p>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="info-item">
+            <p><strong>Patient Name:</strong>
+                {% if patient_name %}{{ patient_name }}
+                {% elif order.patient_name %}{{ order.patient_name }}
+                {% elif order.user.userdetail.patient_name %}{{ order.user.userdetail.patient_name }}
+                {% else %}N/A{% endif %}
+            </p>
+        </div>
+
+        <h3 class="section-title">Item Details</h3>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Sr. No</th>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Deposit</th>
+                    <th>Rent / Day</th>
+                    <th>Days</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for it in item_totals %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ it.title }}</td>
+                    <td>{{ it.quantity }}</td>
+                    <td>₹{{ it.deposit }}</td>
+                    <td>₹{{ it.price_per_day }}</td>
+                    <td>{{ it.days }}</td>
+                    <td>₹{{ it.total_rent }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+            <tfoot>
+                <tr>
+                    <th colspan="2" style="text-align:right;">Total Quantity</th>
+                    <th>{{ total_quantity }}</th>
+                    <th colspan="4"></th>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="delivery-summary">
+            <div class="delivery-info">
+                <h3 class="section-title">Delivery Address</h3>
+                <p>
+                    {% if order.address %}{{ order.address }}
+                    {% elif order.user.userdetail.address_line1 %}{{ order.user.userdetail.address_line1 }}
+                    {% else %}Take Away – Nearest Hub{% endif %}
+                </p>
+            </div>
+
+            <div class="total-info">
+
+                <p><strong>Delivery Option:</strong>
+                    {{ order.delivery_option|title }}
+                </p>
+
+                <p><strong>Delivery Charge:</strong>
+                    ₹{{ delivery_charge }}
+                </p>
+
+                <p><strong>Return Pickup Charge:</strong>
+                    ₹{{ return_pickup_charge }}
+                </p>
+
+                <div class="info-item">
+                    <p><strong>Payment Mode:</strong>
+                        {% if order.payment_method == "online" %}
+                            Online Payment
+                        {% else %}
+                            Cash
+                        {% endif %}
+                    </p>
+                </div>
+
+                <p class="total-amount">
+                    <strong>Total Amount:</strong> ₹{{ total_amount }}
+                </p>
+                <hr>
+                <p class="total-amount" style="color:green;">
+                    <strong>Refund Amount:</strong> ₹{{ order.refund_amount }}
+                </p>
+
+            </div>
+        </div>
+
+        <div class="terms-conditions"
+             style="font-size:11px;text-align:center;margin-top:4px;color:#053c1d;">
+            You hereby agree to all terms & conditions mentioned on our booking portal
+        </div>
+        <br>
+        <div class="thank-you">
+            Thank you for booking with us.
+        </div>
+    </div>
+</div>
+
+<div class="receipt-actions">
+    <button class="download-btn" onclick="downloadPDF()">Download Receipt</button>
+    <button class="download-btn" onclick="window.print()">Print</button>
+    <button class="download-btn" onclick="window.location.href='{% url 'bookingsammry' %}'"> Back</button>
+</div>
+
+<script>
+function downloadPDF() {
+    const element = document.getElementById("pdf-content");
+
+    const opt = {
+        margin: 3,
+        filename: "Receipt.pdf",
+        image: { type: "jpeg", quality: 1 },
+        html2canvas: {
+            scale: 2,
+            useCORS: true,
+            scrollY: 0,
+            windowWidth: element.scrollWidth
+        },
+        jsPDF: {
+            unit: "mm",
+            format: "a5",
+            orientation: "landscape"
+        }
+    };
+
+    html2pdf().set(opt).from(element).save();
+}
+</script>
+
+{% endblock %}

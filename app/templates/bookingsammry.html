@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% block title %}My Bookings{% endblock %}
+
+{% block content %}
+<style>
+.booking-summary-container{
+  max-width:1000px;
+  margin:30px auto;
+  padding:15px;
+  font-family:Arial, sans-serif;
+}
+.page-header{
+  text-align:center;
+  margin-bottom:25px;
+}
+.page-header h2{
+  color:#d32f2f;
+  font-weight:700;
+}
+.page-header p{
+  color:#555;
+}
+
+.booking-card{
+  background:#ffffff;
+  border:1px solid #ddd;
+  border-radius:12px;
+  margin-bottom:25px;
+  overflow:hidden;
+}
+
+.booking-header{
+  background:#d32f2f;
+  color:#fff;
+  padding:14px 18px;
+  display:flex;
+  justify-content:space-between;
+}
+
+.booking-title{
+  font-size:18px;
+  font-weight:600;
+}
+
+.booking-info{
+  display:flex;
+  gap:25px;
+  font-size:14px;
+}
+
+.order-id{
+  background:#f5f5f5;
+  padding:10px 18px;
+  font-weight:600;
+  font-size:14px;
+}
+
+.items-table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.items-table th,
+.items-table td{
+  padding:12px;
+  border-bottom:1px solid #ddd;
+  font-size:14px;
+}
+
+.items-table th{
+  background:#eeeeee;
+}
+
+.item-days{
+  text-align:center;
+  font-weight:600;
+}
+
+.action-btn{
+  padding:6px 14px;
+  border-radius:20px;
+  font-size:13px;
+  font-weight:600;
+  text-decoration:none;
+  display:inline-block;
+  margin:2px;
+}
+
+.return-btn{
+  background:#d32f2f;
+  color:#fff;
+}
+
+.view-btn{
+  background:#555;
+  color:#fff;
+}
+
+.status-badge{
+  padding:6px 14px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:700;
+  color:#fff;
+  display:inline-block;
+}
+
+.status-returned{ background:#2e7d32; }
+.status-pending{ background:#f57c00; }
+.status-approved{ background:#1976d2; }
+.status-rejected{ background:#d32f2f; }
+
+.empty-state{
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:50px;
+  text-align:center;
+}
+</style>
+
+<div class="booking-summary-container">
+  <div class="page-header">
+    <h2>My Bookings</h2>
+    <p>Track rentals, view details, and manage returns</p>
+  </div>
+
+  {% if booking_summaries %}
+    <h4 style="text-align:center; color:red; font-weight:500;">
+      Contact Admin to extend your rental period:
+      <span style="font-weight:600;">+91 88505 13009</span>
+    </h4>
+
+    {% for booking in booking_summaries %}
+    <div class="booking-card">
+      <div class="booking-header">
+        <div class="booking-title">Booking Summary</div>
+        <div class="booking-info">
+          <div>Date: <strong>{{ booking.date }}</strong></div>
+          <div>Items: <strong>{{ booking.items|length }}</strong></div>
+          {% if booking.customer %}
+            <div>Customer: <strong>{{ booking.customer.username }}</strong></div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="order-id">
+        Order ID: {{ booking.order_id }}
+      </div>
+
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Item</th>
+            <th style="text-align:center;">Days</th>
+            <th style="text-align:center;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rr in booking.items %}
+          <tr>
+            <td>{{ rr.id }}</td>
+            <td>{{ rr.rental_item.title }}</td>
+            <td class="item-days">{{ rr.rental_days }}</td>
+
+            <td style="text-align:center;">
+              {% if forloop.first %}
+                {% with booking.items|first as first_item %}
+
+                  {% if first_item.status == "pending" and not first_item.is_return_requested %}
+                    <span class="status-badge status-pending" title="Your booking request is still in queue.">
+                      Booking Pending
+                    </span>
+
+                  {% elif first_item.status == "rejected" and not first_item.is_returned %}
+                    <span class="status-badge status-rejected" title="Your booking request was rejected by admin.">
+                      Booking Rejected
+                    </span>
+
+                  {% elif first_item.is_returned %}
+                    <span class="status-badge status-returned">Returned</span>
+                    <a href="{% url 'return_receipt' booking.order_id %}"
+                       class="action-btn view-btn"
+                       title="View and download receipt click here.">
+                       View Receipt
+                    </a>
+
+                  {% elif first_item.status == "approved" and first_item.is_return_requested %}
+                    <span class="status-badge status-pending" title="Your return request is waiting for admin approval.">
+                      Return Pending
+                    </span>
+
+                  {% elif first_item.status == "approved" %}
+                    <a href="{% url 'return_order' booking.order_id %}"
+                       class="action-btn return-btn"
+                       title="Click on return request to return the item."
+                       onclick="openDepositModal(event, this.href);">
+                       Request Return
+                    </a>
+
+                    <a href="{% url 'view_rental' rr.id %}"
+                       class="action-btn view-btn"
+                       title="View and download receipt click here.">
+                       View Receipt
+                    </a>
+
+                  {% else %}
+                    <span class="status-badge status-pending" title="Your booking request is still in queue.">
+                      Pending
+                    </span>
+                  {% endif %}
+
+                {% endwith %}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    </div>
+    {% endfor %}
+
+  {% else %}
+
+    <div class="empty-state">
+      <h3>No Bookings Found</h3>
+      <p>You haven't rented any items yet.</p>
+    </div>
+
+  {% endif %}
+
+</div>
+
+<div id="depositModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h3>Donate Deposit?</h3>
+    <p>Do you want to donate your deposit amount? If yes, the deposit will be removed from the receipt total.</p>
+    <div class="modal-actions">
+      <button type="button" class="action-btn return-btn" onclick="submitDepositChoice(true)">Yes, donate deposit</button>
+      <button type="button" class="action-btn view-btn" onclick="submitDepositChoice(false)">No, keep refund</button>
+      <button type="button" class="action-btn" style="background:#888;" onclick="closeDepositModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-box {
+  background: #fff;
+  max-width: 420px;
+  width: 90%;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  text-align: center;
+}
+
+.modal-box h3 {
+  margin-bottom: 12px;
+  color: #d32f2f;
+}
+
+.modal-box p {
+  margin-bottom: 18px;
+  color: #444;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.modal-actions .action-btn {
+  min-width: 120px;
+}
+</style>
+
+<script>
+  let depositReturnHref = null;
+
+  function openDepositModal(event, href) {
+    event.preventDefault();
+    depositReturnHref = href;
+    document.getElementById('depositModal').style.display = 'flex';
+  }
+
+  function closeDepositModal() {
+    document.getElementById('depositModal').style.display = 'none';
+    depositReturnHref = null;
+  }
+
+  function submitDepositChoice(donate) {
+    if (!depositReturnHref) {
+      closeDepositModal();
+      return;
+    }
+
+    const separator = depositReturnHref.includes('?') ? '&' : '?';
+    const url = depositReturnHref + separator + 'donate_deposit=' + (donate ? 'true' : 'false');
+    window.location.href = url;
+  }
+</script>
+
+{% endblock %}
+

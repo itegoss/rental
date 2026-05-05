@@ -75,9 +75,8 @@
     top: 1px;
   }
 
-  /* Highlight label border and background when radio is checked */
   .delivery-options input[type="radio"]:checked + .option-text {
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .delivery-options input[type="radio"]:checked + .option-text + .option-desc {
@@ -85,7 +84,6 @@
     font-weight: 500;
   }
   
-  /* Because input and spans are siblings, wrap text spans in a container to better handle checked styles */
   .option-text {
     vertical-align: middle;
   }
@@ -119,38 +117,28 @@
   }
 </style>
 
-{% if item.image_url %}
-  <div class="payment-image-container">
-    <img src="{{ item.image_url }}" alt="{{ item.name }}" class="payment-image">
-  </div>
-{% endif %}
-
 <div class="payment-container">
-  <h2>{{ item.name }}</h2>
-  <p>{{ item.description }}</p>
-  <p><strong>Price per Day:</strong> ₹{{ item.price_per_day }}</p>
+  <h2>Your Orders</h2>
 
-
-  <form method="post">
+  <h3>Select Delivery Option</h3>
+  <form method="post" action="{% url 'select_delivery' pk=rental_id %}">
     {% csrf_token %}
-    <div class="delivery-options">
-    <label>
-  <input type="radio" name="delivery_option" value="Delivery" required>
-  <span class="option-text">
+
+   <div class="delivery-options">
+  <label>
+    <input type="radio" name="delivery_option" value="delivery" required>
     Delivery 
-    <span class="delivery-charge">₹50 extra</span>
-  </span>
-  <span class="option-desc">Get it delivered to your address</span>
-</label>
+    <span class="delivery-charge">₹500 extra</span>
+    <span class="option-desc">Get it delivered to your address</span>
+  </label>
 
-      <label>
-        <input type="radio" name="delivery_option" value="Takeaway">
-        <span class="option-text">Pick up</span>
-        <span class="option-desc">Pick up your order from the store</span>
-      </label>
-    </div>
-
-    <button type="submit" class="pay-button">Pay Now</button>
+  <label>
+    <input type="radio" name="delivery_option" value="pickup">
+    Pick up
+    <span class="option-desc">Pick up your order from the store</span>
+  </label>
+</div>
+    <button type="submit" class="pay-button" style="margin-top:15px;">Proceed</button>
   </form>
 </div>
 

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Sign in with Mobile{% endblock %}
+{% block content %}
+<div style="max-width:480px;margin:40px auto;padding:20px;border:1px solid #eee;border-radius:8px;">
+  <h2>Sign in with Mobile (WhatsApp OTP)</h2>
+  <form method="post">
+    {% csrf_token %}
+    <label for="mobile">Mobile number</label><br>
+    <input type="text" name="mobile" id="mobile" placeholder="e.g. 9876543210 or +919876543210" style="width:100%;padding:8px;margin:8px 0;" required />
+    <button type="submit" style="padding:10px 14px;background:var(--primary);color:#fff;border:none;border-radius:4px;">Send OTP</button>
+  </form>
+  <p style="margin-top:12px;font-size:0.9rem;color:#666;">You'll receive a one-time code on WhatsApp. Expires in 5 minutes.</p>
+</div>
+{% endblock %}

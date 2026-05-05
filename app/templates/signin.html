@@ -88,15 +88,21 @@
         background-color: #1b66c9;
     }
 
+    .auth-link-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+
     .forgot-link {
-        display: block;
-        text-align: right;
-        margin-top: 10px;
+        display: inline-block;
         color: red;
         font-size: 14px;
         text-decoration: none;
         transition: color 0.3s ease;
-        text-align: center;
     }
 
     .forgot-link:hover {
@@ -205,8 +211,10 @@
         <!-- Submit Button -->
         <button type="submit" class="btn btn-custom">Sign In</button>
 
-        <!-- Forgot Password -->
-        <div class="mt-2">
+        <!-- Forgot Password / Register -->
+        <div class="auth-link-row">
+            <a href="{% url 'signup' %}" class="forgot-link">Register</a>
+            <span>|</span>
             <a href="{% url 'forgot' %}" class="forgot-link">Forgot Password?</a>
         </div>
 

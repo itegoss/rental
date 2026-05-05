@@ -3,20 +3,24 @@ from django.urls import path
 from app import views 
 from .views import payment
 urlpatterns = [
-   
     path('', views.index, name='index'),  
+    path('cart/update/<int:item_id>/', views.update_cart_item, name='update_cart_item'),
+    path('cart/remove/<int:item_id>/', views.remove_cart_item, name='remove_cart_item'),
+    path('add-to-cart/<int:item_id>/', views.add_to_cart, name='add_to_cart'),
+    path('cart/', views.cart_view, name='cart'),
     path('logout/', views.logout, name='logout'),
     path('signup/', views.signup, name='signup'),
     path('signin/', views.signin, name='signin'),
+    path('signin-mobile/', views.signin_mobile, name='signin_mobile'),
+    path('verify-otp/', views.verify_otp, name='verify_otp'),
     path('forgot-username/', views.forgot, name='forgot'),
     path('resetpass/<str:username>/', views.resetpass, name='resetpass'),
     path('items/', views.items, name='items'),
-    path('buy/<int:item_id>/', views.buy, name='buy'),
+    path('notify-request/', views.notify_request, name='notify_request'),
     path('userdetail/', views.userdetail, name='userdetail'),
     path('success/<int:rental_id>/', views.success, name='success'),  
     path('about/', views.about, name='about'),
     path('send-overdue-emails/', views.send_overdue_emails, name='send_overdue_emails'),
-    path('buy/<int:item_id>/', views.buy, name='buy'),
     path('select-delivery/<int:pk>/', views.select_delivery, name='select_delivery'),
     path('payment/<int:rental_id>/', views.payment, name='payment'),
     path('payment/success/<int:rental_id>/', views.success, name='success'),
@@ -25,6 +29,11 @@ urlpatterns = [
     path("approve-order/<str:order_id>/", views.approve_order, name="approve_order"),
     path("terms/", views.terms, name="terms"),
     path("services/", views.services, name="services"),
-    
-
+    path('select-delivery/<int:pk>/', views.select_delivery, name='select_delivery'),
+    path('bookingsammry/', views.bookingsammry, name='bookingsammry'),
+    path('rental/view/<int:rental_id>/', views.view_rental, name='view_rental'),
+    path('return/<int:rental_id>/<int:item_id>/', views.mark_returned, name='mark_returned'),
+    path("return-order/<str:order_id>/",views.return_order,name="return_order"),
+    path("return-item/<int:cart_item_id>/", views.return_cart_item, name="return_cart_item"),
+    path("return-receipt/<str:order_id>/",views.return_receipt,name="return_receipt")
 ]

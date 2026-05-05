@@ -3,18 +3,15 @@
 {% block title %} Sick Bed Services-Home {% endblock %}
 {% block content %}
 <style>
-/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
-
-/* Banner Styles */
 .home-banner {
   width: 100%;
   min-height: 220px;
   height: auto;
   line-height: 0;
-  background-size: contain;  /* ensures full image is visible */
+  background-size: contain; 
   background-repeat: no-repeat;
   background-position: center;
   position: relative;
@@ -24,7 +21,7 @@ html {
 .banner-img {
   width: 100%;
   height: auto;
-  object-fit: contain; /* keep full image */
+  object-fit: contain; 
   object-position: center;
   margin: 0;
   opacity: 0;
@@ -76,7 +73,6 @@ html {
   transform: translateY(-3px);
 }
 
-/* Animations */
 @keyframes fadeIn { to { opacity: 1; } }
 @keyframes slideInDown {
   from { opacity: 0; transform: translateY(-30px); }
@@ -87,13 +83,12 @@ html {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Welcome Section */
 section.welcome {
   text-align: center;
   padding: 40px 20px;
   background: white;
-  margin: 90;   /* ensure no overlap */
-  position: relative;   /* keep it outside banner */
+  margin: 90;  
+  position: relative; 
   z-index: 1;
 }
 section.welcome h1 {
@@ -111,7 +106,6 @@ section.welcome p {
   line-height: 1.5;
 }
 
-/* Featured Items Section */
 section.featured-section {
   padding: 40px 20px;
   background: #f9f9f9;
@@ -169,7 +163,6 @@ section.featured-section h2 {
   text-align: center;
 }
 
-/* View More Button */
 .view-more-btn {
   display: inline-block;
   padding: 12px 30px;
@@ -184,7 +177,6 @@ section.featured-section h2 {
 }
 .view-more-btn:hover { background: #b20710; }
 
-/* About Section */
 section.about-container {
   padding: 50px 20px;
   background: white;
@@ -235,7 +227,6 @@ section.about-container {
   border-radius: 8px;
 }
 
-/* Login reminder */
 .login-reminder {
   padding: 15px;
   text-align: center;
@@ -253,19 +244,7 @@ section.about-container {
   text-decoration: underline;
 }
 
-/* Modal */
-.modal {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease;
-}
+
 .modal.show { opacity: 1; visibility: visible; }
 .modal-content {
   background: white;
@@ -297,7 +276,6 @@ section.about-container {
   color: #666;
 }
 
-/* ✅ Responsive Design */
 @media (max-width: 1024px) {
   .home-banner { min-height: 40vh; }
   .featured-item img { height: 160px; }
@@ -324,25 +302,45 @@ section.about-container {
   .featured-item img { height: 180px; }
   .about-header h2 { font-size: 1.6rem; }
 }
+.modal {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  z-index: 9999;
+}
 
+.modal-content {
+  background: #fff;
+  padding: 20px;
+  margin: 10% auto;
+  width: 350px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.modal-content input {
+  width: 100%;
+  margin: 8px 0;
+  padding: 8px;
+}
 </style>
 
-
-<!-- Banner Section -->
 <div class="home-banner" role="region" aria-label="Homepage Banner">
   <img src="{% static 'images/banner1.png' %}" alt="Hospital equipment rental banner" class="banner-img" loading="lazy" />
 </div>
 
-<!-- Welcome Message -->
 <section class="welcome" role="region" aria-label="Welcome message">
   <h1>Welcome to Kutch Yuvak Sangh</h1>
   <p>We provide quality hospital equipment on rent</p>
 </section>
-<!-- Featured Items Section -->
+
 <section class="featured-section" role="region" aria-label="Featured rental items">
   <h2>Featured Items</h2>
   <div class="featured-grid">
-    <!-- Show same products to all users -->
     <a href="{% url 'items' %}" class="featured-item" tabindex="0" role="article" aria-label="Air Bed rental for ₹5 per day">
       <img src="{% static 'images/airBed.png' %}" alt="Air Bed" loading="lazy" />
       <h3>Air Bed</h3>
@@ -370,7 +368,6 @@ section.about-container {
   </div>
 </section>
 
-<!-- About Section -->
 <section class="about-container" aria-labelledby="about-title" role="region">
   <header class="about-header">
     <h2 id="about-title">About KYS (Bhayander) - Kutch Yuvak Sangh</h2>
@@ -378,7 +375,6 @@ section.about-container {
   </header>
   
   <div class="about-flex">
-    <!-- Left Side: Text -->
     <div class="about-content">
       <p>
         <span class="highlight">KYS (Bhayander)</span>, a subset of <strong>Kutch Yuvak Sangh</strong>, is an NGO dedicated to empowering communities, transforming lives, and aiming for a better future for everyone.
@@ -393,22 +389,11 @@ section.about-container {
       </p>
     </div>
     
-    <!-- Right Side: Image -->
     <div class="rental-img">
       <img src="{% static 'images/sickbed.jpg' %}" alt="Hospital equipment rental" loading="lazy" />
     </div>
   </div>
 </section>
-
-<!-- Signup Modal -->
-<div id="signupModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-  <div class="modal-content" role="document" tabindex="0">
-    <button id="closeModal" aria-label="Close Signup Modal">&times;</button>
-    <h2 id="modal-title">Please Sign Up to Continue</h2>
-    <p>To rent items, please create an account.</p>
-    <a href="{% url 'signup' %}" class="view-more-btn">Go to Signup Page</a>
-  </div>
-</div>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {

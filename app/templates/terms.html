@@ -3,65 +3,78 @@
 <div class="container mt-4 fade-in">
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
-             <center><h3 class="text-center mb-4">Terms and Conditions</h3></center>
+            <center><h3 class="text-center mb-4">Terms and Conditions</h3></center>
         </div>
         <div class="card-body">
             <div class="row">
                 <div class="col-md-8 offset-md-2">
                     <div class="document-details">
-                       
-                        
-                       
+
                         <ul class="list-group mb-4">
                             <li class="list-group-item">
-                               The period for use of equipment is 30 days only. Please return it on expiry of 30 days, if any case, if it requires for more than 30 days, contact Trust Office, along with Deposit Receipt.
-                            </li><br>
-                            <li class="list-group-item">
-                              The equipment shall at all times remains the property of Trust “Shree Matunga Gujarati Seva Mandal”, and the patient shall have no rights, title or interest in or to the Sadhan (Equipments).
-                            </li><br>
-                            <li class="list-group-item">
-                               The equipment shall remain at the sole risk of user family, and any loss, damage shall be borne by user / user family.
-                            </li><br>
-                            <li class="list-group-item">
-                                  equipment are only for the use of patients only.
-                            </li><br>
-                            <li class="list-group-item">
-                                Ensure that no unauthorized transfer or diversion of theequipment occurs.  </li><br>
-                            <li class="list-group-item">
-                             Please do not remove, alter, disfigure or cover up any numbering, lettering displayed on the equipment.
+                                The period for use of equipment is 30 days only. Please return it on expiry of 30 days.
                             </li><br>
 
-                             <li class="list-group-item">
-                            Return the equipment, along with Deposit Receipt, on or before the due dates, & inform the Trust Office accordingly, for refund of equipment deposit.
+                            <li class="list-group-item">
+                                The equipment shall at all times remain the property of Trust “Shree Matunga Gujarati Seva Sangh”.
                             </li><br>
-
-                             <li class="list-group-item">
-                            In any case the equipment is returned on public holidays, or after office hours, please inform the Trust Office positively, on next working days, in order to update their records and further necessary actions, else the deposit amount lying to the credit of the user will be forfeited / adjusted against the cost of equipment offered for use of patient, and the balance amount, if any, has to bear by user / user family.
-                            </li><br>
-
 
                             <li class="list-group-item">
-                             Please produce the Deposit Receipt for refund of equipment deposit which is essential, in absence of original Deposit Receipt duplicate receipt will be issued, charging penalty amount Rs. 10 (Ten only).
+                                The equipment shall remain at the sole risk of user family, and any loss or damage shall be borne by them.
+                            </li><br>
+
+                            <li class="list-group-item">
+                                Equipment are only for the use of patients only.
+                            </li><br>
+
+                            <li class="list-group-item">
+                                Ensure that no unauthorized transfer or diversion of the equipment occurs.
+                            </li><br>
+
+                            <li class="list-group-item">
+                                Please do not remove, alter, disfigure or cover up any numbering or lettering displayed on the equipment.
+                            </li><br>
+
+                            <li class="list-group-item">
+                                Return the equipment, along with Deposit Receipt, on or before the due date and inform the office.
+                            </li><br>
+
+                            <li class="list-group-item">
+                                In case the equipment is returned on public holidays or after office hours, please inform the concerned authority.
+                            </li><br>
+
+                            <li class="list-group-item">
+                                Please produce the Deposit Receipt for refund of equipment deposit which is essential.
                             </li>
-                           
                         </ul><br>
+
                         <div class="signature-section mt-5">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="signature">Signature:</label>
+                                        <input type="text" id="signature" class="form-control signature-input">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="date">Date:</label>
+                                        <input type="date" id="date" class="form-control">
                                     </div>
                                 </div>
                             </div>
-                            
-                           
-                            
-                            
+
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="checkbox" id="agreeCheck">
+                                <label class="form-check-label" for="agreeCheck">
+                                    I agree to the above Terms and Conditions.
+                                </label>
+                            </div>
+
+                            <button id="submitBtn" class="btn btn-primary mt-3" disabled>
+                                Submit
+                            </button>
+
                         </div>
                     </div>
                 </div>
@@ -75,13 +88,13 @@
     .fade-in {
         animation: fadeIn 1s ease-in;
     }
-    
+
     @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
     }
-    
-    /* Style for signature input */
+
+    /* Signature input */
     .signature-input {
         border: none;
         border-bottom: 2px solid #dee2e6;
@@ -89,33 +102,33 @@
         padding-left: 0;
         transition: border-color 0.3s;
     }
-    
+
     .signature-input:focus {
         box-shadow: none;
-        border-bottom-color: #0d6efd;
+        border-color: #0d6efd;
     }
-    
+
     /* Checkbox styling */
     .form-check-input:checked {
         background-color: #0d6efd;
         border-color: #0d6efd;
     }
-    
+
     .form-check-input:focus {
         border-color: #86b7fe;
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
     }
-    
+
     /* Submit button */
     #submitBtn {
         transition: all 0.3s ease;
     }
-    
+
     #submitBtn:hover:not(:disabled) {
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
     }
-    
+
     #submitBtn:disabled {
         opacity: 0.6;
         cursor: not-allowed;
@@ -123,26 +136,26 @@
 </style>
 
 <script>
-    // Enable submit button only when all fields are filled and checkbox is checked
-    document.addEventListener('DOMContentLoaded', function() {
-        const signatureInput = document.getElementById('signature');
-        const dateInput = document.getElementById('date');
-        const agreeCheck = document.getElementById('agreeCheck');
-        const submitBtn = document.getElementById('submitBtn');
-        
-        function validateForm() {
-            if (signatureInput.value.trim() !== '' && 
-                dateInput.value !== '' && 
-                agreeCheck.checked) {
-                submitBtn.disabled = false;
-            } else {
-                submitBtn.disabled = true;
-            }
+document.addEventListener('DOMContentLoaded', function() {
+    const signatureInput = document.getElementById('signature');
+    const dateInput = document.getElementById('date');
+    const agreeCheck = document.getElementById('agreeCheck');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function validateForm() {
+        if (signatureInput.value.trim() !== '' &&
+            dateInput.value !== '' &&
+            agreeCheck.checked) {
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.disabled = true;
         }
-        
-        signatureInput.addEventListener('input', validateForm);
-        dateInput.addEventListener('change', validateForm);
-        agreeCheck.addEventListener('change', validateForm);
-    });
+    }
+
+    signatureInput.addEventListener('input', validateForm);
+    dateInput.addEventListener('change', validateForm);
+    agreeCheck.addEventListener('change', validateForm);
+});
 </script>
+
 {% endblock %}

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %} Sick Bed Services  | Secure Payment{% endblock %}
-
 {% block content %}
+
 <style>
   body {
     background: linear-gradient(135deg, #e8f0ff, #fff4e6);
@@ -84,7 +84,7 @@
     }
   }
 </style>
-<!-- Payment Box -->
+
 <div class="payment-container">
   <h3>
     <i class="fas fa-wallet icon"></i> Amount: ₹{{ total_amount }}
@@ -100,22 +100,21 @@
   Order ID: {{ payment.order_id }}
 </div>
 
+  <div class="info-box">
+    <label style="display: flex; align-items: center; cursor: pointer;">
+      <input type="checkbox" id="donate-deposit" style="margin-right: 10px;">
+      <span>I want to donate my deposit amount (₹{{ total_deposit }})</span>
+    </label>
+  </div>
 
-  <button id="rzp-button1">
-    <i class="fas fa-lock icon"></i> Pay with Razorpay
-  </button>
-</div>
-
-
-<!-- Razorpay Script -->
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
   const options = {
     key: "{{ razorpay_key }}",
-    amount: parseInt("{{ razorpay_amount }}"), // paise for Razorpay
+    amount: parseInt("{{ razorpay_amount }}"),
     currency: "INR",
     name: "QuickNest Rentals",
-    description: "Rental Payment for {{ item_name }}",
+    description: "Rental Payment for Order {{ payment.order_id }}",
     image: "https://example.com/logo.png",
     order_id: "{{ razorpay_order_id }}",
 
@@ -123,7 +122,8 @@
       window.location.href = "{% url 'success' rental_id=rental_id %}" +
         "?razorpay_payment_id=" + response.razorpay_payment_id +
         "&razorpay_order_id=" + response.razorpay_order_id +
-        "&razorpay_signature=" + response.razorpay_signature;
+        "&razorpay_signature=" + response.razorpay_signature +
+        "&donate_deposit=" + document.getElementById("donate-deposit").checked;
     },
 
     prefill: {
@@ -134,14 +134,12 @@
 
     notes: {
       rental_id: "{{ rental_id }}",
-      internal_order_id: "{{ payment.id }}"  // ✅ your DB Payment ID
+      internal_order_id: "{{ payment.id }}"
     },
-
     theme: { color: "#3399cc" }
   };
 
   const rzp1 = new Razorpay(options);
-
   rzp1.on("payment.failed", function (response) {
     alert("Payment Failed: " + response.error.description);
   });
@@ -150,8 +148,20 @@
     rzp1.open();
     e.preventDefault();
   };
-</script>
 
-<!-- Font Awesome -->
+  document.getElementById("donate-deposit").addEventListener("change", function() {
+    const isDonating = this.checked;
+    const amountDisplay = document.querySelector(".payment-container h3");
+
+    if (isDonating) {
+      const depositAmount = parseFloat("{{ total_deposit }}");
+      const originalAmount = parseFloat("{{ total_amount }}");
+      const newAmount = originalAmount - depositAmount;
+      amountDisplay.innerHTML = '<i class="fas fa-wallet icon"></i> Amount: ₹' + newAmount.toFixed(2) + ' <small style="color: green;">(Deposit Donated)</small>';
+    } else {
+      amountDisplay.innerHTML = '<i class="fas fa-wallet icon"></i> Amount: ₹{{ total_amount }}';
+    }
+  });
+</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 {% endblock %}

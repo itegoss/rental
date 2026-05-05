@@ -1,380 +1,383 @@
-{% extends 'base.html' %}
-{% block title %} Sick Bed Services - Booking Successful {% endblock %}
+{% extends "base.html" %}
+{% block title %}Booking Successful{% endblock %}
 {% block content %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    min-height: 100vh;
-    width: 100vw;
-    background: #eef9f1;
-    font-family: 'Poppins', Segoe UI, Arial, sans-serif;
-    color: #273b2c;
-    box-sizing: border-box;
-  }
-  .receipt-full {
-    min-height: 100vh;
-    width: 100vw;
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
+
+.receipt-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 10px;
+    background: #f9f9f9;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    font-size: 12px;
+    line-height: 1.2;
+    border: 1px solid #c5d5c5;
+}
+
+/* HEADER */
+.receipt-header {
     display: flex;
-    flex-direction: column;
-  }
-  .receipt {
-    flex: 1;
-    width: 100vw;
-    padding: 35px 8vw 28px 8vw;
-    background: linear-gradient(120deg, #f6fbf8 60%, #d6f8e7 100%);
-    border-radius: 0;
-    box-shadow: none;
-    border: none;
-    margin: 0;
-    position: relative;
-    box-sizing: border-box;
-  }
-  .receipt-header {
-    text-align: left;
-    margin-bottom: 28px;
-    padding-bottom: 13px;
-    border-bottom: 2px dashed #d2eddc;
-  }
-  .receipt-header h1 {
-    font-size: 2.3rem;
-    color: #19954d;
-    font-weight: 800;
-    margin: 0 0 4px;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-  }
-  .receipt-header img.logo-print {
-    position: absolute;
-    top: 35px;
-    right: 8vw;
-    width: 110px;
-    height: auto;
-    object-fit: contain;
-    user-select: none;
-  }
-  .receipt-title {
-    text-align: left;
-    font-size: 1.23rem;
-    color: #188b49;
-    font-weight: 700;
-    margin: 20px 0 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-  }
-  .receipt-details {
-    font-family: 'Consolas', monospace;
-    font-size: 1.04rem;
-    background: #fff;
-    border-radius: 13px;
-    padding: 25px 26px 18px 18px;
-    margin-bottom: 14px;
-    box-shadow: 0 2px 18px 0px #b4ecd5;
-    border: 1px solid #e5f5ef;
-  }
-  .receipt-row {
+    align-items: center;
+    margin-bottom: 6px;
+}
+.logo-container { width: 60px; }
+.logo-container img { width: 100%; }
+.receipt-title { flex: 1; text-align: center; }
+.receipt-title h2 { font-size: 15px; margin: 0; color: #1b8a4b; }
+.receipt-title p { font-size: 9px; margin: 1px 0; }
+.receipt-title h3 { font-size: 16px; margin: 2px 0; color: #1b8a4b; }
+
+/* ORDER ID */
+.order-id {
+    text-align: center;
+    font-size: 12px;
+    padding: 4px;
+    margin: 4px 0;
+    background: #eef7f2;
+}
+
+/* SECTION */
+.section-title {
+    font-size: 15px;
+    color: #1b8a4b;
+    border-bottom: 1px solid #1b8a4b;
+    margin: 5px 0 3px;
+}
+
+/* INFO */
+.info-grid { display: flex; justify-content: space-between; }
+.info-column { width: 48%; }
+.info-item p { font-size: 11px; margin: 1px 0; }
+
+/* TABLE */
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4px 0;
+}
+.items-table th,
+.items-table td {
+    font-size: 10px;
+    padding: 2px;
+    border: 1px solid #ccc;
+    text-align: center;
+}
+.items-table th {
+    background: #1b8a4b;
+    color: white;
+}
+
+/* DELIVERY + TOTAL */
+.delivery-summary {
     display: flex;
     justify-content: space-between;
-    padding-bottom: 7px;
-    margin-bottom: 9px;
-    border-bottom: 1px dotted #eeefe3;
-    font-size: 1.04rem;
-  }
-  .receipt-row:last-child {
-    border-bottom: none;
-    margin-bottom: 4px;
-  }
-  .receipt-label {
-    font-weight: 700;
-    color: #197844;
-    min-width: 110px;
-    letter-spacing: 0.1px;
-  }
-  .receipt-value {
-    text-align: right;
-    flex: 1;
-    color: #2e5653;
-    font-weight: 500;
-  }
-  .receipt-divider {
-    height: 2px;
-    background: repeating-linear-gradient(
-      90deg,
-      #e9f6ed,
-      #e9f6ed 7px,
-      transparent 7px,
-      transparent 14px
-    );
-    margin: 18px 0;
-  }
-  .receipt-footer {
-    text-align: left;
-    margin-top: 24px;
-    padding-top: 16px;
-    border-top: 2px dashed #c5e9cb;
-    color: #22945b;
-    font-size: 1.09rem;
-    font-weight: 600;
-    letter-spacing: 0.1px;
-  }
-  /* Admin contact message styles */
-  .admin-contact-box {
-    background: #ffe5e7;
-    border-left: 5px solid #f44336;
-    color: #b54040;
-    font-size: 1.04rem;
-    border-radius: 9px;
-    margin-top: 16px;
-    padding: 14px 18px 12px 18px;
-    font-weight: 500;
-    line-height: 1.6;
-    max-width: 540px;
-    box-shadow: 0 2px 9px -6px #cd7575;
-  }
-  .admin-contact-box span {
-    font-weight: 700;
-    color: #911e21;
-  }
-  .receipt-watermark {
-    position: absolute;
-    top: 30%;
-    left: 48%;
-    transform: translate(-50%, -50%) rotate(-21deg);
-    font-size: 5.5rem;
-    color: rgba(34, 148, 91, 0.05);
-    font-weight: 800;
-    z-index: 0;
-    pointer-events: none;
-    text-transform: uppercase;
-    letter-spacing: 6px;
-    user-select: none;
-  }
-  .button-row-full {
-    width: 100vw;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 22px;
-    background: transparent;
-    padding: 12px 8vw 20px 8vw;
-    box-sizing: border-box;
-    margin: 0;
-    border-top: 1.5px solid #eaf1ef;
-  }
-  .receipt-button {
-    display: inline-block;
-    width: 185px;
-    max-width: 95vw;
-    text-decoration: none;
+    margin: 4px 0;
+}
+.delivery-info p { font-size: 11px; }
+.total-info { text-align: right; }
+.total-amount { font-size: 13px; font-weight: bold; color: #1b8a4b; }
+
+/* THANK YOU */
+.thank-you {
     text-align: center;
-    padding: 13px 0;
-    background: linear-gradient(87deg, #22945b 85%, #21b86f 100%);
-    color: #fff;
-    font-size: 1.12rem;
-    border-radius: 10px;
-    font-weight: 700;
+    font-size: 11px;
+    padding: 4px;
+    background: #e4f2e9;
+    margin-top: 4px;
+}
+
+/* BUTTONS (SCREEN ONLY) */
+.receipt-actions {
+    margin: 15px 0;
+    text-align: center;
+}
+.download-btn {
+    padding: 6px 12px;
+    background: #1b8a4b;
+    color: white;
     border: none;
-    box-shadow: 0 2px 8px -2px #b7e5c9;
-    letter-spacing: 0.3px;
     cursor: pointer;
-    transition: background 0.12s, box-shadow 0.12s;
-    outline: none;
-    margin: 0;
-  }
-  .receipt-button:active {
-    background: #1c7f46;
-  }
-  .receipt-button:hover {
-    background: #238c4a;
-    box-shadow: 0 1.5px 7px -2px #a4dab2;
-  }
-  .receipt-button:last-child {
-    background: #eb4a4a;
-    color: #fff;
-    width: 155px;
-    margin-left: 12px;
-    transition: background 0.12s;
-  }
-  .receipt-button:last-child:hover {
-    background: #c93030;
-  }
-  @media (max-width: 880px) {
-    .receipt, .button-row-full {
-      padding-left: 4vw;
-      padding-right: 4vw;
+}
+
+
+@media print {
+
+    @page {
+        size: A5 landscape;
+        margin: 4mm;
     }
-    .button-row-full {
-      gap: 10px;
-      padding-right: 2vw;
-      padding-left: 2vw;
+
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
     }
-  }
-  @media (max-width: 640px) {
-    .receipt-header h1 { font-size: 1.24rem; }
-    .receipt-watermark { font-size: 2.4rem;}
-    .receipt-details { font-size: .96rem; padding: 14px 6vw 14px 3vw;}
-    .receipt-row { font-size: .98rem;}
-    .receipt-button { font-size: .97rem; width: 90vw;}
-    .receipt-button:last-child { width: 74vw; }
-    .receipt-full, .receipt, .button-row-full { padding: 0; }
-    .button-row-full { flex-direction: column; align-items: stretch; gap: 8px;}
-    .admin-contact-box { max-width: 96vw;}
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(14px);}
-    to { opacity: 1; transform: translateY(0);}
-  }
-  @media print {
-    .button-row-full, .admin-contact-box {
-      display: none !important;
+
+    /* Hide buttons & site UI */
+    .receipt-actions,
+    nav, header, footer {
+        display: none !important;
     }
-    body, html, .receipt-full, .receipt {
-      width: 100%;
-      height: auto;
-      min-height: auto;
-      margin: 0;
-      padding: 10px 20px;
-      background: #fff !important;
-      box-shadow: none !important;
+
+    /* Layout (do NOT force height) */
+    #pdf-content,
+    .receipt-container {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 4px !important;
+        box-shadow: none !important;
+        background: white !important;
     }
-    .receipt {
-      padding: 20px;
+
+    /* 🔥 FORCE PURE BLACK TEXT EVERYWHERE */
+    #pdf-content,
+    #pdf-content * {
+        opacity: 1 !important;
+        text-shadow: none !important;
     }
-    .receipt-header h1 {
-      margin-bottom: 6px;
+
+    /* Headings bold black */
+    .receipt-title h2,
+    .receipt-title h3,
+    .section-title,
+    .total-amount {
+        color: #000 !important;
+        font-weight: 700 !important;
     }
-    .receipt-header img.logo-print {
-      position: fixed !important;
-      top: 10px !important;
-      right: 10px !important;
-      width: 90px !important;
-      z-index: 1000;
+
+    /* Table fixes */
+    .items-table th {
+        color: #fff !important;
+        border-color: #000 !important;
     }
-  }
+
+  
+
+    /* Prevent browser from fading colors */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+
+        /* prevent accidental page breaks */
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+}
+
+
+
 </style>
 
-<div class="receipt-full" role="main" aria-labelledby="booking-success-heading">
-  <div class="receipt" id="receipt-section">
-    
-    <div class="receipt-header">
-      <h1>Sick Bed Services</h1>
-      <img src="/static/images/logo.png" alt="Sick Bed Services Logo" class="logo-print" />
-     
-      <p><strong>Name:</strong> {{ rental.user.get_full_name|default:rental.user.username }}</p>
-      <p><strong>Receipt No:</strong> {{ rental.order_id }}</p>
-    </div>
-    <div class="receipt-title" id="booking-success-heading">Booking Receipt</div>
-    <div class="receipt-details">
-      <div class="receipt-row">
-        <span class="receipt-label">Item:</span>
-        <span class="receipt-value">{{ rental.rental_item.title }}</span>
-      </div>
-      <div class="receipt-row">
-        <span class="receipt-label">Duration:</span>
-        <span class="receipt-value">{{ rental.start_date|date:"d M Y" }} to {{ rental.end_date|date:"d M Y" }} ({{ rental.rental_days }} day{{ rental.rental_days|pluralize }})</span>
-      </div>
-      <div class="receipt-row">
-        <span class="receipt-label">Total Rent:</span>
-        <span class="receipt-value">₹{{ rental.total_amount|default:rental.total_rent }}</span>
-      </div>
-      <div class="receipt-row">
-        <span class="receipt-label">Payment:</span>
-        <span class="receipt-value">{{ rental.payment_method|title }}</span>
-      </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
-      <div class="receipt-row">
-        <span class="receipt-label">Pickup Address:</span>
-        <span class="receipt-value">
-          {% if rental.pickup_address %}
-            {{ rental.pickup_address }}
-          {% else %}
-            N/A
-          {% endif %}
-        </span>
-      </div>
-      <div class="receipt-row">
-        <span class="receipt-label">Delivery Address:</span>
-        <span class="receipt-value">
-          {% if rental.user.userdetail and rental.user.userdetail.address_line1 %}
-            {{ rental.user.userdetail.address_line1 }}, {{ rental.user.userdetail.city }}, {{ rental.user.userdetail.state }} - {{ rental.user.userdetail.pincode }}
-          {% else %}
-            Take Away – Nearest hub
-          {% endif %}
-        </span>
-      </div>
+<div id="pdf-content">
+    <div class="receipt-container">
 
-      <div class="receipt-row">
-        <span class="receipt-label">Contact:</span>
-        <span class="receipt-value">
-          {% if rental.user.userdetail and rental.user.userdetail.phone %}
-            {{ rental.user.userdetail.phone }}
-          {% else %}
-            mira road
-          {% endif %}
-          | {{ rental.user.email }}
-        </span>
-      </div>
+        <div class="receipt-header">
+            <div class="logo-container">
+                <img src="/static/images/logo2.png" alt="Logo">
+            </div>
+
+            <div class="receipt-title">
+                <h2>Kutch Yuvak Sangh, Bhayandar</h2>
+                <h3>RECEIPT</h3>
+            </div>
+        </div>
+
+        <div class="order-id">
+            <strong>Order ID:</strong> {{ rental.order_id }}
+        </div>
+
+        <!-- 🔥 FIXED SECTION -->
+        <h3 class="section-title">Patient & Booking Details</h3>
+
+        <div class="info-grid">
+
+            <!-- LEFT -->
+            <div class="info-column">
+
+                <div class="info-item">
+                    <p><strong>Renter Name :</strong> {{ rental.renter_name|default:"N/A" }}</p>
+                </div>
+
+                <div class="info-item">
+                    <p><strong>Address:</strong> {{ rental.address|default:"N/A" }}</p>
+                </div>
+
+                <div class="info-item">
+                    <p><strong>ID Proof:</strong> N/A</p>
+                </div>
+
+                <div class="info-item">
+                    <p><strong>Contact No:</strong> {{ rental.phone|default:"N/A" }}</p>
+                </div>
+
+            </div>
+
+            <!-- RIGHT -->
+            <div class="info-column">
+
+                <div class="info-item">
+                    <strong>Date:</strong> {{ rental.start_date|date:"d M Y" }}
+                </div>
+
+                <div class="info-item">
+                    <p><strong>Rent Period:</strong>
+                        {{ rental.start_date|date:"d M Y" }} to
+                        {{ rental.end_date|date:"d M Y" }}
+                        ({{ rental.rental_days }} Days)
+                    </p>
+                </div>
+
+                <div class="info-item">
+                    <p><strong>Return Date:</strong> {{ rental.end_date|date:"d M Y" }}</p>
+                </div>
+
+                <div class="info-item">
+                    <p><strong>Total Deposit:</strong> ₹{{ total_deposit }}
+                        {% if rental.deposit_donated %}
+                            <span style="color: green; font-weight: bold;">(Donated)</span>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="info-item">
+                    <p><strong>Total Rent Amount:</strong> ₹{{ total_rent }}</p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- 🔥 FIXED -->
+        <div class="info-item">
+            <p><strong>Patient Name:</strong> {{ rental.patient_name|default:"N/A" }}</p>
+        </div>
+
+        <!-- ITEMS -->
+        <h3 class="section-title">Item Details</h3>
+
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Sr. No</th>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Deposit</th>
+                    <th>Rent / Day</th>
+                    <th>Days</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for it in item_totals %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ it.title }}</td>
+                    <td>{{ it.quantity }}</td>
+                    <td>₹{{ it.deposit }}</td>
+                    <td>₹{{ it.price_per_day }}</td>
+                    <td>{{ rental.rental_days }}</td>
+                    <td>₹{{ it.total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+            <tfoot>
+                <tr>
+                    <th colspan="2" style="text-align:right;">Total Quantity</th>
+                    <th>{{ total_quantity }}</th>
+                    <th colspan="4"></th>
+                </tr>
+            </tfoot>
+        </table>
+
+        <!-- DELIVERY -->
+        <div class="delivery-summary">
+
+            <div class="delivery-info">
+                <h3 class="section-title">Delivery Address</h3>
+                <p>
+                    {{ rental.address|default:"Take Away – Nearest Hub" }}
+                </p>
+            </div>
+
+            <div class="total-info">
+
+                <p><strong>Delivery Option:</strong> {{ rental.delivery_option|title }}</p>
+
+                {% if rental.delivery_option|lower == "delivery" %}
+                    <strong>Delivery Charge:</strong> ₹500
+                {% else %}
+                    <strong>Delivery Charge:</strong> ₹0
+                {% endif %}
+
+                <div class="info-item">
+                    <p><strong>Payment Mode:</strong>
+                        {% if rental.payment_method == "online" %}
+                            Online Payment
+                        {% else %}
+                            Cash
+                        {% endif %}
+                    </p>
+                </div>
+
+                <p class="total-amount"><strong>Total Amount:</strong> ₹{{ total_amount }}
+                    {% if rental.deposit_donated %}
+                        <br><small style="color: green; font-weight: bold;">(Deposit Donated - Thank you for your generosity!)</small>
+                    {% endif %}
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="terms-conditions">
+            You hereby agree to all terms & conditions mentioned on our booking portal
+        </div>
+
+        <div class="thank-you">
+            Thank you for booking with us.
+        </div>
+
     </div>
-    <div class="receipt-divider"></div>
-    <div class="receipt-footer">
-      Thank you for choosing Sick Bed Services!
-    </div>
-    <!-- Admin Contact Info Box -->
-    <div class="admin-contact-box" tabindex="0">
-     Contact us for any queries or support :
-      <span>9867348169 / 9820247550</span>
-    </div>
-  </div>
-  <div class="button-row-full">
-    <button class="receipt-button" onclick="printReceipt()">🖨 Print Receipt</button>
-    <button class="receipt-button" onclick="downloadReceiptPDF()">⬇ Download PDF</button>
-    <a class="receipt-button" href="{% url 'index' %}"> Cancel</a>
-  </div>
+</div>
+<div class="receipt-actions">
+    <button class="download-btn" onclick="downloadPDF()">Download Receipt</button>
+    <button class="download-btn" onclick="window.print()">Print</button>
+    <!-- <button class="download-btn" onclick="window.location.href='{% url 'view_rental' rental.id %}'">View Receipt</button>
+    <button class="download-btn" onclick="window.location.href='{% url 'return_order' rental.order_id %}'">Request Return</button> -->
+    <button class="download-btn"
+        onclick="window.location.href='{% url 'bookingsammry' %}'">
+    Back
+</button>
+
 </div>
 
 <script>
-function printReceipt() {
-  let printContents = document.getElementById('receipt-section').innerHTML;
-  let w = window.open('', '', 'height=800,width=600');
-  w.document.write('<html><head><title>Print Receipt</title>');
-  w.document.write('<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:400,700,800|Consolas&display=swap">');
+function downloadPDF() {
+    const element = document.getElementById("pdf-content");
 
-  // Print styles and position logo absolutely top right
-  w.document.write('<style>');
-  w.document.write('@page { size: A5; margin: 15mm 10mm 10mm 10mm; }');
-  w.document.write('body { font-family: Poppins, Arial, sans-serif; color: #273b2c; margin: 0; padding: 0; background: #fff; }');
-  w.document.write('.receipt { max-width: 100vw; position: relative; padding: 20px; background: #fff; box-shadow: none; }');
-  w.document.write('.logo-print { position: fixed; top: 10px; right: 10px; width: 90px; height: auto; user-select: none; }');
-  w.document.write('</style>');
+    const opt = {
+        margin: 3,
+        filename: "Receipt.pdf",
+        image: { type: "jpeg", quality: 1 },
+        html2canvas: {
+            scale: 2,
+            useCORS: true,
+            scrollY: 0,
+            windowWidth: element.scrollWidth
+        },
+        jsPDF: {
+            unit: "mm",
+            format: "a5",
+            orientation: "landscape"
+        }
+    };
 
-  w.document.write('</head><body>');
-
-  // Add logo visible at top right on print
-  w.document.write('<img src="/static/images/logo.png" alt="Sick Bed Services Logo" class="logo-print" />');
-  w.document.write('<div class="receipt">');
-  w.document.write(printContents);
-  w.document.write('</div>');
-
-  w.document.write('</body></html>');
-  w.document.close();
-  w.focus();
-
-  setTimeout(() => {
-    w.print();
-    w.close();
-  }, 500);
-
-  return true;
-}
-
-// Placeholder for PDF download function if needed (implement as required)
-function downloadReceiptPDF() {
-  alert("Download PDF feature coming soon!");
+    html2pdf().set(opt).from(element).save();
 }
 </script>
+
 {% endblock %}
