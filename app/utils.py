@@ -5,7 +5,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from io import BytesIO
 import re
-from .models import UserDetail, History
+from .models import Notification, UserDetail, History
 import requests
 
 
@@ -61,11 +61,67 @@ def generate_receipt(order):
     return ContentFile(buffer.getvalue(), f"receipt_{order.order_id}.pdf")
 
 
+def send_telegram_message(message):
+    token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
+    chat_id = getattr(settings, 'TELEGRAM_CHAT_ID', None)
 
-# utils.py
+    if not token or not chat_id:
+        print('[telegram] configuration missing, skipping telegram notification')
+        return False
+
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {
+        'chat_id': chat_id,
+        'text': message,
+        'parse_mode': 'HTML',
+    }
+
+    try:
+        resp = requests.post(url, data=payload, timeout=10)
+        if resp.status_code in (200, 201):
+            print('[telegram] message sent')
+            return True
+        print(f"[telegram] failed: {resp.status_code} {resp.text}")
+    except Exception as e:
+        print(f"[telegram] error: {e}")
+    return False
+
+
+def send_notification(title, message, notification_type='info', link=None):
+    try:
+        Notification.objects.create(
+            title=title,
+            message=message,
+            type=notification_type,
+            link=link,
+        )
+    except Exception as e:
+        print(f"[notification db error] {e}")
+
+    admin_email = getattr(settings, 'ADMIN_EMAIL', None)
+    if admin_email:
+        try:
+            send_mail(
+                subject=f"Admin Notification: {title}",
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[admin_email],
+                fail_silently=False,
+            )
+            print(f"[email notification] sent to {admin_email}")
+        except Exception as e:
+            print(f"[email notification error] {e}")
+
+    try:
+        send_telegram_message(f"<b>{title}</b>\n{message}")
+    except Exception as e:
+        print(f"[telegram notification error] {e}")
+
+    return True
+
+
 import datetime
 from django.db.models import Max
-from .models import History
 
 def generate_sequential_order_id():
     today = datetime.date.today().strftime("%Y%m")

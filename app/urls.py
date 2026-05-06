@@ -34,6 +34,11 @@ urlpatterns = [
     path('rental/view/<int:rental_id>/', views.view_rental, name='view_rental'),
     path('return/<int:rental_id>/<int:item_id>/', views.mark_returned, name='mark_returned'),
     path("return-order/<str:order_id>/",views.return_order,name="return_order"),
+    path("cancel-order/<str:order_id>/", views.cancel_order, name="cancel_order"),
+    path("extend-return/<str:order_id>/", views.extend_return_date, name="extend_return_date"),
     path("return-item/<int:cart_item_id>/", views.return_cart_item, name="return_cart_item"),
-    path("return-receipt/<str:order_id>/",views.return_receipt,name="return_receipt")
+    path("return-receipt/<str:order_id>/",views.return_receipt,name="return_receipt"),
+    path("notifications/", views.admin_notifications, name="admin_notifications"),
+    path("notifications/mark-read/<int:notification_id>/", views.mark_notification_read, name="mark_notification_read"),
+    path("notifications/mark-all-read/", views.mark_all_notifications_read, name="mark_all_notifications_read")
 ]

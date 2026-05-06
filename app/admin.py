@@ -1,14 +1,27 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.http import HttpResponse, HttpResponseRedirect
-from django.urls import path, reverse
-from .models import Inventory, History, Payment, UserDetail, Customer
-from .utils import generate_receipt
+from django.urls import reverse
 from django.conf import settings
-from .models import Cart, CartItem
-import urllib.parse
+
 import re
-from .utils import send_whatsapp_message
+import urllib.parse
+
+from .models import (
+    Inventory,
+    History,
+    Payment,
+    UserDetail,
+    Customer,
+    Notification,
+    Receipt,
+    Item,
+    Services,
+    Cart,
+    CartItem,
+    NotifyRequest,
+)
+from .utils import generate_receipt, send_notification, send_whatsapp_message
 
 @admin.action(description="Approve Return")
 def approve_return(modeladmin, request, queryset):
@@ -26,27 +39,19 @@ def approve_return(modeladmin, request, queryset):
                 except Exception:
                     pass
 
+            try:
+                send_notification(
+                    title=f"Product Returned: {rr.rental_item.title}",
+                    message=(
+                        f"Return approved for order {rr.order_id}. "
+                        f"Item: {rr.rental_item.title}, quantity {rr.quantity}."
+                    ),
+                    notification_type='return',
+                    link=f"/admin/app/history/{rr.id}/change/"
+                )
+            except Exception as e:
+                print(f"[admin notification error] {e}")
 
-@admin.register(Inventory)
-class InventoryAdmin(admin.ModelAdmin):
-
-    list_display = (
-        'title',
-        'price_per_day',
-        'total_quantity',
-        'available_quantity',
-        'booked_quantity',
-        'stock_status',
-        'available',
-        'next_available_date',
-    )
-
-    def stock_status(self, obj):
-        return obj.stock_status()
-
-    stock_status.short_description = "Stock Status"
-
-from .models import Inventory, History, Receipt, Item
 
 @admin.register(Receipt)
 class ReceiptAdmin(admin.ModelAdmin):
@@ -87,6 +92,17 @@ class ItemAdmin(admin.ModelAdmin):
     list_filter = ('donation',)
 
 
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ('title', 'type', 'is_read', 'created_at')
+    list_filter = ('type', 'is_read', 'created_at')
+    search_fields = ('title', 'message')
+    actions = ['mark_as_read']
+
+    @admin.action(description='Mark selected notifications as read')
+    def mark_as_read(self, request, queryset):
+        queryset.update(is_read=True)
+
 
 @admin.register(History)
 class HistoryAdmin(admin.ModelAdmin):
@@ -115,6 +131,111 @@ class HistoryAdmin(admin.ModelAdmin):
 
     readonly_fields = ('order_id','total_amount')
 
+    change_list_template = 'admin/history_changelist.html'
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        
+        # Handle report generation
+        if request.method == 'POST' and 'generate_report' in request.POST:
+            start_date = request.POST.get('start_date')
+            end_date = request.POST.get('end_date')
+            
+            if start_date and end_date:
+                from datetime import datetime
+                start = datetime.strptime(start_date, '%Y-%m-%d').date()
+                end = datetime.strptime(end_date, '%Y-%m-%d').date()
+                
+                # Filter history records
+                queryset = self.get_queryset(request).filter(
+                    start_date__gte=start,
+                    start_date__lte=end
+                )
+                
+                # Generate PDF report
+                return self.generate_report_pdf(queryset, start, end)
+        
+        return super().changelist_view(request, extra_context)
+
+    def generate_report_pdf(self, queryset, start_date, end_date):
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.lib.units import inch
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib import colors
+        from io import BytesIO
+        from django.http import HttpResponse
+        
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Title
+        title = Paragraph(f"Rental History Report ({start_date} to {end_date})", styles['Heading1'])
+        elements.append(title)
+        elements.append(Spacer(1, 12))
+        
+        # Summary
+        total_orders = queryset.count()
+        total_revenue = sum(q.total_amount or 0 for q in queryset)
+        total_deposit = sum(q.deposit * q.quantity for q in queryset)
+        
+        summary_data = [
+            ['Total Orders', str(total_orders)],
+            ['Total Revenue', f"₹{total_revenue}"],
+            ['Total Deposit', f"₹{total_deposit}"],
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[2*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 14),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        elements.append(summary_table)
+        elements.append(Spacer(1, 24))
+        
+        # Table data
+        data = [['Order ID', 'User', 'Item', 'Start Date', 'End Date', 'Status', 'Total Amount']]
+        
+        for history in queryset:
+            data.append([
+                history.order_id or 'N/A',
+                history.user.username,
+                history.rental_item.title,
+                str(history.start_date),
+                str(history.end_date),
+                history.status,
+                f"₹{history.total_amount or 0}",
+            ])
+        
+        table = Table(data, colWidths=[1*inch, 1.5*inch, 2*inch, 1*inch, 1*inch, 1*inch, 1*inch])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        elements.append(table)
+        
+        doc.build(elements)
+        buffer.seek(0)
+        
+        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="rental_report_{start_date}_to_{end_date}.pdf"'
+        return response
+
     def get_rental_days(self, obj):
         return obj.rental_days
     get_rental_days.short_description = "Rental Days"
@@ -122,6 +243,10 @@ class HistoryAdmin(admin.ModelAdmin):
     def get_per_day_rent(self, obj):
         return f"₹{obj.rental_item.price_per_day}" if obj.rental_item else "—"
     get_per_day_rent.short_description = "Per Day Rent"
+
+    def stock_status(self, obj):
+        return obj.stock_status()
+    stock_status.short_description = "Stock Status"
 
     def download_receipt(self, obj):
         try:
@@ -238,14 +363,10 @@ class UserDetailAdmin(admin.ModelAdmin):
     )
 
 
-from django.contrib import admin
-from .models import Services
-
 @admin.register(Services)
 class ServicesAdmin(admin.ModelAdmin):
     list_display = ('title', 'contact_number')
 
-from .models import Cart, CartItem
 
 class CartItemInline(admin.TabularInline):
     model = CartItem
@@ -268,7 +389,6 @@ class CustomerAdmin(admin.ModelAdmin):
     search_fields = ('name', 'phone', 'patient_name')
 
 
-from .models import NotifyRequest
 
 @admin.register(NotifyRequest)
 class NotifyRequestAdmin(admin.ModelAdmin):

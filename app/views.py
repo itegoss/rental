@@ -15,7 +15,7 @@ from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout as auth_logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.template.loader import render_to_string
@@ -39,7 +39,7 @@ from .models import (
     Customer,
     NotifyRequest,
 )
-from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, send_whatsapp_message
+from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, send_whatsapp_message, send_notification
 
 def index(request):
     if request.user.is_authenticated and request.user.is_superuser:
@@ -59,6 +59,18 @@ def index(request):
             send_overdue_email(rental.user, rental)
             rental.is_overdue_email_sent = True
             rental.save(update_fields=['is_overdue_email_sent'])
+            try:
+                send_notification(
+                    title="Late Return Detected",
+                    message=(
+                        f"Late return detected for order {rental.order_id}. "
+                        f"Renter: {rental.user.username}, due date: {rental.end_date}."
+                    ),
+                    notification_type='late_return',
+                    link=f"/admin/app/history/{rental.id}/change/"
+                )
+            except Exception as e:
+                print(f"[notification late-return error] {e}")
 
     return render(request, 'index.html')
 
@@ -158,6 +170,16 @@ def signup(request):
 
         user = User.objects.create_user(username=username, email=email, password=password)
         user.save()
+
+        try:
+            send_notification(
+                title="New User Registered",
+                message=f"New user registered: {user.username} ({user.email}).",
+                notification_type='user',
+                link=f"/admin/auth/user/{user.id}/change/"
+            )
+        except Exception as e:
+            print(f"[notification signup error] {e}")
 
         digits = re.sub(r"\D", "", str(mobile or ""))
         otp = str(random.randint(100000, 999999))
@@ -361,8 +383,6 @@ def notify_request(request):
     
     return redirect('items')
 
-from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect
 from django.db import transaction
 @transaction.atomic
 def add_to_cart(request, item_id):
@@ -392,9 +412,7 @@ def add_to_cart(request, item_id):
     messages.success(request, "Item added to cart.")
     return redirect('cart')
 
-
 def cart_view(request):
-
     cart, _ = Cart.objects.get_or_create(user=request.user)
     cart_items = cart.items.all()
 
@@ -602,7 +620,19 @@ def paymentmethod(request):
 
         print("HISTORY CREATED")
 
-        
+        try:
+            send_notification(
+                title="New Booking Created",
+                message=(
+                    f"New booking created for order {order_id} by {request.user.username}. "
+                    f"{len(created_rentals)} item(s), total rental period {start_date} to {end_date}."
+                ),
+                notification_type='booking',
+                link=f"/admin/app/history/?order_id={order_id}"
+            )
+        except Exception as e:
+            print(f"[notification booking error] {e}")
+
         cart.delete()
 
         # ================= PAYMENT =================
@@ -670,6 +700,19 @@ def success(request, rental_id):
     payment.payment_status = "SUCCESS"
     payment.save(update_fields=["payment_id", "payment_status"])
 
+    try:
+        send_notification(
+            title="Payment Successful",
+            message=(
+                f"Payment recorded successfully for order {rental.order_id} by {rental.user.username}. "
+                f"Amount: ₹{payment.amount}."
+            ),
+            notification_type='payment',
+            link=f"/admin/app/payment/{payment.id}/change/"
+        )
+    except Exception as e:
+        print(f"[notification payment error] {e}")
+
     # ================== ADJUST STOCK NOW (ORDER CONFIRMED) ==================
 
     with transaction.atomic():
@@ -700,8 +743,8 @@ def success(request, rental_id):
         grouped_items[key]["title"] = rr.rental_item.title
         grouped_items[key]["price_per_day"] = rr.rental_item.price_per_day
         grouped_items[key]["deposit"] = rr.deposit
-        grouped_items[key]["quantity"] += rr.quantity          # ✅ FIX
-        grouped_items[key]["rent"] += rr.total_rent            # ✅ FIX
+        grouped_items[key]["quantity"] += rr.quantity          
+        grouped_items[key]["rent"] += rr.total_rent         
 
     # ================== CONVERT TO LIST ==================
     item_totals = []
@@ -999,17 +1042,14 @@ def userdetail(request):
             return redirect("cart")
 
         order_id = generate_sequential_order_id()
-
         phone = request.POST.get("phone", "").strip()
         id_proof_type = request.POST.get("id_proof_type", "").strip()
         id_proof_number = request.POST.get("id_proof_number", "").strip()
         address = request.POST.get("address", "").strip()
         email = request.POST.get("email", "").strip()
         patient_name = request.POST.get("patient_name", "").strip()
-
         start_date = datetime.strptime(request.session.get("start_date"), "%Y-%m-%d").date()
         end_date = datetime.strptime(request.session.get("end_date"), "%Y-%m-%d").date()
-
         first_cart_item = cart_items.first()
         rental_item_id = first_cart_item.rental_item.id
 
@@ -1071,8 +1111,6 @@ def userdetail(request):
         context["customers"] = customers
 
     return render(request, "userdetail.html", context)
-
-
 
 def update_cart_item(request, item_id):
     if request.method == 'POST':
@@ -1153,18 +1191,9 @@ def mark_returned(request, rental_id, item_id):
 
     return redirect('bookingsammry')
 
-
 def view_rental(request, rental_id):
-    rental = get_object_or_404(
-        History,
-        id=rental_id,
-        user=request.user
-    )
-    related_rentals = (
-        History.objects
-        .filter(user=request.user, order_id=rental.order_id)
-        .select_related("rental_item")
-    )
+    rental = get_object_or_404( History, id=rental_id, user=request.user)
+    related_rentals = ( History.objects.filter(user=request.user, order_id=rental.order_id) .select_related("rental_item"))
 
     item_totals = []
     total_rent = 0
@@ -1190,7 +1219,7 @@ def view_rental(request, rental_id):
         total_quantity += rr.quantity
 
     start_date = rental.start_date
-    end_date = rental.end_date
+    end_date = rental.billing_end_date
     total_days = (end_date - start_date).days + 1
     delivery_option = rental.delivery_option
     delivery_charge = rental.delivery_charge if delivery_option == "delivery" else 0
@@ -1222,6 +1251,82 @@ def view_rental(request, rental_id):
 @login_required
 @transaction.atomic
 
+def extend_return_date(request, order_id):
+    rentals = (
+        History.objects.select_for_update()
+        .filter(user=request.user, order_id=order_id, is_returned=False)
+        .select_related("rental_item")
+    )
+
+    if not rentals.exists():
+        messages.error(request, "Order not found or already returned.")
+        return redirect("bookingsammry")
+
+    current_end_date = rentals.first().billing_end_date
+    min_extend_date = current_end_date + timedelta(days=1)
+
+    if request.method == "POST":
+        extended_date_str = request.POST.get("extended_end_date")
+        if not extended_date_str:
+            messages.error(request, "Please select a new return date.")
+            return redirect("extend_return_date", order_id=order_id)
+
+        try:
+            new_date = datetime.strptime(extended_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(request, "Invalid date format.")
+            return redirect("extend_return_date", order_id=order_id)
+
+        if new_date <= current_end_date:
+            messages.error(request, f"Please select a date after {current_end_date.strftime('%Y-%m-%d')}.")
+            return redirect("extend_return_date", order_id=order_id)
+
+        for rr in rentals:
+            rr.extended_end_date = new_date
+            rr.save()
+
+        try:
+            send_notification(
+                title=f"Return Date Extended for {order_id}",
+                message=(
+                    f"User {request.user.username} extended return date for order {order_id} "
+                    f"to {new_date.strftime('%Y-%m-%d')}."
+                ),
+                notification_type='info',
+                link=f"/admin/app/history/?order_id={order_id}"
+            )
+        except Exception as e:
+            print(f"[notification extend return error] {e}")
+
+        messages.success(request, f"Return date extended to {new_date.strftime('%d %b %Y')}. Charges have been updated.")
+        return redirect("bookingsammry")
+
+    item_totals = []
+    for rr in rentals:
+        item_totals.append({
+            "title": rr.rental_item.title,
+            "quantity": rr.quantity,
+            "price_per_day": rr.rental_item.price_per_day,
+            "days": rr.rental_days,
+            "deposit": rr.deposit * rr.quantity,
+            "total": rr.total_rent,
+        })
+
+    context = {
+        "order_id": order_id,
+        "current_end_date": current_end_date,
+        "min_extend_date": min_extend_date,
+        "item_totals": item_totals,
+        "total_rent": sum(item["total"] for item in item_totals),
+        "total_deposit": sum(item["deposit"] for item in item_totals),
+        "delivery_charge": rentals.first().delivery_charge,
+        "order": rentals.first(),
+    }
+    return render(request, "extend_return.html", context)
+
+@login_required
+@transaction.atomic
+
 def return_order(request, order_id):
     donate_deposit = request.GET.get("donate_deposit") == "true"
 
@@ -1249,27 +1354,104 @@ def return_order(request, order_id):
         else:
             rr.save(update_fields=["is_return_requested", "status"])
 
+    try:
+        send_notification(
+            title=f"Return Request Submitted for {order_id}",
+            message=(
+                f"User {request.user.username} requested return for order {order_id}. "
+                f"{rentals.count()} item(s) are awaiting approval."
+            ),
+            notification_type='return',
+            link=f"/admin/app/history/?order_id={order_id}"
+        )
+    except Exception as e:
+        print(f"[notification return request error] {e}")
+
     if donate_deposit:
         messages.success(
-            request,
-            "Return request sent successfully. Deposit donation selected. Waiting for admin approval."
-        )
+            request, "Return request sent successfully. Deposit donation selected. Waiting for admin approval.")
     else:
-        messages.success(
-            request,
-            "Return request sent successfully. Waiting for admin approval."
-        )
+        messages.success( request,"Return request sent successfully. Waiting for admin approval.")
     return redirect("bookingsammry")
+
+@login_required
+def cancel_order(request, order_id):
+    rentals = History.objects.filter(
+        user=request.user,
+        order_id=order_id,
+        is_returned=False
+    ).exclude(status='cancelled')
+
+    if not rentals.exists():
+        messages.error(request, "Order not found or cannot be cancelled.")
+        return redirect('bookingsammry')
+
+    for rr in rentals:
+        rr.status = 'cancelled'
+        rr.is_return_requested = False
+        rr.save(update_fields=['status', 'is_return_requested'])
+        try:
+            rr.rental_item.update_availability()
+        except Exception:
+            try:
+                rr.rental_item.save()
+            except Exception:
+                pass
+
+    try:
+        send_notification(
+            title="Booking Cancelled",
+            message=(
+                f"Order {order_id} was cancelled by user {request.user.username}. "
+                f"{rentals.count()} item(s) affected."
+            ),
+            notification_type='cancelled',
+            link=f"/admin/app/history/?order_id={order_id}"
+        )
+    except Exception as e:
+        print(f"[notification cancel error] {e}")
+
+    messages.success(request, "Booking cancelled successfully.")
+    return redirect('bookingsammry')
+
+@login_required
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+def admin_notifications(request):
+    from .models import Notification
+    notifications = Notification.objects.all()
+    unread_count = notifications.filter(is_read=False).count()
+    return render(request, 'notifications/list.html', {
+        'notifications': notifications,
+        'unread_count': unread_count,
+    })
+
+@login_required
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+def mark_notification_read(request, notification_id):
+    from .models import Notification
+    notification = get_object_or_404(Notification, id=notification_id)
+    notification.is_read = True
+    notification.save(update_fields=['is_read'])
+    next_url = request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
+    return redirect('admin_notifications')
+
+@login_required
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+def mark_all_notifications_read(request):
+    from .models import Notification
+    Notification.objects.filter(is_read=False).update(is_read=True)
+    next_url = request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
+    return redirect('admin_notifications')
 
 @login_required
 @transaction.atomic
 def return_cart_item(request, cart_item_id):
 
-    rr = get_object_or_404(
-        History.objects.select_for_update(),
-        id=cart_item_id,
-        user=request.user
-    )
+    rr = get_object_or_404(History.objects.select_for_update(),id=cart_item_id,user=request.user)
 
     if rr.is_return_requested:
         messages.info(request, "Return request already sent.")
@@ -1278,6 +1460,19 @@ def return_cart_item(request, cart_item_id):
     rr.is_return_requested = True
     rr.status = "pending"
     rr.save(update_fields=["is_return_requested", "status"])
+
+    try:
+        send_notification(
+            title=f"Return Request Submitted for {rr.order_id}",
+            message=(
+                f"User {request.user.username} requested a return for item {rr.rental_item.title} "
+                f"(Order {rr.order_id})."
+            ),
+            notification_type='return',
+            link=f"/admin/app/history/{rr.id}/change/"
+        )
+    except Exception as e:
+        print(f"[notification cart return error] {e}")
 
     messages.success(request, "Return request sent to admin for approval.")
     return redirect("userdetail")

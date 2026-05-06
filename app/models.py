@@ -121,7 +121,8 @@ class History(models.Model):
         choices=[
             ('pending', 'Pending'),
             ('approved', 'Approved'),
-            ('rejected', 'Rejected')
+            ('rejected', 'Rejected'),
+            ('cancelled', 'Cancelled'),
         ],
         default='pending'
     )
@@ -202,6 +203,43 @@ class NotifyRequest(models.Model):
 
     def __str__(self):
         return f"Notify {self.email or self.mobile} for {self.item.title}"
+
+
+class Notification(models.Model):
+    NOTIFICATION_TYPE_CHOICES = [
+        ('booking', 'Booking'),
+        ('payment', 'Payment'),
+        ('return', 'Return'),
+        ('late_return', 'Late Return'),
+        ('cancelled', 'Cancelled'),
+        ('user', 'New User'),
+        ('info', 'Info'),
+    ]
+
+    type = models.CharField(max_length=30, choices=NOTIFICATION_TYPE_CHOICES, default='info')
+    title = models.CharField(max_length=180)
+    message = models.TextField()
+    link = models.CharField(max_length=255, blank=True, null=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} ({self.get_type_display()})"
+
+    @property
+    def badge_class(self):
+        return {
+            'booking': 'primary',
+            'payment': 'success',
+            'return': 'info',
+            'late_return': 'warning',
+            'cancelled': 'danger',
+            'user': 'secondary',
+            'info': 'secondary',
+        }.get(self.type, 'secondary')
 
 
 class Payment(models.Model):

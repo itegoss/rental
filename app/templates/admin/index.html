@@ -1,0 +1,65 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_list notification_tags %}
+
+{% block title %}Admin Dashboard | {{ site_title }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-notifications" style="margin-bottom:2rem; padding:1.25rem; background:#f8fbff; border:1px solid #dbeaf7; border-radius:0.75rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+        <div>
+            <h1 style="margin:0; font-size:1.65rem;">Admin Notifications</h1>
+            <p style="margin:4px 0 0; color:#586069;">Your latest notifications appear here first.</p>
+        </div>
+        <div>
+            <a href="{% url 'admin_notifications' %}" class="button default">View all notifications</a>
+        </div>
+    </div>
+    <div style="margin-top:1rem; display:grid; gap:0.75rem;">
+        {% with latest_notifications as notifications %}
+            {% if notifications %}
+                {% for note in notifications %}
+                    <div style="border:1px solid #dce7f0; padding:1rem; border-radius:0.65rem; display:flex; align-items:flex-start; gap:0.8rem; background:#fff;">
+                        <span style="font-size:0.85rem; font-weight:700; color:#fff; background:#3f51b5; padding:0.5rem 0.75rem; border-radius:0.65rem; min-width:5rem; text-align:center;">{{ note.get_type_display }}</span>
+                        <div style="flex:1;">
+                            <strong>{{ note.title }}</strong>
+                            <p style="margin:0.35rem 0 0; color:#444;">{{ note.message|truncatechars:120 }}</p>
+                            <small style="color:#6c757d;">{{ note.created_at|date:"d M Y, H:i" }}{% if not note.is_read %} • Unread{% endif %}</small>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end;">
+                            {% if not note.is_read %}
+                                <a href="{% url 'mark_notification_read' note.id %}?next={% url 'admin:index' %}" class="button" style="background:#0d6efd; color:white; padding:0.35rem 0.75rem; border-radius:0.35rem;">Mark read</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div style="padding:1rem; background:#fff; border:1px solid #dce7f0; border-radius:0.75rem; color:#555;">
+                    No notification found. Notifications will appear here when new events happen.
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+</div>
+
+{% if app_list %}
+<div id="content-main">
+    {% for app in app_list %}
+        <div class="app-{{ app.app_label }} module" style="margin-bottom:1.4rem;">
+            <table>
+                <caption>{{ app.name }}</caption>
+                <tbody>
+                {% for model in app.models %}
+                    <tr class="model-{{ model.object_name|lower }}">
+                        <th scope="row"><a href="{{ model.admin_url }}">{{ model.name }}</a></th>
+                        <td>{{ model.perms.change|yesno:_('Yes,No') }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endfor %}
+</div>
+{% else %}
+    <p>{% trans "You don't have permission to view or edit any models." %}</p>
+{% endif %}
+{% endblock %}

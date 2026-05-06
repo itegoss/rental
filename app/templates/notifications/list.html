@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin Notifications{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:1000px; margin:32px auto; padding:0 16px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Admin Notifications</h1>
+            <p class="text-muted">Latest notifications are shown first. Mark notifications as read when reviewed.</p>
+        </div>
+        <div>
+            <a href="{% url 'mark_all_notifications_read' %}?next={% url 'admin_notifications' %}" class="btn btn-outline-secondary btn-sm">Mark All as Read</a>
+        </div>
+    </div>
+
+    <div class="list-group">
+        {% for note in notifications %}
+        <div class="list-group-item list-group-item-action {% if not note.is_read %}bg-light{% endif %}" aria-current="true">
+            <div class="d-flex w-100 justify-content-between align-items-start">
+                <h5 class="mb-1">{{ note.title }}</h5>
+                <small class="text-muted">{{ note.created_at|date:"d M Y, H:i" }}</small>
+            </div>
+            <p class="mb-1">{{ note.message }}</p>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <span class="badge bg-{{ note.badge_class }}">{{ note.get_type_display }}</span>
+                {% if note.link %}
+                <a href="{{ note.link }}" class="btn btn-sm btn-outline-primary">View details</a>
+                {% endif %}
+                {% if not note.is_read %}
+                <a href="{% url 'mark_notification_read' note.id %}?next={% url 'admin_notifications' %}" class="btn btn-sm btn-primary">Mark read</a>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="list-group-item">
+            <p class="mb-0">No notifications available.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

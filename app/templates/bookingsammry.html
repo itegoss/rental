@@ -84,6 +84,7 @@
   text-decoration:none;
   display:inline-block;
   margin:2px;
+  background-color: yellow;
 }
 
 .return-btn{
@@ -197,6 +198,19 @@
                        title="Click on return request to return the item."
                        onclick="openDepositModal(event, this.href);">
                        Request Return
+                    </a>
+
+                    <a href="{% url 'extend_return_date' booking.order_id %}"
+                       class="action-btn extend-btn"
+                       title="Extend your return date for this booking.">
+                       Extend Return Date
+                    </a>
+
+                    <a href="{% url 'cancel_order' booking.order_id %}"
+                       class="action-btn cancel-btn"
+                       title="Cancel this booking."
+                       onclick="return confirm('Do you really want to cancel this booking?');">
+                       Cancel Booking
                     </a>
 
                     <a href="{% url 'view_rental' rr.id %}"

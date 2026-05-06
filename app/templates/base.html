@@ -8,8 +8,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Josefin+Sans:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUa8C+Y5u7WFpF0IY0p2E6SHN2HnKx9I6WJd3Z3z1jkH83MI8q7g6i0rOoQF" crossorigin="anonymous">
 
-{% load static %}
+{% load static notification_tags %}
   <style>
         :root {
           --primary:#1b8a4b;
@@ -145,6 +146,86 @@
       font-size: 1rem;
       white-space: nowrap;
       letter-spacing: .01em;
+    }
+
+    .notification-bell {
+      position: relative;
+      color: #fff;
+      font-size: 1.25rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .notification-count {
+      position: absolute;
+      top: -4px;
+      right: -8px;
+      background: #ff4757;
+      color: #fff;
+      width: 18px;
+      height: 18px;
+      font-size: 0.7rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .notification-dropdown {
+      position: absolute;
+      right: 0;
+      top: 40px;
+      z-index: 9999;
+      width: 320px;
+      background: white;
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 0.5rem;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+      display: none;
+    }
+
+    .notification-dropdown.visible {
+      display: block;
+    }
+
+    .notification-item {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .notification-item:last-child {
+      border-bottom: none;
+    }
+
+    .notification-item a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .notification-item .notification-badge {
+      min-width: 40px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0 8px;
+      margin-right: 10px;
+    }
+
+    .notification-actions {
+      padding: 10px 14px;
+      border-top: 1px solid #f0f0f0;
+      background: #fafafb;
+      text-align: center;
     }
     @keyframes slideIn {
       from { right: -340px; opacity: 0;}
@@ -438,6 +519,39 @@
     </div>
     {% if user.is_authenticated %}
       <span class="welcome-user">Welcome, {{ user.username }}</span>
+      {% if user.is_staff or user.is_superuser %}
+        <div class="notification-bell" id="notificationBell" aria-haspopup="true" aria-expanded="false" role="button" tabindex="0">
+          <i class="fas fa-bell"></i>
+          {% with unread_notification_count as count %}
+            {% if count > 0 %}
+              <span class="notification-count">{{ count }}</span>
+            {% endif %}
+          {% endwith %}
+        </div>
+        <div class="notification-dropdown" id="notificationDropdown">
+          {% with latest_notifications as notifications %}
+            {% if notifications %}
+              {% for note in notifications %}
+                <div class="notification-item">
+                  <div class="notification-badge bg-{{ note.badge_class }} text-white">{{ note.get_type_display }}</div>
+                  <div style="flex:1;">
+                    <strong>{{ note.title }}</strong>
+                    <p style="margin:4px 0 0; font-size:0.88rem; color:#4a4a4a;">{{ note.message|truncatechars:80 }}</p>
+                    <small style="color:#6c757d;">{{ note.created_at|date:"d M Y, H:i" }}</small>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="notification-item">
+                <div style="width:100%; text-align:center; color:#555;">No new notifications</div>
+              </div>
+            {% endif %}
+          {% endwith %}
+          <div class="notification-actions">
+            <a href="{% url 'admin_notifications' %}" class="btn btn-sm btn-outline-primary">View all notifications</a>
+          </div>
+        </div>
+      {% endif %}
     {% endif %}
     <button class="toggle-btn" id="toggleBtn" aria-label="Toggle navigation" aria-controls="navLinksMobile" aria-expanded="false" tabindex="0">
       <span></span>
@@ -500,6 +614,25 @@ document.addEventListener('DOMContentLoaded', function () {
   const toggleBtn = document.getElementById('toggleBtn');
   const navLinksMobile = document.getElementById('navLinksMobile');
   const navLinksDesktop = document.getElementById('navLinksDesktop');
+  const notificationBell = document.getElementById('notificationBell');
+  const notificationDropdown = document.getElementById('notificationDropdown');
+
+  // Toggle admin notification dropdown
+  if (notificationBell && notificationDropdown) {
+    notificationBell.addEventListener('click', function (event) {
+      event.stopPropagation();
+      notificationDropdown.classList.toggle('visible');
+      const expanded = notificationBell.getAttribute('aria-expanded') === 'true';
+      notificationBell.setAttribute('aria-expanded', (!expanded).toString());
+    });
+
+    document.addEventListener('click', function (event) {
+      if (!notificationDropdown.contains(event.target) && !notificationBell.contains(event.target)) {
+        notificationDropdown.classList.remove('visible');
+        notificationBell.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
 
   // Toggle mobile nav open/close
   toggleBtn.addEventListener('click', function () {

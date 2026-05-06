@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="receipt-container" style="max-width: 760px; margin: 20px auto; padding: 24px; border: 1px solid #d7d7d7; background: #fff;">
+        <div class="receipt-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+            <div>
+                <h2 style="margin:0;">Extend Return Date</h2>
+                <p style="margin:4px 0 0; color:#555;">Order ID: {{ order_id }}</p>
+            </div>
+            <div>
+                <p style="margin:0; font-size:14px;">Current expected return:</p>
+                <strong>{{ current_end_date|date:"d M Y" }}</strong>
+            </div>
+        </div>
+
+        <form method="post" style="margin-bottom:24px;">
+            {% csrf_token %}
+            <div style="margin-bottom:16px;">
+                <label for="extended_end_date" style="display:block; font-weight:600; margin-bottom:8px;">Select a new return date</label>
+                <input type="date" id="extended_end_date" name="extended_end_date"
+                    min="{{ min_extend_date }}"
+                    value="{{ min_extend_date }}"
+                    required
+                    style="width:100%; max-width:260px; padding:10px; border:1px solid #ccc; border-radius:4px;" />
+            </div>
+            <button type="submit" class="download-btn" style="display:inline-block; padding:10px 18px; background:#1b8a4b; color:#fff; border:none; border-radius:4px; cursor:pointer;">Save New Return Date</button>
+            <a href="{% url 'bookingsammry' %}" class="download-btn" style="display:inline-block; padding:10px 18px; margin-left:10px; background:#777; color:#fff; text-decoration:none; border-radius:4px;">Cancel</a>
+        </form>
+
+        <div style="margin-top:20px;">
+            <h3 style="margin-bottom:12px;">Order Summary</h3>
+            <table class="items-table" style="width:100%; border-collapse:collapse; margin-bottom:16px;">
+                <thead>
+                    <tr style="background:#f8f8f8;">
+                        <th style="padding:10px; border:1px solid #e0e0e0; text-align:left;">Item</th>
+                        <th style="padding:10px; border:1px solid #e0e0e0; text-align:center;">Qty</th>
+                        <th style="padding:10px; border:1px solid #e0e0e0; text-align:center;">Days</th>
+                        <th style="padding:10px; border:1px solid #e0e0e0; text-align:right;">Total Rent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for it in item_totals %}
+                    <tr>
+                        <td style="padding:10px; border:1px solid #e0e0e0;">{{ it.title }}</td>
+                        <td style="padding:10px; border:1px solid #e0e0e0; text-align:center;">{{ it.quantity }}</td>
+                        <td style="padding:10px; border:1px solid #e0e0e0; text-align:center;">{{ it.days }}</td>
+                        <td style="padding:10px; border:1px solid #e0e0e0; text-align:right;">₹{{ it.total }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div style="display:flex; flex-wrap:wrap; gap:16px;">
+                <div style="flex:1; min-width:200px;">
+                    <p style="margin:0; font-weight:600;">Total Rent</p>
+                    <p style="margin:4px 0 0;">₹{{ total_rent }}</p>
+                </div>
+                <div style="flex:1; min-width:200px;">
+                    <p style="margin:0; font-weight:600;">Total Deposit</p>
+                    <p style="margin:4px 0 0;">₹{{ total_deposit }}</p>
+                </div>
+                <div style="flex:1; min-width:200px;">
+                    <p style="margin:0; font-weight:600;">Delivery Charge</p>
+                    <p style="margin:4px 0 0;">₹{{ delivery_charge }}</p>
+                </div>
+            </div>
+
+            <div style="margin-top:18px; padding:14px; background:#f5f9f5; border:1px solid #dbe7db; border-radius:4px;">
+                <strong>Current total order amount:</strong> ₹{{ total_rent|add:total_deposit|add:delivery_charge }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

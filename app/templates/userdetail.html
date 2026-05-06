@@ -10,7 +10,6 @@
   --dark: #2c3e50;
 }
 
-/* Container */
 .userdetail-container {
   max-width: 900px;
   margin: 50px auto;
@@ -21,7 +20,6 @@
   font-family: 'Segoe UI', Tahoma, sans-serif;
 }
 
-/* Heading */
 .userdetail-container h2 {
   text-align: center;
   font-size: 30px;
@@ -41,7 +39,6 @@
   border-radius: 2px;
 }
 
-/* Form layout */
 .form-row {
   display: flex;
   gap: 20px;
@@ -52,7 +49,6 @@
   flex: 1;
 }
 
-/* Labels */
 label {
   font-size: 14px;
   font-weight: 600;
@@ -61,7 +57,6 @@ label {
   display: block;
 }
 
-/* Inputs & Select */
 input, select {
   width: 95%;
   padding: 12px 14px;
@@ -79,13 +74,11 @@ input:focus, select:focus {
   outline: none;
 }
 
-/* Divider */
 .divider {
   margin: 35px 0;
   border-top: 1px dashed #ddd;
 }
 
-/* Order Summary */
 .order-summary {
   background: linear-gradient(135deg, #f8fdf9, #ffffff);
   border-radius: 14px;
@@ -119,7 +112,6 @@ input:focus, select:focus {
   font-weight: 600;
 }
 
-/* Total */
 .total-amount {
   margin-top: 20px;
   padding-top: 15px;
@@ -130,7 +122,6 @@ input:focus, select:focus {
   color: var(--dark);
 }
 
-/* Pay Button */
 .btn-pay {
   margin-top: 30px;
   width: 100%;
@@ -151,7 +142,6 @@ input:focus, select:focus {
   box-shadow: 0 8px 18px rgba(46,125,50,0.3);
 }
 
-/* Mobile */
 @media (max-width: 768px) {
   .form-row {
     flex-direction: column;
@@ -163,10 +153,8 @@ input:focus, select:focus {
 }
 </style>
 
-
 <div class="userdetail-container">
   <h2>User Details</h2>
-
   <form method="POST">
     {% csrf_token %}
 
@@ -174,22 +162,17 @@ input:focus, select:focus {
     <input type="hidden" name="end_date" value="{{ request.session.end_date }}">
 
     <div class="form-row">
-
-      <!-- 🔥 RENTER NAME -->
       <div class="form-group">
         <label for="name">Renter Name</label>
 
         {% if is_admin %}
-          <!-- Admin manually enter karega -->
           <input type="text" id="name" name="name" required>
         {% else %}
-          <!-- Normal user auto-fill -->
           <input type="text" id="name" name="name" required 
                  value="{{ request.user.username }}">
         {% endif %}
       </div>
 
-      <!-- 🔥 PATIENT NAME (ALWAYS REQUIRED) -->
       <div class="form-group">
         <label for="patient_name">Name of Patient</label>
 
@@ -204,8 +187,6 @@ input:focus, select:focus {
     </div>
 
     <div class="form-row">
-
-      <!-- EMAIL -->
       <div class="form-group">
         <label for="email">Email Address (Optional)</label>
 
@@ -217,7 +198,6 @@ input:focus, select:focus {
         {% endif %}
       </div>
 
-      <!-- PHONE -->
       <div class="form-group">
         <label for="phone">Phone Number</label>
 
@@ -231,8 +211,6 @@ input:focus, select:focus {
     </div>
 
     <div class="form-row">
-
-      <!-- ID PROOF -->
       <div class="form-group">
         <label for="id_proof_type">ID Proof Type</label>
 
@@ -245,7 +223,6 @@ input:focus, select:focus {
         </select>
       </div>
 
-      <!-- ID NUMBER -->
       <div class="form-group">
         <label for="id_proof_number">ID Proof Number</label>
 
@@ -257,7 +234,6 @@ input:focus, select:focus {
         {% endif %}
       </div>
 
-      <!-- ADDRESS -->
       <div class="form-group">
         <label for="address">Address</label>
 
@@ -271,46 +247,7 @@ input:focus, select:focus {
     </div>
 
     <div class="divider"></div>
-
-    <!-- 🔥 ORDER SUMMARY SAME -->
-    <!-- <div class="order-summary">
-      <h3>Order Summary</h3>
-
-      {% for item in items %}
-      <div class="order-item">
-        <p class="item-name">{{ item.title }}</p>
-
-        <p>Per Day Price: <span class="price">₹{{ item.price_per_day }}</span></p>
-        <p>Rental Days: <span class="price">{{ rental_days }}</span></p>
-
-        <p>
-          Rent Amount:
-          <span class="price">
-            ₹{{ item.price_per_day }} × {{ rental_days }}
-            = ₹{{ item.rent_amount }}
-          </span>
-        </p>
-
-        <p>
-          Deposit:
-          <span class="price">₹{{ item.deposit }}</span>
-        </p>
-
-        <hr>
-      </div>
-      {% endfor %}
-
-      <div class="summary-footer">
-        <p><strong>Total Rent:</strong> ₹{{ total_rent }}</p>
-        <p><strong>Total Deposit:</strong> ₹{{ total_deposit }}</p>
-
-        <div class="total-amount">
-          <strong>Total Payable:</strong> ₹{{ total_amount }}
-        </div>
-      </div>
-    </div> -->
-
-    {% if is_admin and not request.session.details_filled %}
+{% if is_admin and not request.session.details_filled %}
     <button type="submit" class="btn-pay">Continue</button>
 {% else %}
     <button type="submit" class="btn-pay">Pay Now</button>

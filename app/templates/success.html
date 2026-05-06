@@ -224,13 +224,13 @@
                 <div class="info-item">
                     <p><strong>Rent Period:</strong>
                         {{ rental.start_date|date:"d M Y" }} to
-                        {{ rental.end_date|date:"d M Y" }}
+                        {{ rental.billing_end_date|date:"d M Y" }}
                         ({{ rental.rental_days }} Days)
                     </p>
                 </div>
 
                 <div class="info-item">
-                    <p><strong>Return Date:</strong> {{ rental.end_date|date:"d M Y" }}</p>
+                    <p><strong>Return Date:</strong> {{ rental.billing_end_date|date:"d M Y" }}</p>
                 </div>
 
                 <div class="info-item">
@@ -346,8 +346,11 @@
 <div class="receipt-actions">
     <button class="download-btn" onclick="downloadPDF()">Download Receipt</button>
     <button class="download-btn" onclick="window.print()">Print</button>
-    <!-- <button class="download-btn" onclick="window.location.href='{% url 'view_rental' rental.id %}'">View Receipt</button>
-    <button class="download-btn" onclick="window.location.href='{% url 'return_order' rental.order_id %}'">Request Return</button> -->
+    {% if not rental.is_returned %}
+    <button class="download-btn" onclick="window.location.href='{% url 'extend_return_date' rental.order_id %}'">
+        Extend Return Date
+    </button>
+    {% endif %}
     <button class="download-btn"
         onclick="window.location.href='{% url 'bookingsammry' %}'">
     Back
