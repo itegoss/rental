@@ -1,230 +1,163 @@
 {% extends "base.html" %}
-{% block title %}My Bookings{% endblock %}
-
+{% block title %}My Bookings — Sick Bed Services{% endblock %}
 {% block content %}
 <style>
-.booking-summary-container{
-  max-width:1000px;
-  margin:30px auto;
-  padding:15px;
-  font-family:Arial, sans-serif;
-}
-.page-header{
-  text-align:center;
-  margin-bottom:25px;
-}
-.page-header h2{
-  color:#d32f2f;
-  font-weight:700;
-}
-.page-header p{
-  color:#555;
-}
+.bookings-page { max-width:1000px; margin:40px auto; padding:0 20px; }
+.bookings-head { text-align:center; margin-bottom:36px; }
+.bookings-head h1 { font-size:2rem; font-weight:800; color:var(--text); margin-bottom:6px; }
+.bookings-head h1 span { color:var(--primary); }
+.bookings-head p { color:var(--muted); font-size:0.92rem; }
+.underline-bar { width:64px; height:5px; background:linear-gradient(90deg,var(--primary),#ff6b6b); border-radius:4px; margin:10px auto 0; }
+.contact-notice { background:#fff8f8; border:1px solid #fca5a5; border-radius:12px; padding:14px 20px; margin-bottom:24px; display:flex; align-items:center; gap:12px; }
+.contact-notice i { color:var(--primary); font-size:1.1rem; flex-shrink:0; }
+.contact-notice p { font-size:0.88rem; color:#7f1d1d; margin:0; }
+.contact-notice strong { color:var(--primary); }
 
-.booking-card{
-  background:#ffffff;
-  border:1px solid #ddd;
-  border-radius:12px;
-  margin-bottom:25px;
-  overflow:hidden;
-}
+/* Booking card */
+.booking-card { background:#fff; border-radius:18px; box-shadow:var(--shadow); margin-bottom:22px; overflow:hidden; }
+.booking-card-header { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); padding:14px 22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+.booking-card-header .b-title { font-size:1rem; font-weight:700; color:#fff; }
+.booking-card-header .b-meta { display:flex; gap:16px; font-size:0.83rem; color:rgba(255,255,255,0.88); flex-wrap:wrap; }
+.order-id-bar { background:#f8fafc; padding:9px 22px; font-size:0.82rem; font-weight:700; color:var(--muted); border-bottom:1px solid var(--border); }
+.order-id-bar span { color:var(--primary); }
 
-.booking-header{
-  background:#d32f2f;
-  color:#fff;
-  padding:14px 18px;
-  display:flex;
-  justify-content:space-between;
-}
+/* Table */
+.b-table { width:100%; border-collapse:collapse; }
+.b-table th { background:#f3f4f6; font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:11px 16px; color:var(--muted); text-align:left; }
+.b-table td { padding:12px 16px; font-size:0.88rem; border-top:1px solid var(--border); vertical-align:middle; }
+.b-table tr:hover td { background:#fafafa; }
 
-.booking-title{
-  font-size:18px;
-  font-weight:600;
-}
+/* Status badges */
+.s-badge { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:999px; font-size:0.76rem; font-weight:700; white-space:nowrap; }
+.s-pending  { background:#fff3cd; color:#92400e; }
+.s-approved { background:#dbeafe; color:#1e40af; }
+.s-returned { background:#d1fae5; color:#065f46; }
+.s-rejected { background:#fee2e2; color:#991b1b; }
+.s-cancelled { background:#f3f4f6; color:#4b5563; }
 
-.booking-info{
-  display:flex;
-  gap:25px;
-  font-size:14px;
-}
+/* Action buttons */
+.act-btn { display:inline-flex; align-items:center; gap:5px; padding:6px 13px; border-radius:999px; font-size:0.78rem; font-weight:700; text-decoration:none; cursor:pointer; border:none; font-family:var(--font); transition:all 0.2s; white-space:nowrap; }
+.act-return  { background:var(--primary); color:#fff; box-shadow:0 2px 8px rgba(236,36,39,0.22); }
+.act-return:hover { background:var(--primary-dark); transform:translateY(-1px); color:#fff; }
+.act-extend  { background:#f59e0b; color:#fff; box-shadow:0 2px 8px rgba(245,158,11,0.22); }
+.act-extend:hover { background:#d97706; transform:translateY(-1px); color:#fff; }
+.act-cancel  { background:#6b7280; color:#fff; }
+.act-cancel:hover { background:#4b5563; transform:translateY(-1px); color:#fff; }
+.act-view    { background:#3b82f6; color:#fff; }
+.act-view:hover { background:#2563eb; transform:translateY(-1px); color:#fff; }
+.actions-wrap { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
 
-.order-id{
-  background:#f5f5f5;
-  padding:10px 18px;
-  font-weight:600;
-  font-size:14px;
-}
+/* Empty */
+.empty-bookings { background:#fff; border-radius:18px; box-shadow:var(--shadow); padding:70px 30px; text-align:center; }
+.empty-bookings i { font-size:3rem; color:var(--border); margin-bottom:16px; }
+.empty-bookings h2 { font-size:1.4rem; font-weight:700; margin-bottom:8px; }
+.empty-bookings p { color:var(--muted); margin-bottom:22px; }
 
-.items-table{
-  width:100%;
-  border-collapse:collapse;
-}
+/* Deposit modal */
+.d-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; }
+.d-modal-overlay.open { display:flex; }
+.d-modal-card { background:#fff; border-radius:20px; padding:36px 32px; max-width:400px; width:90%; text-align:center; box-shadow:var(--shadow-lg); animation:scaleIn 0.25s ease; position:relative; }
+.d-close { position:absolute; top:14px; right:16px; width:34px; height:34px; border:none; border-radius:50%; background:#f3f4f6; color:#6b7280; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.95rem; transition:all 0.2s; }
+.d-close:hover { background:#e5e7eb; color:var(--text); }
+@keyframes scaleIn { from{transform:scale(0.88);opacity:0;} to{transform:scale(1);opacity:1;} }
+.d-modal-card .d-icon { font-size:2.4rem; color:var(--primary); margin-bottom:14px; }
+.d-modal-card h2 { font-size:1.25rem; font-weight:800; margin-bottom:8px; }
+.d-modal-card p { color:var(--muted); font-size:0.9rem; margin-bottom:22px; line-height:1.6; }
+.d-donate-fields { display:none; text-align:left; margin:0 0 18px; }
+.d-donate-fields.open { display:block; }
+.d-current-deposit { background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px; color:var(--text); font-size:0.9rem; font-weight:700; }
+.d-current-deposit span { color:var(--primary); }
+.d-field { margin-bottom:12px; }
+.d-field label { display:block; font-size:0.78rem; font-weight:700; color:var(--muted); margin-bottom:5px; text-transform:uppercase; }
+.d-field input,.d-field textarea { width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-family:var(--font); font-size:0.9rem; outline:none; }
+.d-field input:focus,.d-field textarea:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
+.d-error { display:none; color:#dc2626; font-size:0.78rem; font-weight:700; margin:-6px 0 12px; text-align:left; }
+.d-error.open { display:block; }
+.d-modal-btns { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
 
-.items-table th,
-.items-table td{
-  padding:12px;
-  border-bottom:1px solid #ddd;
-  font-size:14px;
-}
-
-.items-table th{
-  background:#eeeeee;
-}
-
-.item-days{
-  text-align:center;
-  font-weight:600;
-}
-
-.action-btn{
-  padding:6px 14px;
-  border-radius:20px;
-  font-size:13px;
-  font-weight:600;
-  text-decoration:none;
-  display:inline-block;
-  margin:2px;
-  background-color: yellow;
-}
-
-.return-btn{
-  background:#d32f2f;
-  color:#fff;
-}
-
-.view-btn{
-  background:#555;
-  color:#fff;
-}
-
-.status-badge{
-  padding:6px 14px;
-  border-radius:20px;
-  font-size:12px;
-  font-weight:700;
-  color:#fff;
-  display:inline-block;
-}
-
-.status-returned{ background:#2e7d32; }
-.status-pending{ background:#f57c00; }
-.status-approved{ background:#1976d2; }
-.status-rejected{ background:#d32f2f; }
-
-.empty-state{
-  background:#fff;
-  border:1px solid #ddd;
-  border-radius:12px;
-  padding:50px;
-  text-align:center;
+@media(max-width:640px) {
+  .booking-card-header { flex-direction:column; align-items:flex-start; }
+  .b-table th, .b-table td { padding:9px 12px; }
 }
 </style>
 
-<div class="booking-summary-container">
-  <div class="page-header">
-    <h2>My Bookings</h2>
-    <p>Track rentals, view details, and manage returns</p>
+<div class="bookings-page">
+  <div class="bookings-head">
+    <h1>My <span>Bookings</span></h1>
+    <p>Track your rentals, view receipts, and manage returns</p>
+    <div class="underline-bar"></div>
   </div>
 
   {% if booking_summaries %}
-    <h4 style="text-align:center; color:red; font-weight:500;">
-      Contact Admin to extend your rental period:
-      <span style="font-weight:600;">+91 88505 13009</span>
-    </h4>
+    <div class="contact-notice">
+      <i class="fas fa-phone-alt"></i>
+      <p>To extend your rental period, contact admin: <strong>+91 88505 13009</strong></p>
+    </div>
 
     {% for booking in booking_summaries %}
     <div class="booking-card">
-      <div class="booking-header">
-        <div class="booking-title">Booking Summary</div>
-        <div class="booking-info">
-          <div>Date: <strong>{{ booking.date }}</strong></div>
-          <div>Items: <strong>{{ booking.items|length }}</strong></div>
-          {% if booking.customer %}
-            <div>Customer: <strong>{{ booking.customer.username }}</strong></div>
-          {% endif %}
+      <div class="booking-card-header">
+        <span class="b-title"><i class="fas fa-clipboard-list" style="margin-right:6px;"></i>Booking Summary</span>
+        <div class="b-meta">
+          <span><i class="fas fa-calendar-alt" style="margin-right:4px;"></i>{{ booking.date }}</span>
+          <span><i class="fas fa-box" style="margin-right:4px;"></i>{{ booking.items|length }} item(s)</span>
+          {% if booking.customer %}<span><i class="fas fa-user" style="margin-right:4px;"></i>{{ booking.customer.username }}</span>{% endif %}
         </div>
       </div>
+      <div class="order-id-bar">Order ID: <span>{{ booking.order_id }}</span></div>
 
-      <div class="order-id">
-        Order ID: {{ booking.order_id }}
-      </div>
-
-      <table class="items-table">
+      <table class="b-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Item</th>
-            <th style="text-align:center;">Days</th>
-            <th style="text-align:center;">Action</th>
+            <th>ID</th><th>Item</th><th>Days</th><th>Action</th>
           </tr>
         </thead>
         <tbody>
           {% for rr in booking.items %}
           <tr>
             <td>{{ rr.id }}</td>
-            <td>{{ rr.rental_item.title }}</td>
-            <td class="item-days">{{ rr.rental_days }}</td>
-
-            <td style="text-align:center;">
+            <td><strong>{{ rr.rental_item.title }}</strong></td>
+            <td>{{ rr.rental_days }}</td>
+            <td>
               {% if forloop.first %}
                 {% with booking.items|first as first_item %}
-
+                  <div class="actions-wrap">
                   {% if first_item.status == "pending" and not first_item.is_return_requested %}
-                    <span class="status-badge status-pending" title="Your booking request is still in queue.">
-                      Booking Pending
-                    </span>
+                    <span class="s-badge s-pending"><i class="fas fa-clock"></i> Booking Pending</span>
+                    {% if request.user.is_staff or request.user.is_superuser %}
+                      <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel"><i class="fas fa-ban"></i> Cancel</a>
+                    {% endif %}
 
                   {% elif first_item.status == "rejected" and not first_item.is_returned %}
-                    <span class="status-badge status-rejected" title="Your booking request was rejected by admin.">
-                      Booking Rejected
-                    </span>
+                    <span class="s-badge s-rejected"><i class="fas fa-times-circle"></i> Booking Rejected</span>
+
+                  {% elif first_item.status == "cancelled" %}
+                    <span class="s-badge s-cancelled"><i class="fas fa-ban"></i> Cancelled</span>
 
                   {% elif first_item.is_returned %}
-                    <span class="status-badge status-returned">Returned</span>
-                    <a href="{% url 'return_receipt' booking.order_id %}"
-                       class="action-btn view-btn"
-                       title="View and download receipt click here.">
-                       View Receipt
-                    </a>
+                    <span class="s-badge s-returned"><i class="fas fa-check-circle"></i> Returned</span>
+                    <a href="{% url 'return_receipt' booking.order_id %}" class="act-btn act-view"><i class="fas fa-eye"></i> View Receipt</a>
 
                   {% elif first_item.status == "approved" and first_item.is_return_requested %}
-                    <span class="status-badge status-pending" title="Your return request is waiting for admin approval.">
-                      Return Pending
-                    </span>
+                    <span class="s-badge s-pending"><i class="fas fa-clock"></i> Return Pending</span>
+                    {% if request.user.is_staff or request.user.is_superuser %}
+                      <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel"><i class="fas fa-ban"></i> Cancel</a>
+                    {% endif %}
 
                   {% elif first_item.status == "approved" %}
-                    <a href="{% url 'return_order' booking.order_id %}"
-                       class="action-btn return-btn"
-                       title="Click on return request to return the item."
-                       onclick="openDepositModal(event, this.href);">
-                       Request Return
-                    </a>
-
-                    <a href="{% url 'extend_return_date' booking.order_id %}"
-                       class="action-btn extend-btn"
-                       title="Extend your return date for this booking.">
-                       Extend Return Date
-                    </a>
-
-                    <a href="{% url 'cancel_order' booking.order_id %}"
-                       class="action-btn cancel-btn"
-                       title="Cancel this booking."
-                       onclick="return confirm('Do you really want to cancel this booking?');">
-                       Cancel Booking
-                    </a>
-
-                    <a href="{% url 'view_rental' rr.id %}"
-                       class="action-btn view-btn"
-                       title="View and download receipt click here.">
-                       View Receipt
-                    </a>
+                    {% if request.user.is_staff or request.user.is_superuser %}
+                      <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return" data-deposit="{{ booking.total_deposit }}" onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> Return</a>
+                    {% else %}
+                      <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return" data-deposit="{{ booking.total_deposit }}" onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> Request Return</a>
+                    {% endif %}
+                    <a href="{% url 'extend_return_date' booking.order_id %}" class="act-btn act-extend"><i class="fas fa-calendar-plus"></i> Extend</a>
+                    <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel"><i class="fas fa-ban"></i> Cancel</a>
+                    <a href="{% url 'view_rental' rr.id %}" class="act-btn act-view"><i class="fas fa-eye"></i> Receipt</a>
 
                   {% else %}
-                    <span class="status-badge status-pending" title="Your booking request is still in queue.">
-                      Pending
-                    </span>
+                    <span class="s-badge s-pending"><i class="fas fa-clock"></i> Pending</span>
                   {% endif %}
-
+                  </div>
                 {% endwith %}
               {% endif %}
             </td>
@@ -232,105 +165,95 @@
           {% endfor %}
         </tbody>
       </table>
-
     </div>
     {% endfor %}
 
   {% else %}
-
-    <div class="empty-state">
-      <h3>No Bookings Found</h3>
-      <p>You haven't rented any items yet.</p>
+    <div class="empty-bookings">
+      <i class="fas fa-box-open"></i>
+      <h2>No Bookings Yet</h2>
+      <p>You haven't rented any items yet. Browse our catalog to get started!</p>
+      <a href="{% url 'items' %}" class="btn-primary-red"><i class="fas fa-th-large"></i> Browse Items</a>
     </div>
-
   {% endif %}
-
 </div>
 
-<div id="depositModal" class="modal-overlay" style="display:none;">
-  <div class="modal-box">
-    <h3>Donate Deposit?</h3>
-    <p>Do you want to donate your deposit amount? If yes, the deposit will be removed from the receipt total.</p>
-    <div class="modal-actions">
-      <button type="button" class="action-btn return-btn" onclick="submitDepositChoice(true)">Yes, donate deposit</button>
-      <button type="button" class="action-btn view-btn" onclick="submitDepositChoice(false)">No, keep refund</button>
-      <button type="button" class="action-btn" style="background:#888;" onclick="closeDepositModal()">Cancel</button>
+<!-- Deposit Modal -->
+<div class="d-modal-overlay" id="depositModal">
+  <div class="d-modal-card">
+    <button class="d-close" type="button" onclick="closeDepositModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+    <div class="d-icon"><i class="fas fa-hand-holding-heart"></i></div>
+    <h2>Donate Your Deposit?</h2>
+    <p>Do you wish to donate your deposit amount? If yes, it will be removed from the receipt total.</p>
+    <div class="d-donate-fields" id="donateFields">
+      <div class="d-current-deposit">Current Deposit: <span>₹<span id="currentDepositAmount">0</span></span></div>
+      <div class="d-field">
+        <label for="donationAmount">Donation Amount</label>
+        <input type="number" id="donationAmount" min="1" step="0.01" placeholder="Enter amount">
+      </div>
+      <div class="d-field">
+        <label for="donationComment">Comment</label>
+        <textarea id="donationComment" rows="3" placeholder="Optional comment"></textarea>
+      </div>
+    </div>
+    <div class="d-error" id="donationError">Please enter a valid donation amount.</div>
+    <div class="d-modal-btns">
+      <button class="act-btn act-return" onclick="submitDepositChoice(true)"><i class="fas fa-heart"></i> Yes, Donate</button>
+      <button class="act-btn act-view" onclick="submitDepositChoice(false)"><i class="fas fa-wallet"></i> No, Keep Refund</button>
     </div>
   </div>
 </div>
 
-<style>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-.modal-box {
-  background: #fff;
-  max-width: 420px;
-  width: 90%;
-  border-radius: 14px;
-  padding: 24px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-  text-align: center;
-}
-
-.modal-box h3 {
-  margin-bottom: 12px;
-  color: #d32f2f;
-}
-
-.modal-box p {
-  margin-bottom: 18px;
-  color: #444;
-  line-height: 1.5;
-}
-
-.modal-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-}
-
-.modal-actions .action-btn {
-  min-width: 120px;
-}
-</style>
-
 <script>
-  let depositReturnHref = null;
-
-  function openDepositModal(event, href) {
-    event.preventDefault();
-    depositReturnHref = href;
-    document.getElementById('depositModal').style.display = 'flex';
+let depositReturnHref = null;
+let depositTotal = 0;
+let donationStepOpen = false;
+function openDepositModal(event, href, deposit) {
+  event.preventDefault();
+  depositReturnHref = href;
+  depositTotal = parseFloat(deposit || '0') || 0;
+  donationStepOpen = false;
+  document.getElementById('donationAmount').value = '';
+  document.getElementById('donationComment').value = '';
+  document.getElementById('donationError').textContent = 'Please enter a valid donation amount.';
+  document.getElementById('donationError').classList.remove('open');
+  document.getElementById('donateFields').classList.remove('open');
+  document.getElementById('currentDepositAmount').textContent = depositTotal.toFixed(2);
+  document.getElementById('depositModal').classList.add('open');
+}
+function closeDepositModal() {
+  document.getElementById('depositModal').classList.remove('open');
+  depositReturnHref = null;
+  donationStepOpen = false;
+}
+function submitDepositChoice(donate) {
+  if (!depositReturnHref) { closeDepositModal(); return; }
+  if (donate && !donationStepOpen) {
+    donationStepOpen = true;
+    document.getElementById('donateFields').classList.add('open');
+    return;
   }
-
-  function closeDepositModal() {
-    document.getElementById('depositModal').style.display = 'none';
-    depositReturnHref = null;
-  }
-
-  function submitDepositChoice(donate) {
-    if (!depositReturnHref) {
-      closeDepositModal();
+  const sep = depositReturnHref.includes('?') ? '&' : '?';
+  let url = depositReturnHref + sep + 'donate_deposit=' + (donate ? 'true' : 'false');
+  if (donate) {
+    const amount = document.getElementById('donationAmount').value;
+    const comment = document.getElementById('donationComment').value;
+    if (!amount || parseFloat(amount) <= 0) {
+      document.getElementById('donationError').classList.add('open');
       return;
     }
-
-    const separator = depositReturnHref.includes('?') ? '&' : '?';
-    const url = depositReturnHref + separator + 'donate_deposit=' + (donate ? 'true' : 'false');
-    window.location.href = url;
+    if (parseFloat(amount) > depositTotal) {
+      document.getElementById('donationError').textContent = 'Donation amount cannot be more than current deposit.';
+      document.getElementById('donationError').classList.add('open');
+      return;
+    }
+    url += '&donation_amount=' + encodeURIComponent(amount);
+    url += '&donation_comment=' + encodeURIComponent(comment);
   }
+  window.location.href = url;
+}
+document.getElementById('depositModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('depositModal')) closeDepositModal();
+});
 </script>
-
 {% endblock %}
-

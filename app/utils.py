@@ -26,13 +26,11 @@ def send_overdue_email(user, rental):
         fail_silently=False
     )
 
-
 def generate_receipt(order):
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     y = height - 50
-
     p.setFont("Helvetica-Bold", 16)
     p.drawString(180, y, "Rental Receipt")
     y -= 40
@@ -45,6 +43,9 @@ def generate_receipt(order):
     p.drawString(50, y, f"Total Amount: ₹{order.total_amount}"); y -= 20
     if hasattr(order, 'deposit_donated') and order.deposit_donated:
         p.drawString(50, y, "Deposit Donated: Yes"); y -= 20
+        p.drawString(50, y, f"Donated Amount: {getattr(order, 'donation_amount', 0)}"); y -= 20
+        if getattr(order, 'donation_comment', None):
+            p.drawString(50, y, f"Donation Comment: {order.donation_comment[:80]}"); y -= 20
     p.drawString(50, y, f"Payment Method: {order.payment_method}"); y -= 30
 
     try:
@@ -59,7 +60,6 @@ def generate_receipt(order):
     buffer.seek(0)
 
     return ContentFile(buffer.getvalue(), f"receipt_{order.order_id}.pdf")
-
 
 def send_telegram_message(message):
     token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
@@ -119,7 +119,6 @@ def send_notification(title, message, notification_type='info', link=None):
 
     return True
 
-
 import datetime
 from django.db.models import Max
 
@@ -142,20 +141,17 @@ def generate_sequential_order_id():
 
     return f"{prefix}{new_number}"
 
-
 def send_whatsapp_message(mobile, message):
     """Send a WhatsApp message using Twilio if configured, otherwise log.
 
     mobile: string digits or with leading +countrycode
     message: text to send
     """
-    # Normalize mobile: ensure starts with + and digits only
     m = re.sub(r"\D", "", str(mobile or ""))
     if not m:
         print("[whatsapp] no mobile provided; message not sent")
         return False
 
-    # If looks like 10 digits, assume India +91 as a sensible default
     if len(m) == 10:
         to_number = f"whatsapp:+91{m}"
     elif m.startswith("91") and len(m) > 10:
@@ -163,15 +159,13 @@ def send_whatsapp_message(mobile, message):
     else:
         to_number = f"whatsapp:+{m}"
 
-    # Prefer WhatsApp Cloud API (Meta) if configured
+    # P
     phone_id = getattr(settings, 'WHATSAPP_PHONE_ID', None)
     access_token = getattr(settings, 'WHATSAPP_ACCESS_TOKEN', None)
     if phone_id and access_token:
         try:
             url = f"https://graph.facebook.com/v17.0/{phone_id}/messages"
             headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
-            # WhatsApp Cloud API expects the phone number in E.164 without the leading '+' in some cases;
-            # remove any leading plus for the payload value to be safe.
             to_clean = to_number.replace('whatsapp:', '').lstrip('+')
             payload = {
                 "messaging_product": "whatsapp",
@@ -180,7 +174,6 @@ def send_whatsapp_message(mobile, message):
                 "text": {"body": message}
             }
             resp = requests.post(url, json=payload, headers=headers, timeout=10)
-            # Log response body for debugging
             try:
                 body = resp.json()
             except Exception:
@@ -193,7 +186,6 @@ def send_whatsapp_message(mobile, message):
         except Exception as e:
             print(f"[whatsapp cloud exception] {e}")
 
-    # Fallback to Twilio if configured
     try:
         from twilio.rest import Client
     except Exception:

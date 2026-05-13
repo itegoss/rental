@@ -1,235 +1,82 @@
 {% extends 'base.html' %}
+{% block title %}Payment Method — Sick Bed Services{% endblock %}
 {% block content %}
-
 <style>
-  #confirmOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
+.pm-page { min-height:calc(100vh - 200px); display:flex; align-items:center; justify-content:center; padding:40px 20px; }
+.pm-card { background:#fff; border-radius:20px; box-shadow:var(--shadow-lg); width:100%; max-width:520px; overflow:hidden; }
+.pm-header { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); padding:28px 36px; color:#fff; text-align:center; }
+.pm-header h1 { font-size:1.5rem; font-weight:800; margin-bottom:4px; }
+.pm-header p { font-size:0.9rem; opacity:0.85; }
+.pm-body { padding:32px; }
+.pm-option { display:flex; align-items:center; gap:16px; padding:18px 20px; margin-bottom:14px; border:2px solid var(--border); border-radius:14px; cursor:pointer; transition:all 0.22s; background:#fafafa; }
+.pm-option:hover { border-color:var(--primary); background:var(--primary-light); }
+.pm-option input[type="radio"] { display:none; }
+.pm-option.selected { border-color:var(--primary); background:var(--primary-light); box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
+.pm-option-icon { width:48px; height:48px; border-radius:12px; background:var(--primary-light); display:flex; align-items:center; justify-content:center; font-size:1.3rem; color:var(--primary); flex-shrink:0; }
+.pm-option-text h3 { font-size:1rem; font-weight:700; margin-bottom:2px; }
+.pm-option-text p { font-size:0.84rem; color:var(--muted); margin:0; }
+.btn-proceed { display:block; width:100%; padding:14px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; border:none; border-radius:12px; font-size:1rem; font-weight:700; font-family:var(--font); cursor:pointer; box-shadow:0 4px 14px rgba(236,36,39,0.28); transition:transform 0.2s,box-shadow 0.2s; margin-top:8px; }
+.btn-proceed:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(236,36,39,0.36); }
 
-.confirm-box {
-  background: white;
-  padding: 30px;
-  border-radius: 14px;
-  text-align: center;
-  width: 300px;
-  animation: scaleIn 0.3s ease;
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.checkmark-circle {
-  width: 70px;
-  height: 70px;
-  background: #4caf50;
-  border-radius: 50%;
-  margin: 0 auto 15px;
-  position: relative;
-}
-
-.checkmark {
-  position: absolute;
-  width: 18px;
-  height: 35px;
-  border-right: 4px solid white;
-  border-bottom: 4px solid white;
-  transform: rotate(45deg);
-  left: 26px;
-  top: 15px;
-  animation: drawCheck 0.4s ease forwards;
-}
-
-@keyframes drawCheck {
-  from { height: 0; width: 0; opacity: 0; }
-  to { height: 35px; width: 18px; opacity: 1; }
-}
-
-.payment-container {
-  max-width: 500px;
-  margin: 50px auto;
-  padding: 30px;
-  background-color: #f9fdf9;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.payment-container h2 {
-  text-align: center;
-  margin-bottom: 25px;
-  color: #2e7d32;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.payment-option {
-  display: flex;
-  align-items: center;
-  padding: 15px;
-  margin-bottom: 15px;
-  border: 2px solid #e0f2e0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: #fff;
-}
-
-.payment-option:hover {
-  border-color: #81c784;
-}
-
-.payment-option.selected {
-  border-color: #66bb6a;
-  background-color: #f1f8e9;
-}
-
-.payment-option input {
-  display: none;
-}
-
-.payment-option .icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #e8f5e9;
-  border-radius: 8px;
-  margin-right: 15px;
-  color: #43a047;
-}
-
-.payment-option .details h3 {
-  margin: 0 0 5px 0;
-  font-size: 16px;
-  color: #2e7d32;
-  font-weight: 600;
-}
-
-.payment-option .details p {
-  margin: 0;
-  font-size: 14px;
-  color: #616161;
-}
-
-.payment-container button {
-  width: 100%;
-  padding: 12px;
-  background-color: #66bb6a;
-  color: white;
-  font-size: 16px;
-  font-weight: 500;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  margin-top: 10px;
-}
-
-.payment-container button:hover {
-  background-color: #4caf50;
-}
-
-@media (max-width: 576px) {
-  .payment-container {
-    margin: 30px 15px;
-    padding: 20px;
-  }
-
-  .payment-container h2 {
-    font-size: 22px;
-  }
-
-  .payment-option {
-    padding: 12px;
-  }
-}
+/* Confirm overlay */
+#confirmOverlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.confirm-box { background:#fff; padding:36px; border-radius:20px; text-align:center; max-width:340px; width:90%; box-shadow:var(--shadow-lg); animation:scaleIn 0.28s ease; }
+@keyframes scaleIn { from{transform:scale(0.85);opacity:0;} to{transform:scale(1);opacity:1;} }
+.checkmark-circle { width:72px; height:72px; background:var(--success); border-radius:50%; margin:0 auto 18px; display:flex; align-items:center; justify-content:center; }
+.checkmark-circle i { color:#fff; font-size:2rem; }
+.confirm-box h3 { font-size:1.25rem; font-weight:800; margin-bottom:8px; }
+.confirm-box p { color:var(--muted); font-size:0.9rem; }
 </style>
 
-<div class="payment-container">
-  <h2>Select Payment Method</h2>
-  <form method="POST">
-    {% csrf_token %}
-    
-    <div class="payment-option" onclick="selectPayment(this)">
-      <input type="radio" name="payment_method" value="online" required>
-      <div class="icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-          <line x1="1" y1="10" x2="23" y2="10"></line>
-        </svg>
-      </div>
-      <div class="details">
-        <h3>Online Payment</h3>
-        <p>Pay securely using credit/debit card or UPI</p>
-      </div>
+<div class="pm-page">
+  <div class="pm-card">
+    <div class="pm-header">
+      <h1><i class="fas fa-credit-card" style="margin-right:10px;"></i>Payment Method</h1>
+      <p>Choose your preferred payment option</p>
     </div>
-    
-    <div class="payment-option" onclick="selectPayment(this)">
-      <input type="radio" name="payment_method" value="cod" required>
-      <div class="icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-          <line x1="12" y1="22.08" x2="12" y2="12"></line>
-        </svg>
-      </div>
-      <div class="details">
-        <h3>Cash on Delivery</h3>
-        <p>Pay when you receive your order</p>
-      </div>
+    <div class="pm-body">
+      <form method="POST" id="pmForm">
+        {% csrf_token %}
+        <div class="pm-option" onclick="selectPayment(this)">
+          <input type="radio" name="payment_method" value="online" required>
+          <div class="pm-option-icon"><i class="fas fa-credit-card"></i></div>
+          <div class="pm-option-text">
+            <h3>Online Payment</h3>
+            <p>Pay securely with card, UPI, or net banking</p>
+          </div>
+        </div>
+        <div class="pm-option" onclick="selectPayment(this)">
+          <input type="radio" name="payment_method" value="cod">
+          <div class="pm-option-icon"><i class="fas fa-money-bill-wave"></i></div>
+          <div class="pm-option-text">
+            <h3>Cash on Delivery</h3>
+            <p>Pay when your order arrives at your door</p>
+          </div>
+        </div>
+        <button type="submit" class="btn-proceed"><i class="fas fa-arrow-right"></i> Proceed to Payment</button>
+      </form>
     </div>
-    
-    <button type="submit">Proceed to Payment</button>
-  </form>
-  <div id="confirmOverlay" style="display:none;">
+  </div>
+</div>
+
+<div id="confirmOverlay" style="display:none;">
   <div class="confirm-box">
-    <div class="checkmark-circle">
-      <div class="checkmark"></div>
-    </div>
-    <h3>Your order is confirmed</h3>
+    <div class="checkmark-circle"><i class="fas fa-check"></i></div>
+    <h3>Order Confirmed!</h3>
     <p>Please wait while we process your order…</p>
   </div>
 </div>
 
-</div>
-
 <script>
-function selectPayment(element) {
-  document.querySelectorAll('.payment-option').forEach(option => {
-    option.classList.remove('selected');
-  });
-  
-  element.classList.add('selected');
-  
-  const radio = element.querySelector('input[type="radio"]');
-  radio.checked = true;
+function selectPayment(el) {
+  document.querySelectorAll('.pm-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  el.querySelector('input[type="radio"]').checked = true;
 }
-</script>
-
-<script>
-function selectPayment(element) {
-  document.querySelectorAll('.payment-option').forEach(option => {
-    option.classList.remove('selected');
-  });
-  element.classList.add('selected');
-  element.querySelector('input[type="radio"]').checked = true;
-}
-
-document.querySelector("form").addEventListener("submit", function(e) {
+document.getElementById('pmForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  document.getElementById("confirmOverlay").style.display = "flex";
-  setTimeout(() => {
-    e.target.submit(); 
-  }, 2000);
+  document.getElementById('confirmOverlay').style.display = 'flex';
+  setTimeout(() => this.submit(), 2000);
 });
 </script>
 {% endblock %}

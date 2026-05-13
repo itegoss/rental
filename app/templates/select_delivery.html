@@ -1,145 +1,66 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %} Sick Bed Services - Select Type{% endblock %}  
-
+{% block title %}Select Delivery — Sick Bed Services{% endblock %}
 {% block content %}
-
 <style>
-  .payment-container {
-    max-width: 600px;
-    margin: 60px auto;
-    padding: 30px;
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    font-family: 'Poppins', sans-serif;
-  }
-
-  .payment-container h2 {
-    font-size: 28px;
-    margin-bottom: 20px;
-    color: #333;
-  }
-
-  .payment-container p {
-    font-size: 16px;
-    margin: 10px 0;
-    color: #555;
-  }
-
-  .payment-details strong {
-    color: #000;
-  }
-
-  .payment-image-container {
-    text-align: center;
-    margin-bottom: 25px;
-  }
-
-  .payment-image {
-    max-width: 100%;
-    height: 250px;
-    object-fit: cover;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  }
-
-  .delivery-options {
-    text-align: left;
-    margin: 20px 0;
-  }
-
-  .delivery-options label {
-    display: block;
-    margin: 16px 0;
-    font-weight: 500;
-    padding: 14px 18px;
-    border: 1px solid #dde2eb;
-    border-radius: 7px;
-    background: #f8fafd;
-    cursor: pointer;
-    position: relative;
-    transition: border-color 0.2s, background-color 0.2s;
-  }
-
-  .delivery-options label:hover {
-    border-color: #28a745;
-    background: #f0f8f4;
-  }
-
-  .delivery-options input[type="radio"] {
-    accent-color: #28a745;
-    margin-right: 10px;
-    position: relative;
-    top: 1px;
-  }
-
-  .delivery-options input[type="radio"]:checked + .option-text {
-    font-weight: 500;
-  }
-
-  .delivery-options input[type="radio"]:checked + .option-text + .option-desc {
-    color: #28a745;
-    font-weight: 500;
-  }
-  
-  .option-text {
-    vertical-align: middle;
-  }
-
-  .option-desc {
-    display: block;
-    font-size: 0.89em;
-    color: #888;
-    font-weight: 400;
-    margin-top: 3px;
-    margin-left: 28px;
-  }
-
-  .pay-button {
-    margin-top: 30px;
-    display: inline-block;
-    background-color: #28a745;
-    color: #fff;
-    padding: 12px 24px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-size: 16px;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    font-weight: 600;
-  }
-
-  .pay-button:hover {
-    background-color: #218838;
-  }
+.del-page { min-height:calc(100vh - 200px); display:flex; align-items:center; justify-content:center; padding:40px 20px; }
+.del-card { background:#fff; border-radius:20px; box-shadow:var(--shadow-lg); width:100%; max-width:560px; overflow:hidden; }
+.del-card-header { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); padding:28px 36px; color:#fff; text-align:center; }
+.del-card-header h1 { font-size:1.5rem; font-weight:800; margin-bottom:4px; }
+.del-card-header p { font-size:0.9rem; opacity:0.85; }
+.del-card-body { padding:32px; }
+.del-option-label { display:flex; align-items:flex-start; gap:16px; padding:18px 20px; margin-bottom:14px; border:2px solid var(--border); border-radius:14px; cursor:pointer; transition:all 0.22s; background:#fafafa; }
+.del-option-label:hover { border-color:var(--primary); background:var(--primary-light); }
+.del-option-label input[type="radio"] { display:none; }
+.del-option-label.selected { border-color:var(--primary); background:var(--primary-light); box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
+.del-option-icon { width:48px; height:48px; border-radius:12px; background:var(--primary-light); display:flex; align-items:center; justify-content:center; font-size:1.3rem; color:var(--primary); flex-shrink:0; }
+.del-option-text h3 { font-size:1rem; font-weight:700; margin-bottom:4px; }
+.del-option-text p { font-size:0.85rem; color:var(--muted); margin:0; }
+.del-option-text .charge { color:var(--primary); font-weight:700; font-size:0.88rem; margin-top:4px; display:block; }
+.btn-proceed { display:block; width:100%; padding:14px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; border:none; border-radius:12px; font-size:1rem; font-weight:700; font-family:var(--font); cursor:pointer; box-shadow:0 4px 14px rgba(236,36,39,0.28); transition:transform 0.2s,box-shadow 0.2s; margin-top:6px; }
+.btn-proceed:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(236,36,39,0.36); }
 </style>
 
-<div class="payment-container">
-  <h2>Your Orders</h2>
+<div class="del-page">
+  <div class="del-card">
+    <div class="del-card-header">
+      <h1><i class="fas fa-truck" style="margin-right:10px;"></i>Delivery Option</h1>
+      <p>Choose how you'd like to receive your equipment</p>
+    </div>
+    <div class="del-card-body">
+      <form method="post" action="{% url 'select_delivery' pk=rental_id %}">
+        {% csrf_token %}
+        <label class="del-option-label" onclick="selectOption(this, 'delivery')">
+          <input type="radio" name="delivery_option" value="delivery" required>
+          <div class="del-option-icon"><i class="fas fa-truck"></i></div>
+          <div class="del-option-text">
+            <h3>Home Delivery</h3>
+            <p>We'll deliver the equipment to your address</p>
+            <span class="charge">+₹500 delivery charge</span>
+          </div>
+        </label>
 
-  <h3>Select Delivery Option</h3>
-  <form method="post" action="{% url 'select_delivery' pk=rental_id %}">
-    {% csrf_token %}
+        <label class="del-option-label" onclick="selectOption(this, 'pickup')">
+          <input type="radio" name="delivery_option" value="pickup">
+          <div class="del-option-icon"><i class="fas fa-store"></i></div>
+          <div class="del-option-text">
+            <h3>Self Pickup</h3>
+            <p>Pick up from our nearest store — free of charge</p>
+            <span class="charge">No extra charge</span>
+          </div>
+        </label>
 
-   <div class="delivery-options">
-  <label>
-    <input type="radio" name="delivery_option" value="delivery" required>
-    Delivery 
-    <span class="delivery-charge">₹500 extra</span>
-    <span class="option-desc">Get it delivered to your address</span>
-  </label>
-
-  <label>
-    <input type="radio" name="delivery_option" value="pickup">
-    Pick up
-    <span class="option-desc">Pick up your order from the store</span>
-  </label>
+        <button type="submit" class="btn-proceed"><i class="fas fa-arrow-right"></i> Proceed</button>
+      </form>
+    </div>
+  </div>
 </div>
-    <button type="submit" class="pay-button" style="margin-top:15px;">Proceed</button>
-  </form>
-</div>
 
+<script>
+function selectOption(el, val) {
+  document.querySelectorAll('.del-option-label').forEach(l => l.classList.remove('selected'));
+  el.classList.add('selected');
+  el.querySelector('input[type="radio"]').checked = true;
+}
+</script>
 {% endblock %}

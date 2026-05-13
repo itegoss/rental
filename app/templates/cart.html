@@ -1,420 +1,267 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Your Cart{% endblock %}
+{% block title %}Your Cart — Sick Bed Services{% endblock %}
 {% block content %}
+<style>
+.cart-page { max-width:1100px; margin:40px auto; padding:0 20px; }
+.cart-page-head { margin-bottom:30px; }
+.cart-page-head h1 { font-size:1.9rem; font-weight:800; color:var(--text); }
+.cart-page-head h1 span { color:var(--primary); }
+.cart-page-head p { color:var(--muted); font-size:0.9rem; margin-top:4px; }
+.cart-layout { display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap; }
+.cart-items-col { flex:1; min-width:300px; display:flex; flex-direction:column; gap:18px; }
+.cart-summary-col { width:340px; flex-shrink:0; }
 
-    <style>
-    .cart-container {
-        max-width: 1100px;
-        margin: auto;
-        padding: 20px;
-    }   
+/* Item card */
+.cart-item-card { background:#fff; border-radius:16px; padding:18px; display:flex; gap:18px; box-shadow:var(--shadow); align-items:flex-start; }
+.cart-item-thumb { width:100px; height:100px; border-radius:12px; overflow:hidden; flex-shrink:0; }
+.cart-item-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+.cart-item-info { flex:1; }
+.cart-item-info h3 { font-size:1rem; font-weight:700; margin-bottom:4px; }
+.cart-item-info p { font-size:0.85rem; color:var(--muted); margin-bottom:8px; line-height:1.5; }
+.cart-item-meta { font-size:0.88rem; color:var(--text); font-weight:500; margin-bottom:10px; }
+.cart-item-meta strong { color:var(--primary); }
+.qty-row { display:flex; align-items:center; gap:10px; }
+.qty-btn { width:32px; height:32px; border-radius:8px; border:1.5px solid var(--border); background:#fff; font-size:1.1rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; color:var(--text); }
+.qty-btn:hover { border-color:var(--primary); color:var(--primary); background:var(--primary-light); }
+.qty-val { min-width:28px; text-align:center; font-size:1rem; font-weight:700; }
+.remove-btn { width:32px; height:32px; border-radius:8px; border:none; background:#fef2f2; color:#dc2626; font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; margin-left:8px; }
+.remove-btn:hover { background:#dc2626; color:#fff; }
+.qty-btn:disabled { opacity:0.45; cursor:not-allowed; background:#f8fafc; color:var(--muted); }
+.qty-btn:disabled:hover { border-color:var(--border); color:var(--muted); background:#f8fafc; }
+.deposit-error { font-size:0.78rem; color:#dc2626; display:none; margin-left:4px; }
+.stock-message { display:none; margin-top:8px; color:#dc2626; font-size:0.8rem; font-weight:600; }
+.stock-message.is-visible { display:block; }
 
-    .cart-title {
-        font-size: 28px;
-        font-weight: 600;
-        margin-bottom: 10px;
-    }
+/* Summary panel */
+.summary-panel { background:#fff; border-radius:16px; padding:24px; box-shadow:var(--shadow); position:sticky; top:84px; }
+.summary-panel h2 { font-size:1.15rem; font-weight:800; margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid var(--border); }
+.date-field { margin-bottom:16px; }
+.date-field label { display:block; font-size:0.78rem; font-weight:600; color:var(--muted); margin-bottom:5px; text-transform:uppercase; letter-spacing:0.4px; }
+.date-field input { width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.92rem; font-family:var(--font); outline:none; transition:border-color 0.2s,box-shadow 0.2s; }
+.date-field input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
+.summary-rows { margin:16px 0; display:flex; flex-direction:column; gap:10px; }
+.sum-row { display:flex; justify-content:space-between; font-size:0.9rem; color:var(--muted); }
+.sum-row strong { color:var(--text); }
+.sum-total { display:flex; justify-content:space-between; font-size:1.05rem; font-weight:800; padding-top:14px; border-top:2px solid var(--border); margin-top:4px; color:var(--text); }
+.sum-total span { color:var(--primary); }
+.refund-note { font-size:0.78rem; color:var(--muted); text-align:center; margin-top:14px; line-height:1.5; }
+.btn-rent-now { display:block; width:100%; padding:14px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; border:none; border-radius:999px; font-size:1rem; font-weight:700; font-family:var(--font); cursor:pointer; text-align:center; box-shadow:0 4px 14px rgba(236,36,39,0.28); transition:transform 0.2s,box-shadow 0.2s; margin-top:18px; }
+.btn-rent-now:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(236,36,39,0.36); }
+.btn-back { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:12px; color:var(--primary); font-weight:600; text-decoration:none; font-size:0.88rem; }
+.btn-back:hover { text-decoration:underline; }
 
-    .cart-item-card {
-        display: flex;
-        gap: 20px;
-        padding: 15px;
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        margin-bottom: 20px;
-        align-items: center;
-    }
+/* Empty */
+.empty-cart { background:#fff; border-radius:16px; padding:70px 30px; text-align:center; box-shadow:var(--shadow); }
+.empty-cart i { font-size:3rem; color:var(--border); margin-bottom:16px; }
+.empty-cart h3 { font-size:1.3rem; font-weight:700; margin-bottom:8px; }
+.empty-cart p { color:var(--muted); margin-bottom:22px; }
 
-    .cart-item-image img {
-        width: 100%;
-        max-width: 260px;
-        border-radius: 10px;
-    }
+@media(max-width:768px) {
+  .cart-summary-col { width:100%; }
+  .summary-panel { position:static; }
+  .cart-item-thumb { width:80px; height:80px; }
+}
+</style>
 
-    .cart-item-details h3 {
-        margin-bottom: 5px;
-    }
+<div class="cart-page">
+  <div class="cart-page-head">
+    <h1>Your <span>Cart</span></h1>
+    <p>Review items and select rental dates before proceeding</p>
+  </div>
 
-    .cart-item-details p {
-        margin: 4px 0;
-        font-size: 15px;
-    }
-
-    .qty-controls {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-top: 8px;
-    }
-
-    .qty-controls button {
-        padding: 4px 10px;
-        font-size: 16px;
-        cursor: pointer;
-    }
-
-    .remove-item {
-        color: red;
-        font-size: 20px;
-        background: none;
-        border: none;
-        cursor: pointer;
-    }
-
-    .cart-summary {
-        padding: 20px;
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        margin-top: 20px;
-    }
-
-    .cart-summary input {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 12px;
-    }
-
-    .summary-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 6px;
-        font-weight: 500;
-    }
-
-    .cart-buttons {
-        display: flex;
-        gap: 15px;
-        justify-content: flex-end;
-        margin-top: 20px;
-    }
-
-    .btn-secondary {
-        background: #ffffff;
-        color: #2e7d32;
-        border: 2px solid #2e7d32;
-        padding: 10px 22px;
-        border-radius: 12px;
-        font-size: 15px;
-        font-weight: 600;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s ease;
-    }
-
-    .btn-secondary:hover {
-        background: #2e7d32;
-        color: #ffffff;
-    }
-
-    .empty-cart {
-        padding: 25px;
-        background: #f8f9fa;
-        border-radius: 10px;
-        text-align: center;
-    }
-
-    @media (max-width: 768px) {
-        .cart-item-card {
-            flex-direction: column;
-            text-align: center;
-        }
-
-        .cart-item-image img {
-            max-width: 100%;
-        }
-
-        .qty-controls {
-            justify-content: center;
-        }
-
-        .cart-buttons {
-            flex-direction: column;
-        }
-
-        .cart-buttons button,
-        .cart-buttons a {
-            width: 100%;
-        }
-    }
-
-    .rent-btn {
-        background: linear-gradient(135deg, #d32f2f, #b71c1c);
-        color: #ffffff;
-        border: none;
-        padding: 12px 26px;
-        border-radius: 14px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: 0 6px 16px rgba(211, 47, 47, 0.35);
-        transition: all 0.3s ease;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 140px;
-    }
-
-    .rent-btn:hover {
-        background: linear-gradient(135deg, #b71c1c, #7f0000);
-        transform: translateY(-2px);
-        box-shadow: 0 10px 22px rgba(183, 28, 28, 0.45);
-    }
-
-    .rent-btn:active {
-        transform: scale(0.97);
-    }
-
-    @media (max-width: 768px) {
-        .rent-btn {
-            width: 100%;
-        }
-    }
-    .back-btn {
-        background: #ffffff;
-        color: #2e7d32;
-        border: 2px solid #2e7d32;
-        padding: 12px 1px;
-        border-radius: 14px;
-        font-size: 15px;
-        font-weight: 600;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        transition: all 0.3s ease;
-        min-width: 120px;
-    }
-
-    .back-btn:hover {
-        background: #2e7d32;
-        color: #ffffff;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 14px rgba(46, 125, 50, 0.3);
-    }
-
-    .back-btn:active {
-        transform: scale(0.96);
-    }
-
-    @media (max-width: 768px) {
-        .back-btn {
-            width: 100%;
-        }
-    }
-    </style>
-<div class="cart-container">
-    <h2 class="cart-title">Your Cart</h2>
-    <hr>
-
-    {% if cart_items %}
-    <form method="POST" action="{% url 'cart' %}">
-        {% csrf_token %}
-
+  {% if cart_items %}
+  <form method="POST" action="{% url 'cart' %}">
+    {% csrf_token %}
+    <div class="cart-layout">
+      <!-- Items -->
+      <div class="cart-items-col">
         {% for item in cart_items %}
-        <div class="cart-item-card" 
-     data-item-id="{{ item.id }}"
-     data-deposit="{{ item.rental_item.deposit }}">
-            
-            <div class="cart-item-image">
-                {% if item.rental_item.image %}
-                    <img src="{{ item.rental_item.image.url }}" alt="{{ item.rental_item.title }}">
-                {% else %}
-                    <img src="{% static 'default.png' %}" alt="No Image">
-                {% endif %}
+        <div class="cart-item-card" data-item-id="{{ item.id }}" data-deposit="{{ item.rental_item.deposit }}" data-available="{{ item.rental_item.available_quantity }}">
+          <div class="cart-item-thumb">
+            {% if item.rental_item.image %}
+              <img src="{{ item.rental_item.image.url }}" alt="{{ item.rental_item.title }}">
+            {% else %}
+              <img src="{% static 'images/default-placeholder.png' %}" alt="No Image">
+            {% endif %}
+          </div>
+          <div class="cart-item-info">
+            <h3>{{ item.rental_item.title }}</h3>
+            <p>{{ item.rental_item.description }}</p>
+            <div class="cart-item-meta">
+              <strong>₹<span class="price-per-day">{{ item.rental_item.price_per_day }}</span></strong> / day &nbsp;|&nbsp;
+              Deposit: ₹{{ item.rental_item.deposit }}
+              <span class="deposit-error">Deposit must be &gt; ₹100</span>
             </div>
-
-            <div class="cart-item-details">
-                <h3>{{ item.rental_item.title }}</h3>
-                <p>{{ item.rental_item.description }}</p>
-
-                <p>
-                    <strong>Price / Day:</strong> ₹
-                    <span class="price-per-day">{{ item.rental_item.price_per_day }}</span>
-                </p>
-
-                <p>
-              <strong>Deposit:</strong> ₹{{ item.rental_item.deposit }}
-                    <small class="deposit-error" style="color:red; display:none;">
-                        Deposit must be greater than ₹100
-                    </small>
-                </p>
-
-                <div class="qty-controls">
-                    <button type="button" class="decrement">−</button>
-                    <span class="quantity">{{ item.quantity }}</span>
-                    <button type="button" class="increment">+</button>
-                    <button type="button" class="remove-item">×</button>
-                </div>
-
-                <input type="hidden" name="item_ids" value="{{ item.rental_item.id }}">
-                <input type="hidden" name="quantities" class="quantity-input" value="{{ item.quantity }}">
+            <div class="qty-row">
+              <button type="button" class="qty-btn decrement">−</button>
+              <span class="qty-val quantity">{{ item.quantity }}</span>
+              <button type="button" class="qty-btn increment">+</button>
+              <button type="button" class="remove-btn remove-item" aria-label="Remove item">
+                <i class="fas fa-trash-alt"></i>
+              </button>
             </div>
+            <div class="stock-message" aria-live="polite"></div>
+            <input type="hidden" name="item_ids" value="{{ item.rental_item.id }}">
+            <input type="hidden" name="quantities" class="quantity-input" value="{{ item.quantity }}">
+          </div>
         </div>
         {% endfor %}
-        <div class="cart-summary">
+      </div>
+
+      <!-- Summary -->
+      <div class="cart-summary-col">
+        <div class="summary-panel">
+          <h2><i class="fas fa-receipt" style="color:var(--primary);margin-right:8px;"></i>Order Summary</h2>
+          <div class="date-field">
             <label>Start Date</label>
             <input type="date" id="start_date" name="start_date" required>
-
+          </div>
+          <div class="date-field">
             <label>End Date</label>
             <input type="date" id="end_date" name="end_date" required>
-
-            <div class="summary-row">
-                <span>Total Days</span>
-                <span id="total_days">-</span>
-            </div>
-
-            <div class="summary-row">
-                <span>Total Rent</span>
-                <span>₹<span id="rent_amount">-</span></span>
-            </div>
-
-            <div class="summary-row">
-                <span>Total Deposit</span>
-                <span>₹<span id="total_deposit">-</span></span>
-            </div>
-
-            <div class="summary-row">
-                <strong>Grand Total</strong>
-                <strong>₹<span id="grand_total">-</span></strong>
-            </div>
-
-            <div class="cart-buttons">
-                <button type="submit" class="rent-btn">
-                    Rent Now
-                </button>
-                <a href="{% url 'items' %}" class="back-btn">
-                    ← Back
-                </a>
-            </div>
-
-            <p style="font-size:14px; margin-top:15px; text-align:center;">
-                Deposit is fully refundable if items are returned without damage.
-            </p>
+          </div>
+          <div class="summary-rows">
+            <div class="sum-row"><span>Total Days</span><strong id="total_days">—</strong></div>
+            <div class="sum-row"><span>Total Rent</span><strong>₹<span id="rent_amount">—</span></strong></div>
+            <div class="sum-row"><span>Total Deposit</span><strong>₹<span id="total_deposit">—</span></strong></div>
+          </div>
+          <div class="sum-total"><span>Grand Total</span><span>₹<span id="grand_total">—</span></span></div>
+          <button type="submit" class="btn-rent-now"><i class="fas fa-bolt"></i> Proceed to Rent</button>
+          <a href="{% url 'items' %}" class="btn-back"><i class="fas fa-arrow-left"></i> Continue Shopping</a>
+          <p class="refund-note">Deposit is fully refundable if items are returned without damage.</p>
         </div>
-    </form>
-
-    {% else %}
-        <div class="empty-cart">
-            <h4>Your cart is empty</h4>
-        </div>
-    {% endif %}
+      </div>
+    </div>
+  </form>
+  {% else %}
+  <div class="empty-cart">
+    <i class="fas fa-shopping-cart"></i>
+    <h3>Your cart is empty</h3>
+    <p>Browse our rental items and add something to get started.</p>
+    <a href="{% url 'items' %}" class="btn-primary-red"><i class="fas fa-th-large"></i> Browse Items</a>
+  </div>
+  {% endif %}
 </div>
+
 <script>
 function updateCartTotals() {
-    const cards = document.querySelectorAll('.cart-item-card');
-    let totalRent = 0;
-    let totalDeposit = 0;
+  const cards = document.querySelectorAll('.cart-item-card');
+  let totalRent = 0, totalDeposit = 0;
+  const start = document.getElementById('start_date').value;
+  const end = document.getElementById('end_date').value;
+  let days = 0;
+  if (start && end) {
+    const s = new Date(start), e = new Date(end);
+    days = Math.max(0, Math.round((e - s) / 86400000) + 1);
+  }
+  cards.forEach(card => {
+    const price = parseFloat(card.querySelector('.price-per-day').innerText) || 0;
+    const deposit = parseFloat(card.dataset.deposit) || 0;
+    const qty = parseInt(card.querySelector('.quantity').innerText) || 1;
+    card.querySelector('.quantity-input').value = qty;
+    totalRent += price * qty * days;
+    totalDeposit += deposit * qty;
+  });
+  document.getElementById('total_days').innerText = days || '—';
+  document.getElementById('rent_amount').innerText = totalRent || '—';
+  document.getElementById('total_deposit').innerText = totalDeposit || '—';
+  document.getElementById('grand_total').innerText = (totalRent + totalDeposit) || '—';
+}
 
-    const start = document.getElementById('start_date').value;
-    const end = document.getElementById('end_date').value;
+function updateStockState(card, message = '') {
+  const qty = parseInt(card.querySelector('.quantity').innerText) || 0;
+  const available = parseInt(card.dataset.available) || 0;
+  const incrementBtn = card.querySelector('.increment');
+  const stockMessage = card.querySelector('.stock-message');
 
-    let days = 0;
-    if (start && end) {
-        const s = new Date(start);
-        const e = new Date(end);
-        days = Math.max(0, Math.round((e - s) / 86400000) + 1);
-    }
+  incrementBtn.disabled = available <= 0 || qty >= available;
+  if (message) {
+    stockMessage.textContent = message;
+    stockMessage.classList.add('is-visible');
+  } else if (available > 0 && qty >= available) {
+    stockMessage.textContent = `Only ${available} item(s) are available.`;
+    stockMessage.classList.add('is-visible');
+  } else {
+    stockMessage.textContent = '';
+    stockMessage.classList.remove('is-visible');
+  }
+}
 
-    cards.forEach(card => {
-        const price = parseFloat(card.querySelector('.price-per-day').innerText) || 0;
-        const deposit = parseFloat(card.dataset.deposit) || 0;
-        const qty = parseInt(card.querySelector('.quantity').innerText) || 1;
-        card.querySelector('.quantity-input').value = qty;
-        totalRent += price * qty * days;
-        totalDeposit += deposit * qty;
-    });
-
-    document.getElementById('total_days').innerText = days || "-";
-    document.getElementById('rent_amount').innerText = totalRent || "-";
-    document.getElementById('total_deposit').innerText = totalDeposit || "-";
-    document.getElementById('grand_total').innerText = (totalRent + totalDeposit) || "-";
+function updateAllStockStates() {
+  document.querySelectorAll('.cart-item-card').forEach(card => updateStockState(card));
 }
 
 document.addEventListener('click', e => {
-    const card = e.target.closest('.cart-item-card');
-    if (!card) return;
-
-    const qtyEl = card.querySelector('.quantity');
-    const itemId = card.dataset.itemId;
-
-    function getCookie(name) {
-        let cookieValue = null;
-        document.cookie.split(';').forEach(c => {
-            if (c.trim().startsWith(name + '=')) {
-                cookieValue = decodeURIComponent(c.split('=')[1]);
-            }
-        });
-        return cookieValue;
-    }
-
-    const csrftoken = getCookie('csrftoken');
-
-    if (e.target.classList.contains('increment')) {
-        fetch(`/cart/update/${itemId}/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': csrftoken,
-            },
-            body: new URLSearchParams({ action: 'increment' })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                qtyEl.innerText = data.quantity;
-                updateCartTotals();
-            }
-        });
-    }
-
-    if (e.target.classList.contains('decrement')) {
-        fetch(`/cart/update/${itemId}/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': csrftoken,
-            },
-            body: new URLSearchParams({ action: 'decrement' })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                if (data.quantity === 0) {
-                    card.remove();
-                } else {
-                    qtyEl.innerText = data.quantity;
-                }
-                updateCartTotals();
-            }
-        });
-    }
-
-    if (e.target.classList.contains('remove-item')) {
-        fetch(`/cart/remove/${itemId}/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrftoken,
-            },
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                card.remove();
-                updateCartTotals();
-            }
-        });
-    }
+  const card = e.target.closest('.cart-item-card');
+  if (!card) return;
+  const qtyEl = card.querySelector('.quantity');
+  const itemId = card.dataset.itemId;
+  function getCsrf() {
+    let v = null;
+    document.cookie.split(';').forEach(c => {
+      if (c.trim().startsWith('csrftoken=')) v = decodeURIComponent(c.split('=')[1]);
+    });
+    return v;
+  }
+  const csrf = getCsrf();
+  function postUpdate(action) {
+    return fetch(`/cart/update/${itemId}/`, {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':csrf},
+      body: new URLSearchParams({action})
+    }).then(async r => {
+      const data = await r.json();
+      if (!r.ok || !data.success) throw data;
+      return data;
+    });
+  }
+  if (e.target.closest('.increment')) {
+    postUpdate('increment')
+      .then(d => {
+        qtyEl.innerText = d.quantity;
+        updateCartTotals();
+        updateStockState(card);
+      })
+      .catch(d => {
+        updateStockState(card, d.message || 'This item is out of stock.');
+      });
+  }
+  if (e.target.closest('.decrement')) {
+    postUpdate('decrement').then(d => {
+      if(d.success){ if(d.quantity===0) card.remove(); else qtyEl.innerText=d.quantity; updateCartTotals(); updateStockState(card); }
+    });
+  }
+  if (e.target.closest('.remove-item')) {
+    fetch(`/cart/remove/${itemId}/`, {method:'POST',headers:{'X-CSRFToken':csrf}})
+      .then(r=>r.json()).then(d => { if(d.success){card.remove();updateCartTotals();} });
+  }
 });
 
 document.getElementById('start_date').addEventListener('change', updateCartTotals);
 document.getElementById('end_date').addEventListener('change', updateCartTotals);
+document.addEventListener('DOMContentLoaded', () => {
+  const startDateInput = document.getElementById('start_date');
+  const endDateInput = document.getElementById('end_date');
 
-document.addEventListener('DOMContentLoaded', function () {
-    updateCartTotals();
+  {% if not is_admin %}
+    const today = new Date();
+    today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+    const todayValue = today.toISOString().split('T')[0];
+
+    startDateInput.min = todayValue;
+    endDateInput.min = todayValue;
+    startDateInput.addEventListener('change', () => {
+      endDateInput.min = startDateInput.value || todayValue;
+      if (endDateInput.value && endDateInput.value < endDateInput.min) {
+        endDateInput.value = '';
+      }
+      updateCartTotals();
+    });
+  {% endif %}
+
+  updateCartTotals();
+  updateAllStockStates();
 });
 </script>
 {% endblock %}

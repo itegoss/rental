@@ -1,115 +1,58 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %} Sick Bed Services -reset{% endblock %}  
+{% block title %}Reset Password — Sick Bed Services{% endblock %}
 {% block content %}
 <style>
-    .reset-page {
-        background: url("{% static 'images/signup.png' %}") no-repeat center center;
-        background-size: cover;
-        height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-    }
-
-    .reset-container {
-        background: rgba(255, 255, 255, 0.92);
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        width: 100%;
-        max-width: 400px;
-        z-index: 1;
-        position: relative;
-    }
-
-    .reset-container h2 {
-        text-align: center;
-        color: #333;
-        margin-bottom: 20px;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 15px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-    }
-
-    .btn-submit {
-        width: 100%;
-        background-color: #5c67f2;
-        color: white;
-        padding: 10px;
-        border: none;
-        border-radius: 8px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-
-    .btn-submit:hover {
-        background-color: #434ce4;
-    }
-
-    .signin-link {
-        display: block;
-        text-align: center;
-        margin-top: 15px;
-        color: #5c67f2;
-        text-decoration: none;
-    }
-
-    .signin-link:hover {
-        text-decoration: underline;
-    }
-
-    .message-list {
-        list-style: none;
-        padding: 0;
-        margin-bottom: 15px;
-    }
-
-    .message-list li {
-        padding: 10px;
-        margin-bottom: 10px;
-        border-radius: 5px;
-      
-    }
-
-    .message-list li.error {
-        
-        color: red;
-    }
-    
-    .message-list li.success {
-        background-color: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-    }
+.auth-center { min-height:calc(100vh - 64px); display:flex; align-items:center; justify-content:center; padding:40px 20px; background:var(--bg); }
+.auth-card { background:#fff; border-radius:20px; box-shadow:var(--shadow-lg); padding:44px 40px; width:100%; max-width:420px; animation:fadeUp 0.4s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+.auth-card .icon-circle { width:72px; height:72px; background:var(--primary-light); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 22px; font-size:1.8rem; color:var(--primary); }
+.auth-card h2 { font-size:1.6rem; font-weight:800; text-align:center; margin-bottom:8px; }
+.auth-card p.sub { text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:28px; }
+.form-field { position:relative; margin-bottom:16px; }
+.form-field label { display:block; font-size:0.78rem; font-weight:600; color:var(--muted); margin-bottom:5px; text-transform:uppercase; letter-spacing:0.5px; }
+.form-field input { width:100%; padding:12px 42px 12px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:0.95rem; font-family:var(--font); outline:none; background:#fafafa; transition:border-color 0.2s,box-shadow 0.2s; }
+.form-field input:focus { border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
+.field-icon { position:absolute; right:13px; bottom:12px; color:var(--muted); cursor:pointer; font-size:0.9rem; }
+.field-icon:hover { color:var(--primary); }
+.btn-submit { width:100%; padding:13px; background:var(--primary); color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:700; font-family:var(--font); cursor:pointer; box-shadow:0 4px 14px rgba(236,36,39,0.28); transition:background 0.2s,transform 0.2s; }
+.btn-submit:hover { background:var(--primary-dark); transform:translateY(-1px); }
+.back-link { display:block; text-align:center; margin-top:18px; color:var(--primary); font-weight:600; font-size:0.88rem; text-decoration:none; }
+.back-link:hover { text-decoration:underline; }
+.err-msg { background:#fef2f2; color:#991b1b; border-left:3px solid #dc2626; padding:10px 13px; border-radius:8px; font-size:0.85rem; margin-bottom:14px; }
 </style>
-
-<div class="reset-page">
-    <div class="reset-container">
-        <h2>Reset Password</h2>
-
-        {% if messages %}
-            <ul class="message-list">
-                {% for message in messages %}
-                    <li class="{{ message.tags }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-
-        <form method="POST" action="{% url 'resetpass' username=username %}">
-            {% csrf_token %}
-            <input type="password" name="new_password" class="form-control" placeholder="Enter your new password" required>
-            <input type="password" name="confirm_password" class="form-control" placeholder="Confirm new password" required>
-            <button type="submit" class="btn-submit">Reset Password</button>
-        </form>
-
-        <a href="{% url 'signin' %}" class="signin-link">Back to Sign In</a>
-    </div>
+<div class="auth-center">
+  <div class="auth-card">
+    <div class="icon-circle"><i class="fas fa-lock"></i></div>
+    <h2>Reset Password</h2>
+    <p class="sub">Create a new password for <strong>{{ username }}</strong></p>
+    {% if messages %}
+      {% for message in messages %}
+        <div class="err-msg">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+    <form method="POST" action="{% url 'resetpass' username=username %}">
+      {% csrf_token %}
+      <div class="form-field">
+        <label>New Password</label>
+        <input type="password" id="pw1" name="new_password" placeholder="Enter new password" required>
+        <i class="fa-regular fa-eye field-icon" onclick="togglePw('pw1',this)"></i>
+      </div>
+      <div class="form-field">
+        <label>Confirm Password</label>
+        <input type="password" id="pw2" name="confirm_password" placeholder="Repeat new password" required>
+        <i class="fa-regular fa-eye field-icon" onclick="togglePw('pw2',this)"></i>
+      </div>
+      <button type="submit" class="btn-submit">Reset Password</button>
+    </form>
+    <a href="{% url 'signin' %}" class="back-link">← Back to Sign In</a>
+  </div>
 </div>
+<script>
+function togglePw(id, icon) {
+  const inp = document.getElementById(id);
+  if (inp.type === 'password') { inp.type='text'; icon.classList.replace('fa-eye','fa-eye-slash'); }
+  else { inp.type='password'; icon.classList.replace('fa-eye-slash','fa-eye'); }
+}
+</script>
 {% endblock %}

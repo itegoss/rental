@@ -1,75 +1,94 @@
 {% extends 'base.html' %}
-
+{% block title %}Extend Return Date — Sick Bed Services{% endblock %}
 {% block content %}
-<div class="container">
-    <div class="receipt-container" style="max-width: 760px; margin: 20px auto; padding: 24px; border: 1px solid #d7d7d7; background: #fff;">
-        <div class="receipt-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-            <div>
-                <h2 style="margin:0;">Extend Return Date</h2>
-                <p style="margin:4px 0 0; color:#555;">Order ID: {{ order_id }}</p>
-            </div>
-            <div>
-                <p style="margin:0; font-size:14px;">Current expected return:</p>
-                <strong>{{ current_end_date|date:"d M Y" }}</strong>
-            </div>
-        </div>
+<style>
+.ext-page { max-width:820px; margin:40px auto; padding:0 20px; }
+.ext-card { background:#fff; border-radius:20px; box-shadow:var(--shadow-lg); overflow:hidden; }
+.ext-header { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); padding:26px 32px; color:#fff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+.ext-header h1 { font-size:1.4rem; font-weight:800; margin-bottom:2px; }
+.ext-header p { font-size:0.85rem; opacity:0.85; margin:0; }
+.ext-current { text-align:right; }
+.ext-current small { font-size:0.78rem; opacity:0.82; }
+.ext-current strong { display:block; font-size:1.1rem; margin-top:2px; }
+.ext-body { padding:32px; }
+.form-field { margin-bottom:22px; }
+.form-field label { display:block; font-size:0.78rem; font-weight:700; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px; }
+.form-field input[type="date"] { padding:11px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:0.93rem; font-family:var(--font); outline:none; background:#fafafa; width:100%; max-width:280px; transition:border-color 0.2s,box-shadow 0.2s; }
+.form-field input[type="date"]:focus { border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
+.ext-actions { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.btn-save { display:inline-flex; align-items:center; gap:8px; padding:12px 24px; background:var(--primary); color:#fff; border:none; border-radius:10px; font-size:0.95rem; font-weight:700; font-family:var(--font); cursor:pointer; box-shadow:0 4px 14px rgba(236,36,39,0.25); transition:all 0.2s; }
+.btn-save:hover { background:var(--primary-dark); transform:translateY(-1px); box-shadow:0 8px 22px rgba(236,36,39,0.3); }
+.btn-cancel { display:inline-flex; align-items:center; gap:8px; padding:12px 22px; background:#f3f4f6; color:var(--muted); border:none; border-radius:10px; font-size:0.92rem; font-weight:600; font-family:var(--font); cursor:pointer; text-decoration:none; transition:background 0.2s; }
+.btn-cancel:hover { background:#e5e7eb; color:var(--text); }
+.section-label { font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--muted); margin-bottom:14px; display:flex; align-items:center; gap:8px; padding-top:24px; border-top:1px solid var(--border); }
+.section-label i { color:var(--primary); }
+.ext-table { width:100%; border-collapse:collapse; margin-bottom:18px; }
+.ext-table th { background:#f3f4f6; font-size:0.78rem; font-weight:700; text-transform:uppercase; padding:10px 14px; color:var(--muted); text-align:left; border-bottom:2px solid var(--border); }
+.ext-table td { padding:11px 14px; font-size:0.88rem; border-bottom:1px solid var(--border); }
+.ext-table tr:last-child td { border-bottom:none; }
+.totals-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; }
+.total-chip { background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+.total-chip .label { font-size:0.75rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:4px; }
+.total-chip .value { font-size:1.05rem; font-weight:800; color:var(--text); }
+.grand-total-box { background:var(--primary-light); border:1.5px solid #fca5a5; border-radius:12px; padding:16px 18px; margin-top:14px; display:flex; justify-content:space-between; align-items:center; }
+.grand-total-box span { font-size:0.88rem; font-weight:600; color:var(--text); }
+.grand-total-box strong { font-size:1.2rem; font-weight:800; color:var(--primary); }
+</style>
 
-        <form method="post" style="margin-bottom:24px;">
-            {% csrf_token %}
-            <div style="margin-bottom:16px;">
-                <label for="extended_end_date" style="display:block; font-weight:600; margin-bottom:8px;">Select a new return date</label>
-                <input type="date" id="extended_end_date" name="extended_end_date"
-                    min="{{ min_extend_date }}"
-                    value="{{ min_extend_date }}"
-                    required
-                    style="width:100%; max-width:260px; padding:10px; border:1px solid #ccc; border-radius:4px;" />
-            </div>
-            <button type="submit" class="download-btn" style="display:inline-block; padding:10px 18px; background:#1b8a4b; color:#fff; border:none; border-radius:4px; cursor:pointer;">Save New Return Date</button>
-            <a href="{% url 'bookingsammry' %}" class="download-btn" style="display:inline-block; padding:10px 18px; margin-left:10px; background:#777; color:#fff; text-decoration:none; border-radius:4px;">Cancel</a>
-        </form>
-
-        <div style="margin-top:20px;">
-            <h3 style="margin-bottom:12px;">Order Summary</h3>
-            <table class="items-table" style="width:100%; border-collapse:collapse; margin-bottom:16px;">
-                <thead>
-                    <tr style="background:#f8f8f8;">
-                        <th style="padding:10px; border:1px solid #e0e0e0; text-align:left;">Item</th>
-                        <th style="padding:10px; border:1px solid #e0e0e0; text-align:center;">Qty</th>
-                        <th style="padding:10px; border:1px solid #e0e0e0; text-align:center;">Days</th>
-                        <th style="padding:10px; border:1px solid #e0e0e0; text-align:right;">Total Rent</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for it in item_totals %}
-                    <tr>
-                        <td style="padding:10px; border:1px solid #e0e0e0;">{{ it.title }}</td>
-                        <td style="padding:10px; border:1px solid #e0e0e0; text-align:center;">{{ it.quantity }}</td>
-                        <td style="padding:10px; border:1px solid #e0e0e0; text-align:center;">{{ it.days }}</td>
-                        <td style="padding:10px; border:1px solid #e0e0e0; text-align:right;">₹{{ it.total }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-
-            <div style="display:flex; flex-wrap:wrap; gap:16px;">
-                <div style="flex:1; min-width:200px;">
-                    <p style="margin:0; font-weight:600;">Total Rent</p>
-                    <p style="margin:4px 0 0;">₹{{ total_rent }}</p>
-                </div>
-                <div style="flex:1; min-width:200px;">
-                    <p style="margin:0; font-weight:600;">Total Deposit</p>
-                    <p style="margin:4px 0 0;">₹{{ total_deposit }}</p>
-                </div>
-                <div style="flex:1; min-width:200px;">
-                    <p style="margin:0; font-weight:600;">Delivery Charge</p>
-                    <p style="margin:4px 0 0;">₹{{ delivery_charge }}</p>
-                </div>
-            </div>
-
-            <div style="margin-top:18px; padding:14px; background:#f5f9f5; border:1px solid #dbe7db; border-radius:4px;">
-                <strong>Current total order amount:</strong> ₹{{ total_rent|add:total_deposit|add:delivery_charge }}
-            </div>
-        </div>
+<div class="ext-page">
+  <div class="ext-card">
+    <div class="ext-header">
+      <div>
+        <h1><i class="fas fa-calendar-plus" style="margin-right:8px;"></i>Extend Return Date</h1>
+        <p>Order ID: {{ order_id }}</p>
+      </div>
+      <div class="ext-current">
+        <small>Current expected return</small>
+        <strong>{{ current_end_date|date:"d M Y" }}</strong>
+      </div>
     </div>
+    <div class="ext-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-field">
+          <label for="extended_end_date">Select New Return Date</label>
+          <input type="date" id="extended_end_date" name="extended_end_date"
+                 min="{{ min_extend_date }}" value="{{ min_extend_date }}" required>
+        </div>
+        <div class="ext-actions">
+          <button type="submit" class="btn-save"><i class="fas fa-save"></i> Save New Return Date</button>
+          <a href="{% url 'bookingsammry' %}" class="btn-cancel"><i class="fas fa-times"></i> Cancel</a>
+        </div>
+      </form>
+
+      <div class="section-label"><i class="fas fa-receipt"></i> Order Summary</div>
+
+      <table class="ext-table">
+        <thead>
+          <tr><th>Item</th><th>Qty</th><th>Days</th><th>Total Rent</th></tr>
+        </thead>
+        <tbody>
+          {% for it in item_totals %}
+          <tr>
+            <td>{{ it.title }}</td>
+            <td>{{ it.quantity }}</td>
+            <td>{{ it.days }}</td>
+            <td>₹{{ it.total }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="totals-grid">
+        <div class="total-chip"><div class="label">Total Rent</div><div class="value">₹{{ total_rent }}</div></div>
+        <div class="total-chip"><div class="label">Total Deposit</div><div class="value">₹{{ total_deposit }}</div></div>
+        <div class="total-chip"><div class="label">Delivery Charge</div><div class="value">₹{{ delivery_charge }}</div></div>
+      </div>
+      <div class="grand-total-box">
+        <span>Current Order Total</span>
+        <strong>₹{{ total_rent|add:total_deposit|add:delivery_charge }}</strong>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

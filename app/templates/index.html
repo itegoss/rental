@@ -1,427 +1,169 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %} Sick Bed Services-Home {% endblock %}
+{% block title %}Sick Bed Services — Home{% endblock %}
 {% block content %}
 <style>
-html {
-  scroll-behavior: smooth;
-}
-.home-banner {
-  width: 100%;
-  min-height: 220px;
-  height: auto;
-  line-height: 0;
-  background-size: contain; 
-  background-repeat: no-repeat;
-  background-position: center;
-  position: relative;
-  margin-top: -90;
-}
+/* ── HERO ── */
+.hero { position:relative; width:100%; overflow:hidden; background:var(--primary-dark); }
+.hero img { width:100%; height:auto; display:block; opacity:0; animation:heroFade 1.4s ease forwards; }
+@keyframes heroFade { from{opacity:0;} to{opacity:1;} }
+.hero-overlay { position:absolute; inset:0; background:linear-gradient(to right,rgba(236,36,39,0.3) 0%,transparent 70%); pointer-events:none; }
 
-.banner-img {
-  width: 100%;
-  height: auto;
-  object-fit: contain; 
-  object-position: center;
-  margin: 0;
-  opacity: 0;
-  animation: fadeIn 1.6s ease forwards;
-}
+/* ── WELCOME ── */
+.welcome-sec { text-align:center; padding:60px 24px 50px; background:#fff; }
+.welcome-sec h1 { font-size:2.4rem; font-weight:800; color:var(--text); margin-bottom:14px; }
+.welcome-sec h1 span { color:var(--primary); }
+.welcome-sec p { font-size:1.05rem; color:var(--muted); max-width:600px; margin:0 auto 28px; line-height:1.7; }
+.welcome-cta { display:inline-flex; gap:12px; flex-wrap:wrap; justify-content:center; }
 
-.banner-content {
-  z-index: 2;
-  padding: 20px;
-  max-width: 800px;
-  margin: 0 auto;
-  text-align: center;
-}
+/* ── FEATURED ── */
+.featured-sec { padding:60px 24px; background:var(--bg); }
+.section-head { text-align:center; margin-bottom:40px; }
+.section-head h2 { font-size:2rem; font-weight:800; color:var(--text); margin-bottom:8px; }
+.section-head h2 span { color:var(--primary); }
+.section-head p { color:var(--muted); font-size:0.95rem; }
+.feat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:24px; max-width:1100px; margin:0 auto 36px; }
+.feat-card { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 4px 18px rgba(0,0,0,0.06); transition:transform 0.3s ease,box-shadow 0.3s ease; text-decoration:none; color:inherit; display:flex; flex-direction:column; }
+.feat-card:hover { transform:translateY(-6px); box-shadow:0 16px 40px rgba(236,36,39,0.14); }
+.feat-card img { width:100%; height:200px; object-fit:cover; display:block; transition:transform 0.5s ease; }
+.feat-card:hover img { transform:scale(1.05); }
+.feat-card-body { padding:18px 20px 22px; text-align:center; }
+.feat-card-body h3 { font-size:1.05rem; font-weight:700; margin-bottom:6px; }
+.feat-card-body p { font-size:1rem; font-weight:800; color:var(--primary); }
+.view-more-wrap { text-align:center; }
 
-.banner-content h1 {
-  font-size: 3rem;
-  margin: 0 0 15px;
-  font-weight: 700;
-  font-family: 'quicksand', sans-serif;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-  animation: slideInDown 1.2s ease forwards;
-}
+/* ── ABOUT ── */
+.about-sec { padding:70px 24px; background:#fff; }
+.about-inner { max-width:1060px; margin:0 auto; display:flex; gap:50px; align-items:center; flex-wrap:wrap; }
+.about-text { flex:1; min-width:280px; }
+.about-text h2 { font-size:1.9rem; font-weight:800; color:var(--text); margin-bottom:14px; }
+.about-text h2 span { color:var(--primary); }
+.about-text p { color:#4b5563; line-height:1.8; margin-bottom:16px; font-size:0.97rem; }
+.about-img { flex:1; min-width:280px; border-radius:16px; overflow:hidden; box-shadow:var(--shadow); }
+.about-img img { width:100%; height:auto; display:block; }
 
-.banner-content p {
-  font-size: 1.4rem;
-  margin: 0 0 25px;
-  font-family: 'quicksand', sans-serif;
-  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-  animation: slideInUp 1.2s ease forwards;
-}
+/* ── LOGIN REMINDER ── */
+.login-reminder { margin:0 24px 40px; background:#fef2f2; border:1px solid #fca5a5; border-radius:12px; padding:16px 22px; display:flex; align-items:center; gap:14px; max-width:560px; margin-left:auto; margin-right:auto; }
+.login-reminder i { color:var(--primary); font-size:1.3rem; flex-shrink:0; }
+.login-reminder p { font-size:0.9rem; color:#7f1d1d; margin:0; }
+.login-reminder a { color:var(--primary); font-weight:700; text-decoration:none; }
+.login-reminder a:hover { text-decoration:underline; }
 
-.banner-cta {
-  display: inline-block;
-  padding: 12px 30px;
-  background: #e50914;
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 1.1rem;
-  transition: all 0.3s ease;
-  font-family: 'quicksand', sans-serif;
-  animation: fadeIn 1.6s ease forwards;
-  border: 2px solid transparent;
-}
-.banner-cta:hover {
-  background: transparent;
-  border-color: #e50914;
-  transform: translateY(-3px);
-}
+/* ── MODAL (signup prompt) ── */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9000; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal-card { background:#fff; border-radius:20px; padding:36px 32px; max-width:380px; width:90%; text-align:center; box-shadow:var(--shadow-lg); animation:scaleIn 0.25s ease; position:relative; }
+@keyframes scaleIn { from{transform:scale(0.88);opacity:0;} to{transform:scale(1);opacity:1;} }
+.modal-card .modal-icon { font-size:2.2rem; color:var(--primary); margin-bottom:14px; }
+.modal-card h2 { font-size:1.35rem; font-weight:800; margin-bottom:8px; }
+.modal-card p { color:var(--muted); font-size:0.9rem; margin-bottom:22px; line-height:1.6; }
+.modal-close { position:absolute; top:14px; right:18px; font-size:1.4rem; background:none; border:none; cursor:pointer; color:var(--muted); }
+.modal-close:hover { color:var(--text); }
+.modal-card-btns { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
 
-@keyframes fadeIn { to { opacity: 1; } }
-@keyframes slideInDown {
-  from { opacity: 0; transform: translateY(-30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes slideInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-section.welcome {
-  text-align: center;
-  padding: 40px 20px;
-  background: white;
-  margin: 90;  
-  position: relative; 
-  z-index: 1;
-}
-section.welcome h1 {
-  font-size: 2.5rem;
-  margin: 0 0 15px;
-  font-weight: 700;
-  color: #e50914;
-  font-family: 'quicksand', sans-serif;
-}
-section.welcome p {
-  font-size: 1.2rem;
-  color: #555;
-  max-width: 700px;
-  margin: 0 auto;
-  line-height: 1.5;
-}
-
-section.featured-section {
-  padding: 40px 20px;
-  background: #f9f9f9;
-}
-section.featured-section h2 {
-  text-align: center;
-  margin-bottom: 30px;
-  font-size: 2.2rem;
-  font-weight: 700;
-  color: #e50914;
-  font-family: 'quicksand', sans-serif;
-}
-.featured-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-  max-width: 1200px;
-  margin: 0 auto 30px;
-  padding: 0 10px;
-}
-.featured-item {
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  text-decoration: none;
-  color: inherit;
-  display: flex;
-  flex-direction: column;
-}
-.featured-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(229,9,20,0.2);
-}
-.featured-item img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  display: block;
-}
-.featured-item h3 {
-  font-size: 1.2rem;
-  margin: 15px 0 8px;
-  font-weight: 600;
-  color: #333;
-  text-align: center;
-  font-family: 'quicksand', sans-serif;
-}
-.featured-item p {
-  margin: 0 0 15px;
-  font-size: 1rem;
-  color: #e50914;
-  font-weight: 600;
-  text-align: center;
-}
-
-.view-more-btn {
-  display: inline-block;
-  padding: 12px 30px;
-  background: #e50914;
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: background 0.3s ease;
-  font-family: 'quicksand', sans-serif;
-}
-.view-more-btn:hover { background: #b20710; }
-
-section.about-container {
-  padding: 50px 20px;
-  background: white;
-  font-family: 'quicksand', sans-serif;
-}
-.about-header {
-  text-align: center;
-  margin-bottom: 40px;
-}
-.about-header h2 {
-  font-size: 2.2rem;
-  font-weight: 700;
-  color: #e50914;
-  margin-bottom: 10px;
-}
-.about-header p {
-  font-size: 1.1rem;
-  color: #666;
-  max-width: 700px;
-  margin: 0 auto;
-}
-.about-flex {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 30px;
-  max-width: 1000px;
-  margin: 0 auto;
-}
-.about-content {
-  flex: 1;
-  min-width: 300px;
-  line-height: 1.6;
-  font-size: 1rem;
-  color: #444;
-}
-.about-content p { margin-bottom: 20px; }
-.highlight { color: #e50914; font-weight: 600; }
-.rental-img {
-  flex: 1;
-  min-width: 300px;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.rental-img img {
-  width: 100%;
-  height: auto;
-  display: block;
-  border-radius: 8px;
-}
-
-.login-reminder {
-  padding: 15px;
-  text-align: center;
-  background: #fff9f9;
-  border: 1px solid #ffebee;
-  color: #e50914;
-  border-radius: 8px;
-  font-size: 1rem;
-  max-width: 500px;
-  margin: 20px auto 0;
-}
-.login-reminder a {
-  color: #e50914;
-  font-weight: bold;
-  text-decoration: underline;
-}
-
-
-.modal.show { opacity: 1; visibility: visible; }
-.modal-content {
-  background: white;
-  padding: 25px;
-  border-radius: 8px;
-  max-width: 400px;
-  width: 90%;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  text-align: center;
-  border-top: 4px solid #e50914;
-}
-#closeModal {
-  font-size: 1.5rem;
-  background: transparent;
-  border: none;
-  float: right;
-  cursor: pointer;
-  color: #999;
-  margin-top: -10px;
-}
-#closeModal:hover { color: #e50914; }
-.modal-content h2 {
-  color: #e50914;
-  margin: 0 0 15px;
-  font-size: 1.5rem;
-}
-.modal-content p {
-  margin: 0 0 20px;
-  color: #666;
-}
-
-@media (max-width: 1024px) {
-  .home-banner { min-height: 40vh; }
-  .featured-item img { height: 160px; }
-}
-
-@media (max-width: 768px) {
-  .home-banner { min-height: 30vh; }
-  .banner-content h1 { font-size: 2.2rem; }
-  .banner-content p { font-size: 1.2rem; }
-  section.welcome h1 { font-size: 2rem; }
-  section.welcome p { font-size: 1.1rem; }
-  .featured-item img { height: 140px; }
-  .about-flex { flex-direction: column; }
-  .about-header h2 { font-size: 1.8rem; }
-}
-
-@media (max-width: 480px) {
-  .home-banner { min-height: 35vh; }
-  .banner-content h1 { font-size: 1.8rem; }
-  .banner-content p { font-size: 1rem; }
-  .banner-cta { padding: 10px 20px; font-size: 1rem; }
-  section.welcome h1 { font-size: 1.7rem; }
-  section.welcome p { font-size: 1rem; }
-  .featured-item img { height: 180px; }
-  .about-header h2 { font-size: 1.6rem; }
-}
-.modal {
-  display: block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.6);
-  z-index: 9999;
-}
-
-.modal-content {
-  background: #fff;
-  padding: 20px;
-  margin: 10% auto;
-  width: 350px;
-  border-radius: 10px;
-  text-align: center;
-}
-
-.modal-content input {
-  width: 100%;
-  margin: 8px 0;
-  padding: 8px;
+@media(max-width:768px) {
+  .welcome-sec h1 { font-size:1.7rem; }
+  .about-inner { flex-direction:column; }
+  .feat-card img { height:170px; }
 }
 </style>
 
-<div class="home-banner" role="region" aria-label="Homepage Banner">
-  <img src="{% static 'images/banner1.png' %}" alt="Hospital equipment rental banner" class="banner-img" loading="lazy" />
+<!-- HERO -->
+<div class="hero">
+  <img src="{% static 'images/banner1.png' %}" alt="Hospital equipment rental banner" loading="lazy">
+  <div class="hero-overlay"></div>
 </div>
 
-<section class="welcome" role="region" aria-label="Welcome message">
-  <h1>Welcome to Kutch Yuvak Sangh</h1>
-  <p>We provide quality hospital equipment on rent</p>
-</section>
-
-<section class="featured-section" role="region" aria-label="Featured rental items">
-  <h2>Featured Items</h2>
-  <div class="featured-grid">
-    <a href="{% url 'items' %}" class="featured-item" tabindex="0" role="article" aria-label="Air Bed rental for ₹5 per day">
-      <img src="{% static 'images/airBed.png' %}" alt="Air Bed" loading="lazy" />
-      <h3>Air Bed</h3>
-      <p>₹5/day</p>
+<!-- WELCOME -->
+<section class="welcome-sec">
+  <h1>Welcome to <span>Kutch Yuvak Sangh</span></h1>
+  <p>We provide quality hospital equipment on rent — serving families across Bhayandar with care and affordability.</p>
+  <div class="welcome-cta">
+    <a href="{% url 'items' %}" class="btn-primary-red"><i class="fas fa-th-large"></i> Browse Items</a>
+    <a href="{% url 'services' %}" style="display:inline-flex;align-items:center;gap:8px;padding:11px 24px;border:2px solid var(--primary);color:var(--primary);border-radius:999px;font-weight:700;font-size:0.9rem;text-decoration:none;transition:all 0.22s;">
+      <i class="fas fa-concierge-bell"></i> Our Services
     </a>
-    <a href="{% url 'items' %}" class="featured-item" tabindex="0" role="article" aria-label="Hospital Bed rental for ₹350 per day">
-      <img src="{% static 'images/Hospital_Bed.png' %}" alt="Hospital Bed" loading="lazy" />
-      <h3>Hospital Bed</h3>
-      <p>₹15/day</p>
-    </a>
-    <a href="{% url 'items' %}" class="featured-item" tabindex="0" role="article" aria-label="IV Stand rental for ₹2 per day">
-      <img src="{% static 'images/IVStand.png' %}" alt="IV Stand" loading="lazy" />
-      <h3>IV Stand</h3>
-      <p>₹2/day</p>
-    </a>
-    <a href="{% url 'items' %}" class="featured-item" tabindex="0" role="article" aria-label="Nebulizer rental for ₹5 per day">
-      <img src="{% static 'images/Nebulizer1.png' %}" alt="Nebulizer" loading="lazy" />
-      <h3>Nebulizer</h3>
-      <p>₹5/day</p>
-    </a>
-  </div>
-
-  <div style="text-align: center;">
-    <a href="{% url 'items' %}" class="view-more-btn" aria-label="View more rental items">View More</a>
   </div>
 </section>
 
-<section class="about-container" aria-labelledby="about-title" role="region">
-  <header class="about-header">
-    <h2 id="about-title">About KYS (Bhayander) - Kutch Yuvak Sangh</h2>
-    <p>Together we empower, transform, and build a better future for everyone.</p>
-  </header>
-  
-  <div class="about-flex">
-    <div class="about-content">
-      <p>
-        <span class="highlight">KYS (Bhayander)</span>, a subset of <strong>Kutch Yuvak Sangh</strong>, is an NGO dedicated to empowering communities, transforming lives, and aiming for a better future for everyone.
-        Through its many humanitarian activities, the organization has made significant contributions to the social, educational, and cultural sectors of mankind.
-      </p>
-      <p>
-        We believe in <strong>inclusion and unity</strong>: anyone can join us regardless of caste, gender, or religion. We welcome volunteers from all backgrounds, without bias or discrimination on gender, age, caste, or religion.
-      </p>
-      <p>
-        Our volunteers work with full dedication and selflessness, driven by their responsibility towards society and national welfare.
-        Such commitment places the <span class="highlight">Kutch Yuvak Sangh</span> among the most respected and elite community organizations.
-      </p>
+<!-- FEATURED ITEMS -->
+<section class="featured-sec">
+  <div class="section-head">
+    <h2>Featured <span>Items</span></h2>
+    <p>Most popular rental equipment available right now</p>
+  </div>
+  <div class="feat-grid">
+    <a href="{% url 'items' %}" class="feat-card">
+      <img src="{% static 'images/airBed.png' %}" alt="Air Bed" loading="lazy">
+      <div class="feat-card-body"><h3>Air Bed</h3><p>₹5 / day</p></div>
+    </a>
+    <a href="{% url 'items' %}" class="feat-card">
+      <img src="{% static 'images/Hospital_Bed.png' %}" alt="Hospital Bed" loading="lazy">
+      <div class="feat-card-body"><h3>Hospital Bed</h3><p>₹15 / day</p></div>
+    </a>
+    <a href="{% url 'items' %}" class="feat-card">
+      <img src="{% static 'images/IVStand.png' %}" alt="IV Stand" loading="lazy">
+      <div class="feat-card-body"><h3>IV Stand</h3><p>₹2 / day</p></div>
+    </a>
+    <a href="{% url 'items' %}" class="feat-card">
+      <img src="{% static 'images/Nebulizer1.png' %}" alt="Nebulizer" loading="lazy">
+      <div class="feat-card-body"><h3>Nebulizer</h3><p>₹5 / day</p></div>
+    </a>
+  </div>
+  <div class="view-more-wrap">
+    <a href="{% url 'items' %}" class="btn-primary-red">View All Items <i class="fas fa-arrow-right"></i></a>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="about-sec">
+  <div class="about-inner">
+    <div class="about-text">
+      <h2>About <span>KYS Bhayandar</span></h2>
+      <p><strong>KYS (Bhayandar)</strong>, a unit of Kutch Yuvak Sangh, is an NGO dedicated to empowering communities and transforming lives through its many humanitarian activities across social, educational, and cultural sectors.</p>
+      <p>We believe in <strong>inclusion and unity</strong> — anyone can join us regardless of caste, gender, or religion. Our volunteers work with full dedication, driven by responsibility towards society and national welfare.</p>
     </div>
-    
-    <div class="rental-img">
-      <img src="{% static 'images/sickbed.jpg' %}" alt="Hospital equipment rental" loading="lazy" />
+    <div class="about-img">
+      <img src="{% static 'images/sickbed.jpg' %}" alt="Hospital equipment rental" loading="lazy">
     </div>
   </div>
 </section>
+
+{% if not user.is_authenticated %}
+<div class="login-reminder">
+  <i class="fas fa-info-circle"></i>
+  <p><a href="{% url 'signin' %}">Sign in</a> or <a href="{% url 'signup' %}">create an account</a> to rent items and manage your bookings.</p>
+</div>
+{% endif %}
+
+<!-- Auth-gate modal for featured items (non-logged-in) -->
+<div class="modal-overlay" id="signupModal" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <button class="modal-close" id="closeModal" aria-label="Close">&times;</button>
+    <div class="modal-icon"><i class="fas fa-lock"></i></div>
+    <h2>Sign In Required</h2>
+    <p>Please sign in or create a free account to browse and rent items.</p>
+    <div class="modal-card-btns">
+      <a href="{% url 'signin' %}" class="btn-primary-red">Sign In</a>
+      <a href="{% url 'signup' %}" style="display:inline-flex;align-items:center;padding:11px 22px;border:2px solid var(--primary);color:var(--primary);border-radius:999px;font-weight:700;font-size:0.88rem;text-decoration:none;">Register</a>
+    </div>
+  </div>
+</div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('signupModal');
-    const closeBtn = document.getElementById('closeModal');
-    
-    {% if not user.is_authenticated %}
-      document.querySelectorAll('.featured-item').forEach(function(item) {
-        item.addEventListener('click', function(e) {
-          e.preventDefault();
-          modal.classList.add('show');
-          modal.setAttribute('aria-hidden', 'false');
-          modal.querySelector('.modal-content').focus();
-        });
-      });
-    {% endif %}
-    
-    closeBtn.addEventListener('click', function() {
-      modal.classList.remove('show');
-      modal.setAttribute('aria-hidden', 'true');
-    });
-    
-    modal.addEventListener('click', function(e){
-      if(e.target === modal) {
-        modal.classList.remove('show');
-        modal.setAttribute('aria-hidden', 'true');
-      }
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('signupModal');
+  const closeBtn = document.getElementById('closeModal');
+  {% if not user.is_authenticated %}
+  document.querySelectorAll('.feat-card').forEach(card => {
+    card.addEventListener('click', function(e) {
+      e.preventDefault();
+      modal.classList.add('open');
     });
   });
+  {% endif %}
+  if (closeBtn) closeBtn.addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+});
 </script>
 {% endblock %}

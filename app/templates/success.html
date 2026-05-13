@@ -1,386 +1,162 @@
 {% extends "base.html" %}
-{% block title %}Booking Successful{% endblock %}
+{% block title %}Booking Receipt — Sick Bed Services{% endblock %}
 {% block content %}
 <style>
+/* ── SCREEN-ONLY ACTION AREA ── */
+.receipt-screen-wrap { max-width:820px; margin:32px auto; padding:0 20px; }
+.receipt-action-bar { background:#fff; border-radius:16px; box-shadow:var(--shadow); padding:20px 28px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; }
+.receipt-action-bar .ra-left h2 { font-size:1.1rem; font-weight:800; color:var(--text); margin-bottom:2px; }
+.receipt-action-bar .ra-left p { font-size:0.82rem; color:var(--muted); margin:0; }
+.ra-btns { display:flex; gap:10px; flex-wrap:wrap; }
+.ra-btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:999px; font-size:0.85rem; font-weight:700; font-family:var(--font); cursor:pointer; border:none; text-decoration:none; transition:all 0.2s; }
+.ra-btn-red   { background:var(--primary); color:#fff; box-shadow:0 3px 10px rgba(236,36,39,0.24); }
+.ra-btn-red:hover { background:var(--primary-dark); transform:translateY(-1px); color:#fff; }
+.ra-btn-dark  { background:#1a1a1a; color:#fff; }
+.ra-btn-dark:hover { background:#333; transform:translateY(-1px); color:#fff; }
+.ra-btn-grey  { background:#f3f4f6; color:var(--text); }
+.ra-btn-grey:hover { background:#e5e7eb; }
+.ra-btn-blue  { background:#3b82f6; color:#fff; }
+.ra-btn-blue:hover { background:#2563eb; transform:translateY(-1px); color:#fff; }
 
+/* ── PRINTABLE RECEIPT ── */
 .receipt-container {
-    max-width: 100%;
-    margin: 0 auto;
-    padding: 10px;
-    background: #f9f9f9;
-    font-family: 'Segoe UI', Tahoma, sans-serif;
-    font-size: 12px;
-    line-height: 1.2;
-    border: 1px solid #c5d5c5;
+  max-width:100%; margin:0 auto; padding:10px; background:#f9f9f9;
+  font-family:'Segoe UI',Tahoma,sans-serif; font-size:12px; line-height:1.2;
+  border:1px solid #c5d5c5;
 }
-
-/* HEADER */
-.receipt-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 6px;
-}
-.logo-container { width: 60px; }
-.logo-container img { width: 100%; }
-.receipt-title { flex: 1; text-align: center; }
-.receipt-title h2 { font-size: 15px; margin: 0; color: #1b8a4b; }
-.receipt-title p { font-size: 9px; margin: 1px 0; }
-.receipt-title h3 { font-size: 16px; margin: 2px 0; color: #1b8a4b; }
-
-/* ORDER ID */
-.order-id {
-    text-align: center;
-    font-size: 12px;
-    padding: 4px;
-    margin: 4px 0;
-    background: #eef7f2;
-}
-
-/* SECTION */
-.section-title {
-    font-size: 15px;
-    color: #1b8a4b;
-    border-bottom: 1px solid #1b8a4b;
-    margin: 5px 0 3px;
-}
-
-/* INFO */
-.info-grid { display: flex; justify-content: space-between; }
-.info-column { width: 48%; }
-.info-item p { font-size: 11px; margin: 1px 0; }
-
-/* TABLE */
-.items-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 4px 0;
-}
-.items-table th,
-.items-table td {
-    font-size: 10px;
-    padding: 2px;
-    border: 1px solid #ccc;
-    text-align: center;
-}
-.items-table th {
-    background: #1b8a4b;
-    color: white;
-}
-
-/* DELIVERY + TOTAL */
-.delivery-summary {
-    display: flex;
-    justify-content: space-between;
-    margin: 4px 0;
-}
-.delivery-info p { font-size: 11px; }
-.total-info { text-align: right; }
-.total-amount { font-size: 13px; font-weight: bold; color: #1b8a4b; }
-
-/* THANK YOU */
-.thank-you {
-    text-align: center;
-    font-size: 11px;
-    padding: 4px;
-    background: #e4f2e9;
-    margin-top: 4px;
-}
-
-/* BUTTONS (SCREEN ONLY) */
-.receipt-actions {
-    margin: 15px 0;
-    text-align: center;
-}
-.download-btn {
-    padding: 6px 12px;
-    background: #1b8a4b;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
-
+.receipt-header { display:flex; align-items:center; margin-bottom:6px; }
+.logo-container { width:60px; }
+.logo-container img { width:100%; }
+.receipt-title { flex:1; text-align:center; }
+.receipt-title h2 { font-size:15px; margin:0; color:#1b8a4b; }
+.receipt-title p { font-size:9px; margin:1px 0; }
+.receipt-title h3 { font-size:16px; margin:2px 0; color:#1b8a4b; }
+.order-id { text-align:center; font-size:12px; padding:4px; margin:4px 0; background:#eef7f2; }
+.section-title { font-size:15px; color:#1b8a4b; border-bottom:1px solid #1b8a4b; margin:5px 0 3px; }
+.info-grid { display:flex; justify-content:space-between; }
+.info-column { width:48%; }
+.info-item p { font-size:11px; margin:1px 0; }
+.items-table { width:100%; border-collapse:collapse; margin:4px 0; }
+.items-table th,.items-table td { font-size:10px; padding:2px; border:1px solid #ccc; text-align:center; }
+.items-table th { background:#1b8a4b; color:white; }
+.delivery-summary { display:flex; justify-content:space-between; margin:4px 0; }
+.delivery-info p { font-size:11px; }
+.total-info { text-align:right; }
+.total-amount { font-size:13px; font-weight:bold; color:#1b8a4b; }
+.thank-you { text-align:center; font-size:11px; padding:4px; background:#e4f2e9; margin-top:4px; }
 
 @media print {
-
-    @page {
-        size: A5 landscape;
-        margin: 4mm;
-    }
-
-    html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: white !important;
-    }
-
-    /* Hide buttons & site UI */
-    .receipt-actions,
-    nav, header, footer {
-        display: none !important;
-    }
-
-    /* Layout (do NOT force height) */
-    #pdf-content,
-    .receipt-container {
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 4px !important;
-        box-shadow: none !important;
-        background: white !important;
-    }
-
-    /* 🔥 FORCE PURE BLACK TEXT EVERYWHERE */
-    #pdf-content,
-    #pdf-content * {
-        opacity: 1 !important;
-        text-shadow: none !important;
-    }
-
-    /* Headings bold black */
-    .receipt-title h2,
-    .receipt-title h3,
-    .section-title,
-    .total-amount {
-        color: #000 !important;
-        font-weight: 700 !important;
-    }
-
-    /* Table fixes */
-    .items-table th {
-        color: #fff !important;
-        border-color: #000 !important;
-    }
-
-  
-
-    /* Prevent browser from fading colors */
-    * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-
-        /* prevent accidental page breaks */
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-    }
+  @page { size:A5 landscape; margin:4mm; }
+  html,body { margin:0!important; padding:0!important; background:white!important; }
+  .receipt-screen-wrap,.receipt-action-bar,.footer-section,nav { display:none!important; }
+  #pdf-content,.receipt-container { width:100%!important; margin:0!important; padding:4px!important; box-shadow:none!important; background:white!important; }
+  #pdf-content,#pdf-content * { opacity:1!important; text-shadow:none!important; }
+  .receipt-title h2,.receipt-title h3,.section-title,.total-amount { color:#000!important; font-weight:700!important; }
+  .items-table th { color:#fff!important; border-color:#000!important; }
+  * { -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; page-break-inside:avoid!important; break-inside:avoid!important; }
 }
-
-
-
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
-<div id="pdf-content">
-    <div class="receipt-container">
-
-        <div class="receipt-header">
-            <div class="logo-container">
-                <img src="/static/images/logo2.png" alt="Logo">
-            </div>
-
-            <div class="receipt-title">
-                <h2>Kutch Yuvak Sangh, Bhayandar</h2>
-                <h3>RECEIPT</h3>
-            </div>
-        </div>
-
-        <div class="order-id">
-            <strong>Order ID:</strong> {{ rental.order_id }}
-        </div>
-
-        <!-- 🔥 FIXED SECTION -->
-        <h3 class="section-title">Patient & Booking Details</h3>
-
-        <div class="info-grid">
-
-            <!-- LEFT -->
-            <div class="info-column">
-
-                <div class="info-item">
-                    <p><strong>Renter Name :</strong> {{ rental.renter_name|default:"N/A" }}</p>
-                </div>
-
-                <div class="info-item">
-                    <p><strong>Address:</strong> {{ rental.address|default:"N/A" }}</p>
-                </div>
-
-                <div class="info-item">
-                    <p><strong>ID Proof:</strong> N/A</p>
-                </div>
-
-                <div class="info-item">
-                    <p><strong>Contact No:</strong> {{ rental.phone|default:"N/A" }}</p>
-                </div>
-
-            </div>
-
-            <!-- RIGHT -->
-            <div class="info-column">
-
-                <div class="info-item">
-                    <strong>Date:</strong> {{ rental.start_date|date:"d M Y" }}
-                </div>
-
-                <div class="info-item">
-                    <p><strong>Rent Period:</strong>
-                        {{ rental.start_date|date:"d M Y" }} to
-                        {{ rental.billing_end_date|date:"d M Y" }}
-                        ({{ rental.rental_days }} Days)
-                    </p>
-                </div>
-
-                <div class="info-item">
-                    <p><strong>Return Date:</strong> {{ rental.billing_end_date|date:"d M Y" }}</p>
-                </div>
-
-                <div class="info-item">
-                    <p><strong>Total Deposit:</strong> ₹{{ total_deposit }}
-                        {% if rental.deposit_donated %}
-                            <span style="color: green; font-weight: bold;">(Donated)</span>
-                        {% endif %}
-                    </p>
-                </div>
-
-                <div class="info-item">
-                    <p><strong>Total Rent Amount:</strong> ₹{{ total_rent }}</p>
-                </div>
-
-            </div>
-
-        </div>
-
-        <!-- 🔥 FIXED -->
-        <div class="info-item">
-            <p><strong>Patient Name:</strong> {{ rental.patient_name|default:"N/A" }}</p>
-        </div>
-
-        <!-- ITEMS -->
-        <h3 class="section-title">Item Details</h3>
-
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th>Sr. No</th>
-                    <th>Item</th>
-                    <th>Qty</th>
-                    <th>Deposit</th>
-                    <th>Rent / Day</th>
-                    <th>Days</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                {% for it in item_totals %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ it.title }}</td>
-                    <td>{{ it.quantity }}</td>
-                    <td>₹{{ it.deposit }}</td>
-                    <td>₹{{ it.price_per_day }}</td>
-                    <td>{{ rental.rental_days }}</td>
-                    <td>₹{{ it.total }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-
-            <tfoot>
-                <tr>
-                    <th colspan="2" style="text-align:right;">Total Quantity</th>
-                    <th>{{ total_quantity }}</th>
-                    <th colspan="4"></th>
-                </tr>
-            </tfoot>
-        </table>
-
-        <!-- DELIVERY -->
-        <div class="delivery-summary">
-
-            <div class="delivery-info">
-                <h3 class="section-title">Delivery Address</h3>
-                <p>
-                    {{ rental.address|default:"Take Away – Nearest Hub" }}
-                </p>
-            </div>
-
-            <div class="total-info">
-
-                <p><strong>Delivery Option:</strong> {{ rental.delivery_option|title }}</p>
-
-                {% if rental.delivery_option|lower == "delivery" %}
-                    <strong>Delivery Charge:</strong> ₹500
-                {% else %}
-                    <strong>Delivery Charge:</strong> ₹0
-                {% endif %}
-
-                <div class="info-item">
-                    <p><strong>Payment Mode:</strong>
-                        {% if rental.payment_method == "online" %}
-                            Online Payment
-                        {% else %}
-                            Cash
-                        {% endif %}
-                    </p>
-                </div>
-
-                <p class="total-amount"><strong>Total Amount:</strong> ₹{{ total_amount }}
-                    {% if rental.deposit_donated %}
-                        <br><small style="color: green; font-weight: bold;">(Deposit Donated - Thank you for your generosity!)</small>
-                    {% endif %}
-                </p>
-
-            </div>
-
-        </div>
-
-        <div class="terms-conditions">
-            You hereby agree to all terms & conditions mentioned on our booking portal
-        </div>
-
-        <div class="thank-you">
-            Thank you for booking with us.
-        </div>
-
+<!-- Screen action bar -->
+<div class="receipt-screen-wrap">
+  <div class="receipt-action-bar">
+    <div class="ra-left">
+      <h2><i class="fas fa-receipt" style="color:var(--primary);margin-right:8px;"></i>Booking Receipt</h2>
+      <p>Order #{{ rental.order_id }}</p>
     </div>
+    <div class="ra-btns">
+      <button class="ra-btn ra-btn-red" onclick="downloadPDF()"><i class="fas fa-download"></i> Download PDF</button>
+      <button class="ra-btn ra-btn-dark" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+      {% if not rental.is_returned %}
+        <button class="ra-btn ra-btn-blue" onclick="window.location.href='{% url 'extend_return_date' rental.order_id %}'"><i class="fas fa-calendar-plus"></i> Extend</button>
+      {% endif %}
+      <button class="ra-btn ra-btn-grey" onclick="window.location.href='{% url 'bookingsammry' %}'"><i class="fas fa-arrow-left"></i> Back</button>
+    </div>
+  </div>
 </div>
-<div class="receipt-actions">
-    <button class="download-btn" onclick="downloadPDF()">Download Receipt</button>
-    <button class="download-btn" onclick="window.print()">Print</button>
-    {% if not rental.is_returned %}
-    <button class="download-btn" onclick="window.location.href='{% url 'extend_return_date' rental.order_id %}'">
-        Extend Return Date
-    </button>
-    {% endif %}
-    <button class="download-btn"
-        onclick="window.location.href='{% url 'bookingsammry' %}'">
-    Back
-</button>
 
+<!-- Printable receipt (unchanged layout) -->
+<div id="pdf-content" style="max-width:820px; margin:0 auto; padding:0 20px 40px;">
+  <div class="receipt-container">
+    <div class="receipt-header">
+      <div class="logo-container">
+        <img src="/static/images/logo2.png" alt="Logo">
+      </div>
+      <div class="receipt-title">
+        <h2>Kutch Yuvak Sangh, Bhayandar</h2>
+        <h3>RECEIPT</h3>
+      </div>
+    </div>
+
+    <div class="order-id"><strong>Order ID:</strong> {{ rental.order_id }}</div>
+
+    <h3 class="section-title">Patient &amp; Booking Details</h3>
+    <div class="info-grid">
+      <div class="info-column">
+        <div class="info-item"><p><strong>Renter Name :</strong> {{ rental.renter_name|default:"N/A" }}</p></div>
+        <div class="info-item"><p><strong>Address:</strong> {{ rental.address|default:"N/A" }}</p></div>
+        <div class="info-item"><p><strong>ID Proof:</strong> N/A</p></div>
+        <div class="info-item"><p><strong>Contact No:</strong> {{ rental.phone|default:"N/A" }}</p></div>
+      </div>
+      <div class="info-column">
+        <div class="info-item"><strong>Date:</strong> {{ rental.start_date|date:"d M Y" }}</div>
+        <div class="info-item"><p><strong>Rent Period:</strong> {{ rental.start_date|date:"d M Y" }} to {{ rental.billing_end_date|date:"d M Y" }} ({{ rental.rental_days }} Days)</p></div>
+        <div class="info-item"><p><strong>Return Date:</strong> {{ rental.billing_end_date|date:"d M Y" }}</p></div>
+        <div class="info-item"><p><strong>Total Deposit:</strong> ₹{{ total_deposit }}{% if rental.deposit_donated %} <span style="color:green;font-weight:bold;">(Donated)</span>{% endif %}</p></div>
+        <div class="info-item"><p><strong>Total Rent Amount:</strong> ₹{{ total_rent }}</p></div>
+      </div>
+    </div>
+
+    <div class="info-item"><p><strong>Patient Name:</strong> {{ rental.patient_name|default:"N/A" }}</p></div>
+
+    <h3 class="section-title">Item Details</h3>
+    <table class="items-table">
+      <thead>
+        <tr><th>Sr. No</th><th>Item</th><th>Qty</th><th>Deposit</th><th>Rent / Day</th><th>Days</th><th>Total</th></tr>
+      </thead>
+      <tbody>
+        {% for it in item_totals %}
+        <tr>
+          <td>{{ forloop.counter }}</td><td>{{ it.title }}</td><td>{{ it.quantity }}</td>
+          <td>₹{{ it.deposit }}</td><td>₹{{ it.price_per_day }}</td>
+          <td>{{ rental.rental_days }}</td><td>₹{{ it.total }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><th colspan="2" style="text-align:right;">Total Quantity</th><th>{{ total_quantity }}</th><th colspan="4"></th></tr>
+      </tfoot>
+    </table>
+
+    <div class="delivery-summary">
+      <div class="delivery-info">
+        <h3 class="section-title">Delivery Address</h3>
+        <p>{{ rental.address|default:"Take Away – Nearest Hub" }}</p>
+      </div>
+      <div class="total-info">
+        <p><strong>Delivery Option:</strong> {{ rental.delivery_option|title }}</p>
+        {% if rental.delivery_option|lower == "delivery" %}<strong>Delivery Charge:</strong> ₹500{% else %}<strong>Delivery Charge:</strong> ₹0{% endif %}
+        <div class="info-item"><p><strong>Payment Mode:</strong> {% if rental.payment_method == "online" %}Online Payment{% else %}Cash{% endif %}</p></div>
+        <p class="total-amount"><strong>Total Amount:</strong> ₹{{ total_amount }}{% if rental.deposit_donated %}<br><small style="color:green;font-weight:bold;">(Deposit Donated - Thank you!)</small>{% endif %}</p>
+      </div>
+    </div>
+    <div style="font-size:11px;text-align:center;margin-top:4px;color:#555;">You hereby agree to all terms &amp; conditions mentioned on our booking portal</div>
+    <div class="thank-you">Thank you for booking with us.</div>
+  </div>
 </div>
 
 <script>
 function downloadPDF() {
-    const element = document.getElementById("pdf-content");
-
-    const opt = {
-        margin: 3,
-        filename: "Receipt.pdf",
-        image: { type: "jpeg", quality: 1 },
-        html2canvas: {
-            scale: 2,
-            useCORS: true,
-            scrollY: 0,
-            windowWidth: element.scrollWidth
-        },
-        jsPDF: {
-            unit: "mm",
-            format: "a5",
-            orientation: "landscape"
-        }
-    };
-
-    html2pdf().set(opt).from(element).save();
+  const element = document.getElementById("pdf-content");
+  const opt = {
+    margin:3, filename:"Receipt.pdf",
+    image:{type:"jpeg",quality:1},
+    html2canvas:{scale:2,useCORS:true,scrollY:0,windowWidth:element.scrollWidth},
+    jsPDF:{unit:"mm",format:"a5",orientation:"landscape"}
+  };
+  html2pdf().set(opt).from(element).save();
 }
 </script>
-
 {% endblock %}

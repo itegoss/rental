@@ -1,13 +1,69 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
-from .models import History, Inventory, NotifyRequest
+from .models import History, Inventory, Item, NotifyRequest
 from django.core.mail import send_mail
 from django.conf import settings
 
 _previous_quantities = {}
+_previous_item_values = {}
+
+@receiver(pre_save, sender=Item)
+def cache_item_previous_values(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old_item = Item.objects.get(pk=instance.pk)
+            _previous_item_values[instance.pk] = {
+                'item_name': old_item.item_name,
+                'item_qty': old_item.item_qty,
+            }
+        except Item.DoesNotExist:
+            _previous_item_values.pop(instance.pk, None)
+
+@receiver(post_save, sender=Item)
+def sync_item_to_inventory(sender, instance, created, **kwargs):
+    previous = _previous_item_values.pop(instance.pk, None)
+    old_name = previous['item_name'] if previous else None
+    old_qty = previous['item_qty'] if previous else None
+
+    # If the item name changed, decrement the old inventory entry.
+    if old_name and old_name != instance.item_name:
+        try:
+            old_inventory = Inventory.objects.get(title=old_name)
+            old_inventory.total_quantity = max(old_inventory.total_quantity - (old_qty or 0), 0)
+            old_inventory.update_availability()
+        except Inventory.DoesNotExist:
+            pass
+
+    try:
+        inventory, inventory_created = Inventory.objects.get_or_create(
+            title=instance.item_name,
+            defaults={
+                'description': '',
+                'price_per_day': 0,  # Separate from Item.price (buying price)
+                'deposit': 0,
+                'total_quantity': instance.item_qty,
+                'available_quantity': instance.item_qty,
+                'booked_quantity': 0,
+                'available': instance.item_qty > 0,
+            },
+        )
+
+        if not inventory_created:
+            if created:
+                inventory.total_quantity = max(inventory.total_quantity + instance.item_qty, 0)
+            else:
+                if old_qty is not None:
+                    inventory.total_quantity = max(inventory.total_quantity + (instance.item_qty - old_qty), 0)
+                else:
+                    inventory.total_quantity = max(inventory.total_quantity + instance.item_qty, 0)
+            # Removed: inventory.price_per_day = instance.price  # Keep rental price separate
+            inventory.save(update_fields=['total_quantity'])
+            inventory.update_availability()
+    except Exception as e:
+        print(f"[signals] sync_item_to_inventory error: {e}")
 
 @receiver(post_save, sender=Inventory)
 def send_availability_notification(sender, instance, **kwargs):

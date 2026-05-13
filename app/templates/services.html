@@ -1,83 +1,63 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Our Services{% endblock %}
+{% block title %}Our Services — Sick Bed Services{% endblock %}
 {% block content %}
-
 <style>
-    .services-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        justify-content: center;
-        padding: 40px 20px;
-        background-color: #f9f9f9;
-    }
-
-    .service-card {
-        background-color: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        padding: 20px;
-        width: 250px;
-        text-align: center;
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .service-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-    }
-
-    .service-card img {
-        width: 100%;
-        height: 150px;
-        object-fit: cover;
-        border-radius: 8px;
-        margin-bottom: 15px;
-    }
-
-    .service-card h3 {
-        font-size: 1.2rem;
-        margin-bottom: 10px;
-        color: #333;
-    }
-
-    .service-card p {
-        font-size: 0.95rem;
-        color: #666;
-        margin-bottom: 15px;
-    }
-
-    .service-card button {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 8px;
-        background-color: #007bff;
-        color: #fff;
-        cursor: pointer;
-        font-weight: 500;
-        transition: background-color 0.2s;
-    }
-
-    .service-card button:hover {
-        background-color: #0056b3;
-    }
+.services-page { max-width:1200px; margin:0 auto; padding:48px 20px; }
+.services-head { text-align:center; margin-bottom:48px; }
+.services-head h1 { font-size:2.2rem; font-weight:800; color:var(--text); margin-bottom:8px; }
+.services-head h1 span { color:var(--primary); }
+.services-head p { color:var(--muted); font-size:0.97rem; }
+.underline-bar { width:64px; height:5px; background:linear-gradient(90deg,var(--primary),#ff6b6b); border-radius:4px; margin:12px auto 0; }
+.services-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:26px; }
+.service-card { background:#fff; border-radius:18px; box-shadow:0 6px 24px rgba(0,0,0,0.06); overflow:hidden; transition:transform 0.3s,box-shadow 0.3s; display:flex; flex-direction:column; }
+.service-card:hover { transform:translateY(-8px); box-shadow:0 20px 50px rgba(236,36,39,0.12); }
+.service-thumb { height:180px; overflow:hidden; }
+.service-thumb img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.5s; }
+.service-card:hover .service-thumb img { transform:scale(1.07); }
+.service-body { padding:20px; flex:1; display:flex; flex-direction:column; }
+.service-body h3 { font-size:1.1rem; font-weight:700; margin-bottom:8px; }
+.service-body p { font-size:0.88rem; color:var(--muted); line-height:1.6; flex:1; margin-bottom:18px; }
+.btn-contact { display:inline-flex; align-items:center; gap:6px; padding:9px 20px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; border:none; border-radius:999px; font-size:0.84rem; font-weight:700; font-family:var(--font); cursor:pointer; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 3px 10px rgba(236,36,39,0.22); }
+.btn-contact:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(236,36,39,0.3); }
+.btn-contact.revealed { background:#f3f4f6; color:var(--text); box-shadow:none; cursor:text; }
+.no-services { text-align:center; padding:60px 20px; color:var(--muted); }
 </style>
 
-<div class="services-container">
+<div class="services-page">
+  <div class="services-head">
+    <h1>Our <span>Services</span></h1>
+    <p>Quality care and support for your medical equipment needs</p>
+    <div class="underline-bar"></div>
+  </div>
+
+  <div class="services-grid">
     {% for service in services %}
     <div class="service-card">
-        <img src="{{ service.image.url }}" alt="{{ service.title }}">
+      <div class="service-thumb">
+        <img src="{{ service.image.url }}" alt="{{ service.title }}" loading="lazy">
+      </div>
+      <div class="service-body">
         <h3>{{ service.title }}</h3>
         <p>{{ service.description }}</p>
-        <button onclick="showNumber('{{ service.contact_number }}', this)">Show Contact</button>
+        <button class="btn-contact" onclick="showNumber('{{ service.contact_number }}', this)">
+          <i class="fas fa-phone-alt"></i> Show Contact
+        </button>
+      </div>
+    </div>
+    {% empty %}
+    <div class="no-services" style="grid-column:1/-1;">
+      <i class="fas fa-concierge-bell" style="font-size:2.5rem;margin-bottom:12px;display:block;"></i>
+      <p>No services available at the moment. Please check back later.</p>
     </div>
     {% endfor %}
+  </div>
 </div>
 
 <script>
 function showNumber(number, btn) {
-    btn.textContent = number;
+  btn.innerHTML = '<i class="fas fa-phone" style="color:var(--success);"></i> ' + number;
+  btn.classList.add('revealed');
 }
 </script>
 {% endblock %}

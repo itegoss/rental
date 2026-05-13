@@ -77,6 +77,25 @@ class ReceiptAdmin(admin.ModelAdmin):
     download_receipt.short_description = "Receipt"
 
 
+@admin.register(Inventory)
+class InventoryAdmin(admin.ModelAdmin):
+    list_display = (
+        'title',
+        'get_total_quantity',
+        'price_per_day',
+        'available_quantity',
+        'booked_quantity',
+        'available',
+        'next_available_date',
+    )
+    search_fields = ('title',)
+    list_filter = ('available',)
+
+    def get_total_quantity(self, obj):
+        return (obj.booked_quantity or 0) + (obj.available_quantity or 0)
+    get_total_quantity.short_description = 'Total Quantity'
+
+
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
     list_display = (
@@ -126,7 +145,8 @@ class HistoryAdmin(admin.ModelAdmin):
         'user','rental_item','renter_name','start_date','end_date',
         'extended_end_date','actual_return_date','quantity','payment_method',
         'deposit','delivery_option','delivery_charge','status',
-        'is_return_requested','is_returned','order_id','patient_name',
+        'is_return_requested','is_returned','deposit_donated',
+        'donation_amount','donation_comment','order_id','patient_name',
     )
 
     readonly_fields = ('order_id','total_amount')
@@ -136,7 +156,6 @@ class HistoryAdmin(admin.ModelAdmin):
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         
-        # Handle report generation
         if request.method == 'POST' and 'generate_report' in request.POST:
             start_date = request.POST.get('start_date')
             end_date = request.POST.get('end_date')
@@ -146,13 +165,11 @@ class HistoryAdmin(admin.ModelAdmin):
                 start = datetime.strptime(start_date, '%Y-%m-%d').date()
                 end = datetime.strptime(end_date, '%Y-%m-%d').date()
                 
-                # Filter history records
                 queryset = self.get_queryset(request).filter(
                     start_date__gte=start,
                     start_date__lte=end
                 )
                 
-                # Generate PDF report
                 return self.generate_report_pdf(queryset, start, end)
         
         return super().changelist_view(request, extra_context)
@@ -171,13 +188,9 @@ class HistoryAdmin(admin.ModelAdmin):
         doc = SimpleDocTemplate(buffer, pagesize=A4)
         elements = []
         styles = getSampleStyleSheet()
-        
-        # Title
         title = Paragraph(f"Rental History Report ({start_date} to {end_date})", styles['Heading1'])
         elements.append(title)
         elements.append(Spacer(1, 12))
-        
-        # Summary
         total_orders = queryset.count()
         total_revenue = sum(q.total_amount or 0 for q in queryset)
         total_deposit = sum(q.deposit * q.quantity for q in queryset)
@@ -201,8 +214,6 @@ class HistoryAdmin(admin.ModelAdmin):
         ]))
         elements.append(summary_table)
         elements.append(Spacer(1, 24))
-        
-        # Table data
         data = [['Order ID', 'User', 'Item', 'Start Date', 'End Date', 'Status', 'Total Amount']]
         
         for history in queryset:
@@ -346,7 +357,7 @@ class PaymentAdmin(admin.ModelAdmin):
 
 @admin.register(UserDetail)
 class UserDetailAdmin(admin.ModelAdmin):
-    list_display = ('user', 'phone', 'id_proof_type', 'id_proof_number', 'city', 'state', 'pincode')
+    list_display = ('user', 'phone', 'id_proof_type', 'id_proof_number', 'city', 'state', 'pincode', 'view_id_proof')
     search_fields = ('user__username', 'phone', 'id_proof_type', 'city', 'state')
     list_filter = ('state',)
     fields = (
@@ -358,9 +369,17 @@ class UserDetailAdmin(admin.ModelAdmin):
         'pincode',
         'id_proof_type',
         'id_proof_number',
+        'id_proof_file',
         'email',
         'patient_name',
     )
+
+    def view_id_proof(self, obj):
+        if obj.id_proof_file:
+            return format_html('<a href="{}" target="_blank">View</a>', obj.id_proof_file.url)
+        return "â€”"
+
+    view_id_proof.short_description = "ID Proof File"
 
 
 @admin.register(Services)

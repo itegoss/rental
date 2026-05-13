@@ -1,112 +1,58 @@
 {% extends 'base.html' %}
-{% block title %} Sick Bed Services  | Secure Payment{% endblock %}
+{% block title %}Secure Payment — Sick Bed Services{% endblock %}
 {% block content %}
-
 <style>
-  body {
-    background: linear-gradient(135deg, #e8f0ff, #fff4e6);
-    font-family: 'Poppins', sans-serif;
-  }
-
-  .payment-container {
-    max-width: 480px;
-    margin: 60px auto;
-    padding: 30px;
-    background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
-    animation: slideFade 0.8s ease-out forwards;
-    transform: translateY(30px);
-    opacity: 0;
-  }
-
-  @keyframes slideFade {
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  .payment-container h3 {
-    text-align: center;
-    font-size: 24px;
-    color: #222;
-    margin-bottom: 20px;
-  }
-
-  .info-box {
-    background: #f8f8f8;
-    padding: 10px 15px;
-    border-left: 4px solid #3399cc;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    font-size: 14px;
-    color: #333;
-  }
-
-  #rzp-button1 {
-    width: 100%;
-    padding: 14px;
-    background: #000;
-    color: #ffea00;
-    font-weight: 600;
-    font-size: 17px;
-    border: none;
-    border-radius: 30px;
-    margin-top: 28px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  }
-
-  #rzp-button1:hover {
-    background: #222;
-    color: #fff;
-  }
-
-  .icon {
-    margin-right: 8px;
-    color: #3399cc;
-  }
-
-  @media (max-width: 600px) {
-    .payment-container {
-      margin: 30px 15px;
-      padding: 25px 20px;
-    }
-
-    .payment-container h3 {
-      font-size: 20px;
-    }
-
-    #rzp-button1 {
-      font-size: 16px;
-    }
-  }
+.pay-page { min-height:calc(100vh - 200px); display:flex; align-items:center; justify-content:center; padding:40px 20px; }
+.pay-card { background:#fff; border-radius:20px; box-shadow:var(--shadow-lg); width:100%; max-width:480px; overflow:hidden; }
+.pay-header { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); padding:28px 32px; color:#fff; text-align:center; }
+.pay-header .amount-display { font-size:2.4rem; font-weight:800; margin-bottom:4px; }
+.pay-header p { font-size:0.88rem; opacity:0.82; }
+.pay-body { padding:28px 32px; }
+.info-row { display:flex; align-items:center; gap:12px; padding:13px 16px; background:#f8fafc; border-radius:10px; margin-bottom:10px; border:1px solid var(--border); }
+.info-row i { color:var(--primary); width:18px; flex-shrink:0; }
+.info-row span { font-size:0.9rem; font-weight:500; color:var(--text); }
+.donate-toggle { display:flex; align-items:center; gap:12px; padding:14px 16px; background:#fff8f8; border-radius:10px; border:1.5px solid #fca5a5; margin-bottom:18px; cursor:pointer; }
+.donate-toggle input[type="checkbox"] { width:18px; height:18px; accent-color:var(--primary); cursor:pointer; flex-shrink:0; }
+.donate-toggle label { font-size:0.88rem; font-weight:500; color:var(--text); cursor:pointer; line-height:1.4; }
+.donate-toggle label strong { color:var(--primary); }
+.btn-pay-now { display:block; width:100%; padding:15px; background:#1a1a1a; color:#ffea00; border:none; border-radius:12px; font-size:1rem; font-weight:800; font-family:var(--font); cursor:pointer; letter-spacing:0.5px; transition:all 0.2s; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
+.btn-pay-now:hover { background:#111; color:#fff; transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.28); }
+.secure-note { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:14px; font-size:0.78rem; color:var(--muted); }
+.secure-note i { color:#16a34a; }
 </style>
 
-<div class="payment-container">
-  <h3>
-    <i class="fas fa-wallet icon"></i> Amount: ₹{{ total_amount }}
-  </h3>
+<div class="pay-page">
+  <div class="pay-card">
+    <div class="pay-header">
+      <div class="amount-display" id="amountDisplay">₹{{ total_amount }}</div>
+      <p>Total payable for Order #{{ payment.order_id }}</p>
+    </div>
+    <div class="pay-body">
+      <div class="info-row">
+        <i class="fas fa-user"></i>
+        <span>{{ user.username }} &nbsp;|&nbsp; {{ user.email }}</span>
+      </div>
+      <div class="info-row">
+        <i class="fas fa-receipt"></i>
+        <span>Order ID: <strong>{{ payment.order_id }}</strong></span>
+      </div>
 
-  <div class="info-box">
-    <i class="fas fa-user icon"></i>
-    {{ user.username }} | {{ user.email }}
+      <div class="donate-toggle" style="margin-top:18px;">
+        <input type="checkbox" id="donate-deposit">
+        <label for="donate-deposit">
+          Donate my deposit <strong>₹{{ total_deposit }}</strong> — remove it from total amount
+        </label>
+      </div>
+
+      <button class="btn-pay-now" id="rzp-button1">
+        <i class="fas fa-lock" style="margin-right:8px;"></i> Pay Now with Razorpay
+      </button>
+      <div class="secure-note"><i class="fas fa-shield-alt"></i> 100% Secure &amp; Encrypted</div>
+    </div>
   </div>
-
- <div class="info-box">
-  <i class="fas fa-receipt icon"></i>
-  Order ID: {{ payment.order_id }}
 </div>
 
-  <div class="info-box">
-    <label style="display: flex; align-items: center; cursor: pointer;">
-      <input type="checkbox" id="donate-deposit" style="margin-right: 10px;">
-      <span>I want to donate my deposit amount (₹{{ total_deposit }})</span>
-    </label>
-  </div>
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
   const options = {
@@ -117,7 +63,6 @@
     description: "Rental Payment for Order {{ payment.order_id }}",
     image: "https://example.com/logo.png",
     order_id: "{{ razorpay_order_id }}",
-
     handler: function (response) {
       window.location.href = "{% url 'success' rental_id=rental_id %}" +
         "?razorpay_payment_id=" + response.razorpay_payment_id +
@@ -125,43 +70,24 @@
         "&razorpay_signature=" + response.razorpay_signature +
         "&donate_deposit=" + document.getElementById("donate-deposit").checked;
     },
-
-    prefill: {
-      name: "{{ user.get_full_name }}",
-      email: "{{ user.email }}",
-      contact: "9999999999"
-    },
-
-    notes: {
-      rental_id: "{{ rental_id }}",
-      internal_order_id: "{{ payment.id }}"
-    },
-    theme: { color: "#3399cc" }
+    prefill: { name: "{{ user.get_full_name }}", email: "{{ user.email }}", contact: "9999999999" },
+    notes: { rental_id: "{{ rental_id }}", internal_order_id: "{{ payment.id }}" },
+    theme: { color: "#ec2427" }
   };
-
   const rzp1 = new Razorpay(options);
-  rzp1.on("payment.failed", function (response) {
-    alert("Payment Failed: " + response.error.description);
-  });
-
-  document.getElementById("rzp-button1").onclick = function (e) {
-    rzp1.open();
-    e.preventDefault();
-  };
+  rzp1.on("payment.failed", function(response) { alert("Payment Failed: " + response.error.description); });
+  document.getElementById("rzp-button1").onclick = function(e) { rzp1.open(); e.preventDefault(); };
 
   document.getElementById("donate-deposit").addEventListener("change", function() {
     const isDonating = this.checked;
-    const amountDisplay = document.querySelector(".payment-container h3");
-
+    const deposit = parseFloat("{{ total_deposit }}");
+    const original = parseFloat("{{ total_amount }}");
+    const display = document.getElementById("amountDisplay");
     if (isDonating) {
-      const depositAmount = parseFloat("{{ total_deposit }}");
-      const originalAmount = parseFloat("{{ total_amount }}");
-      const newAmount = originalAmount - depositAmount;
-      amountDisplay.innerHTML = '<i class="fas fa-wallet icon"></i> Amount: ₹' + newAmount.toFixed(2) + ' <small style="color: green;">(Deposit Donated)</small>';
+      display.innerHTML = '₹' + (original - deposit).toFixed(2) + ' <small style="font-size:0.6em;opacity:0.8;">(Deposit Donated)</small>';
     } else {
-      amountDisplay.innerHTML = '<i class="fas fa-wallet icon"></i> Amount: ₹{{ total_amount }}';
+      display.innerHTML = '₹{{ total_amount }}';
     }
   });
 </script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 {% endblock %}

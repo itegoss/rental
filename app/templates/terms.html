@@ -1,161 +1,87 @@
 {% extends "base.html" %}
+{% block title %}Terms & Conditions — Sick Bed Services{% endblock %}
 {% block content %}
-<div class="container mt-4 fade-in">
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <center><h3 class="text-center mb-4">Terms and Conditions</h3></center>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-8 offset-md-2">
-                    <div class="document-details">
-
-                        <ul class="list-group mb-4">
-                            <li class="list-group-item">
-                                The period for use of equipment is 30 days only. Please return it on expiry of 30 days.
-                            </li><br>
-
-                            <li class="list-group-item">
-                                The equipment shall at all times remain the property of Trust “Shree Matunga Gujarati Seva Sangh”.
-                            </li><br>
-
-                            <li class="list-group-item">
-                                The equipment shall remain at the sole risk of user family, and any loss or damage shall be borne by them.
-                            </li><br>
-
-                            <li class="list-group-item">
-                                Equipment are only for the use of patients only.
-                            </li><br>
-
-                            <li class="list-group-item">
-                                Ensure that no unauthorized transfer or diversion of the equipment occurs.
-                            </li><br>
-
-                            <li class="list-group-item">
-                                Please do not remove, alter, disfigure or cover up any numbering or lettering displayed on the equipment.
-                            </li><br>
-
-                            <li class="list-group-item">
-                                Return the equipment, along with Deposit Receipt, on or before the due date and inform the office.
-                            </li><br>
-
-                            <li class="list-group-item">
-                                In case the equipment is returned on public holidays or after office hours, please inform the concerned authority.
-                            </li><br>
-
-                            <li class="list-group-item">
-                                Please produce the Deposit Receipt for refund of equipment deposit which is essential.
-                            </li>
-                        </ul><br>
-
-                        <div class="signature-section mt-5">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="signature">Signature:</label>
-                                        <input type="text" id="signature" class="form-control signature-input">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="date">Date:</label>
-                                        <input type="date" id="date" class="form-control">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="form-check mt-3">
-                                <input class="form-check-input" type="checkbox" id="agreeCheck">
-                                <label class="form-check-label" for="agreeCheck">
-                                    I agree to the above Terms and Conditions.
-                                </label>
-                            </div>
-
-                            <button id="submitBtn" class="btn btn-primary mt-3" disabled>
-                                Submit
-                            </button>
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <style>
-    /* Simple fade-in effect */
-    .fade-in {
-        animation: fadeIn 1s ease-in;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    /* Signature input */
-    .signature-input {
-        border: none;
-        border-bottom: 2px solid #dee2e6;
-        border-radius: 0;
-        padding-left: 0;
-        transition: border-color 0.3s;
-    }
-
-    .signature-input:focus {
-        box-shadow: none;
-        border-color: #0d6efd;
-    }
-
-    /* Checkbox styling */
-    .form-check-input:checked {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-    }
-
-    .form-check-input:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-
-    /* Submit button */
-    #submitBtn {
-        transition: all 0.3s ease;
-    }
-
-    #submitBtn:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
-    }
-
-    #submitBtn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
+.terms-page { max-width:780px; margin:44px auto; padding:0 20px 60px; }
+.terms-card { background:#fff; border-radius:20px; box-shadow:var(--shadow-lg); overflow:hidden; animation:fadeUp 0.4s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(18px);} to{opacity:1;transform:translateY(0);} }
+.terms-header { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); padding:30px 36px; color:#fff; text-align:center; }
+.terms-header h1 { font-size:1.6rem; font-weight:800; margin-bottom:4px; }
+.terms-header p { font-size:0.88rem; opacity:0.85; margin:0; }
+.terms-body { padding:36px; }
+.terms-list { list-style:none; display:flex; flex-direction:column; gap:14px; margin-bottom:36px; }
+.terms-list li { display:flex; gap:14px; align-items:flex-start; padding:14px 16px; border-radius:10px; background:#f8fafc; border-left:4px solid var(--primary); font-size:0.92rem; color:var(--text); line-height:1.6; }
+.terms-list li .t-num { min-width:28px; height:28px; background:var(--primary); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.78rem; font-weight:800; flex-shrink:0; margin-top:1px; }
+.agree-section { background:#f8fafc; border-radius:14px; padding:24px; border:1px solid var(--border); }
+.agree-section h2 { font-size:1rem; font-weight:700; margin-bottom:18px; }
+.sig-row { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
+.sig-field label { display:block; font-size:0.78rem; font-weight:600; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px; }
+.sig-field input { width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:0.92rem; font-family:var(--font); outline:none; transition:border-color 0.2s,box-shadow 0.2s; }
+.sig-field input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
+.agree-check { display:flex; align-items:center; gap:12px; margin-bottom:20px; cursor:pointer; }
+.agree-check input[type="checkbox"] { width:18px; height:18px; accent-color:var(--primary); cursor:pointer; flex-shrink:0; }
+.agree-check label { font-size:0.9rem; font-weight:500; cursor:pointer; }
+.btn-submit { display:block; width:100%; padding:14px; background:var(--primary); color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:700; font-family:var(--font); cursor:pointer; box-shadow:0 4px 14px rgba(236,36,39,0.28); transition:all 0.2s; }
+.btn-submit:hover:not(:disabled) { background:var(--primary-dark); transform:translateY(-1px); box-shadow:0 8px 22px rgba(236,36,39,0.36); }
+.btn-submit:disabled { opacity:0.5; cursor:not-allowed; transform:none!important; }
+@media(max-width:600px) { .sig-row { grid-template-columns:1fr; } .terms-body { padding:24px 18px; } }
 </style>
+
+<div class="terms-page">
+  <div class="terms-card">
+    <div class="terms-header">
+      <h1><i class="fas fa-file-contract" style="margin-right:10px;"></i>Terms &amp; Conditions</h1>
+      <p>Please read all conditions carefully before confirming your agreement</p>
+    </div>
+    <div class="terms-body">
+      <ol class="terms-list">
+        <li><span class="t-num">1</span><span>The period for use of equipment is 30 days only. Please return it on expiry of 30 days.</span></li>
+        <li><span class="t-num">2</span><span>The equipment shall at all times remain the property of Trust "Shree Matunga Gujarati Seva Sangh".</span></li>
+        <li><span class="t-num">3</span><span>The equipment shall remain at the sole risk of user family, and any loss or damage shall be borne by them.</span></li>
+        <li><span class="t-num">4</span><span>Equipment are only for the use of patients only.</span></li>
+        <li><span class="t-num">5</span><span>Ensure that no unauthorized transfer or diversion of the equipment occurs.</span></li>
+        <li><span class="t-num">6</span><span>Please do not remove, alter, disfigure or cover up any numbering or lettering displayed on the equipment.</span></li>
+        <li><span class="t-num">7</span><span>Return the equipment, along with Deposit Receipt, on or before the due date and inform the office.</span></li>
+        <li><span class="t-num">8</span><span>In case the equipment is returned on public holidays or after office hours, please inform the concerned authority.</span></li>
+        <li><span class="t-num">9</span><span>Please produce the Deposit Receipt for refund of equipment deposit which is essential.</span></li>
+      </ol>
+
+      <div class="agree-section">
+        <h2><i class="fas fa-pen-nib" style="color:var(--primary);margin-right:8px;"></i>Sign &amp; Confirm</h2>
+        <div class="sig-row">
+          <div class="sig-field">
+            <label for="signature">Signature</label>
+            <input type="text" id="signature" placeholder="Type your name as signature">
+          </div>
+          <div class="sig-field">
+            <label for="date">Date</label>
+            <input type="date" id="date">
+          </div>
+        </div>
+        <div class="agree-check">
+          <input class="form-check-input" type="checkbox" id="agreeCheck">
+          <label for="agreeCheck">I have read and agree to the above Terms and Conditions.</label>
+        </div>
+        <button id="submitBtn" class="btn-submit" disabled>
+          <i class="fas fa-check-circle"></i> I Agree &amp; Submit
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const signatureInput = document.getElementById('signature');
-    const dateInput = document.getElementById('date');
-    const agreeCheck = document.getElementById('agreeCheck');
-    const submitBtn = document.getElementById('submitBtn');
-
-    function validateForm() {
-        if (signatureInput.value.trim() !== '' &&
-            dateInput.value !== '' &&
-            agreeCheck.checked) {
-            submitBtn.disabled = false;
-        } else {
-            submitBtn.disabled = true;
-        }
-    }
-
-    signatureInput.addEventListener('input', validateForm);
-    dateInput.addEventListener('change', validateForm);
-    agreeCheck.addEventListener('change', validateForm);
+  const sig = document.getElementById('signature');
+  const dt  = document.getElementById('date');
+  const chk = document.getElementById('agreeCheck');
+  const btn = document.getElementById('submitBtn');
+  function validate() {
+    btn.disabled = !(sig.value.trim() && dt.value && chk.checked);
+  }
+  sig.addEventListener('input', validate);
+  dt.addEventListener('change', validate);
+  chk.addEventListener('change', validate);
 });
 </script>
-
 {% endblock %}

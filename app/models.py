@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 from datetime import timedelta
 import datetime
@@ -7,8 +9,83 @@ from django.db.models import Max, Sum, Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 import re
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.utils import timezone
+from datetime import timedelta
+import re
 from django.db import models
-import uuid
+from django.contrib.auth.models import User
+
+
+def validate_id_proof_file_size(value):
+    max_size = 5 * 1024 * 1024
+    if value.size > max_size:
+        raise ValidationError("ID proof file must be below 5 MB.")
+
+# class Inventory(models.Model):
+#     title = models.CharField(max_length=255, unique=True)
+#     description = models.TextField()
+#     price_per_day = models.DecimalField(max_digits=10, decimal_places=2)
+#     image = models.ImageField(upload_to='rental_items/', blank=True, null=True)
+
+#     deposit = models.DecimalField(
+#         max_digits=10,
+#         decimal_places=2,
+#         default=0.00
+#     )
+
+#     total_quantity = models.PositiveIntegerField(default=1)
+#     available_quantity = models.PositiveIntegerField(default=0)
+#     booked_quantity = models.PositiveIntegerField(default=0)
+#     available = models.BooleanField(default=True)
+#     next_available_date = models.DateField(null=True, blank=True)
+
+#     def __str__(self):
+#         return self.title
+
+#     def stock_status(self):
+#         if self.available_quantity == 0:
+#             return "Out of stock"
+#         elif self.available_quantity == 1:
+#             return "Only 1 Left"
+#         else:
+#             return f"{self.available_quantity} Available"
+
+#     def update_availability(self):
+#         """Recompute `available_quantity` and `booked_quantity` from approved History.
+
+#         - `booked_quantity` is the sum of quantities for approved, not-returned rentals.
+#         - `available_quantity` = max(total_quantity - booked_quantity, 0)
+#         - `available` is True when available_quantity > 0
+#         - `next_available_date` is cleared when items are available
+#         """
+#         from django.db.models import Sum
+#         from django.utils import timezone
+#         try:
+#             booked = self.rentalrequest_set.filter(status='approved', is_returned=False).aggregate(total=Sum('quantity'))['total'] or 0
+#             self.booked_quantity = booked
+#             new_available = max((self.total_quantity or 0) - booked, 0)
+#             self.available_quantity = new_available
+#             self.available = new_available > 0
+#             if new_available > 0:
+#                 self.next_available_date = None
+#             else:
+#                 self.next_available_date = (timezone.now().date() + timedelta(days=7))
+#         except Exception:
+#             pass
+#         try:
+#             self.save(update_fields=[
+#                 'booked_quantity',
+#                 'available_quantity',
+#                 'available',
+#                 'next_available_date'
+#             ])
+#         except Exception:
+#             try:
+#                 self.save()
+#             except Exception:
+#                 pass
 
 class Inventory(models.Model):
     title = models.CharField(max_length=255, unique=True)
@@ -23,14 +100,18 @@ class Inventory(models.Model):
     )
 
     total_quantity = models.PositiveIntegerField(default=1)
+
+    # ✅ IMPORTANT FIELDS
     available_quantity = models.PositiveIntegerField(default=0)
     booked_quantity = models.PositiveIntegerField(default=0)
+
     available = models.BooleanField(default=True)
     next_available_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
         return self.title
 
+    # 🔥 UI STATUS
     def stock_status(self):
         if self.available_quantity == 0:
             return "Out of stock"
@@ -58,9 +139,12 @@ class Inventory(models.Model):
             if new_available > 0:
                 self.next_available_date = None
             else:
+                # If nothing available, set a conservative next available date (7 days ahead)
                 self.next_available_date = (timezone.now().date() + timedelta(days=7))
         except Exception:
+            # If anything goes wrong, don't raise — leave values as-is
             pass
+        # Persist computed availability fields so callers don't need to remember to save.
         try:
             self.save(update_fields=[
                 'booked_quantity',
@@ -69,11 +153,13 @@ class Inventory(models.Model):
                 'next_available_date'
             ])
         except Exception:
+            # Best-effort save; ignore failures to avoid breaking callers.
             try:
                 self.save()
             except Exception:
                 pass
             
+                      
 class UserDetail(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     phone = models.CharField(max_length=15, blank=True, null=True)
@@ -84,6 +170,15 @@ class UserDetail(models.Model):
     pincode = models.CharField(max_length=10, blank=True, null=True)
     id_proof_type = models.CharField(max_length=20)
     id_proof_number = models.CharField(max_length=30)
+    id_proof_file = models.FileField(
+        upload_to='id_proofs/',
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=['png', 'jpg', 'jpeg', 'pdf']),
+            validate_id_proof_file_size,
+        ],
+    )
     patient_name = models.CharField(max_length=200, null=True, blank=True)
 
     def __str__(self):
@@ -115,6 +210,8 @@ class History(models.Model):
     payment_method = models.CharField(max_length=50,choices=[('online', 'Online'), ('cod', 'Cash on Delivery')])
     deposit = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     deposit_donated = models.BooleanField(default=False)
+    donation_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    donation_comment = models.TextField(blank=True, null=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2,blank=True,null=True)
 
     status = models.CharField( max_length=20,
@@ -150,10 +247,8 @@ class History(models.Model):
         Refund = Deposit - delivery charge - return pickup charge
         If deposit was donated, refund is 0
         """
-        if self.deposit_donated:
-            return 0
         deposit_total = self.deposit * self.quantity
-        refund = deposit_total - self.delivery_charge - self.return_pickup_charge
+        refund = deposit_total - self.donation_amount - self.delivery_charge - self.return_pickup_charge
         return max(refund, 0)
 
     def save(self, *args, **kwargs):
@@ -332,36 +427,29 @@ class Customer(models.Model):
 
 
 
-@receiver(post_save, sender=Item)
-def update_inventory_on_item_created(sender, instance, created, **kwargs):
-    """When a new Item is created, add its quantity to Inventory (aggregate by title).
-    Duplicate Item records are allowed; Inventory keeps a single aggregated entry.
-    """
-    if not created:
-        return
-
-    name = instance.item_name.strip()
-    if not name:
-        return
-
-    inv = Inventory.objects.filter(title__iexact=name).first()
-    if inv:
-        inv.total_quantity = (inv.total_quantity or 0) + instance.item_qty
-        inv.available_quantity = (inv.available_quantity or 0) + instance.item_qty
+@receiver(post_save, sender=History)
+def create_return_notification(sender, instance, created, **kwargs):
+    """Create notification when a return is approved."""
+    if not created and instance.is_returned and instance.is_return_requested:
+        from .utils import send_notification
         try:
-            inv.update_availability()
-        except Exception:
-            inv.available = inv.total_quantity > 0
-            inv.save()
-    else:
-        Inventory.objects.create(
-            title=name,
-            description='',
-            price_per_day=instance.price or 0,
-            total_quantity=instance.item_qty,
-            available=True,
-            available_quantity=instance.item_qty,
-        )
+            send_notification(
+                title="Return Approved",
+                message=f"Return approved for order {instance.order_id} by {instance.user.username}.",
+                notification_type='return',
+                link=f"/admin/app/history/{instance.id}/change/"
+            )
+        except Exception as e:
+            print(f"[return notification error] {e}")
+
+        try:
+            instance.rental_item.update_availability()
+        except Exception as e:
+            try:
+                instance.rental_item.available = (instance.rental_item.available_quantity or 0) > 0
+                instance.rental_item.save(update_fields=['available'])
+            except Exception:
+                print(f"[inventory update error] {e}")
 
 
 

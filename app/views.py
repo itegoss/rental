@@ -221,7 +221,6 @@ def signin(request):
             authenticated_user = authenticate(request, username=username, password=password)
             if authenticated_user is not None:
                 login(request, authenticated_user)
-                messages.success(request, "Login successful.", extra_tags="signin")
 
                 if authenticated_user.is_superuser:
                     return redirect('userdetail')
@@ -310,7 +309,6 @@ def verify_otp(request):
             user.backend = backend
             login(request, user)
             request.session.pop('otp_data', None)
-            messages.success(request, "Logged in successfully.")
             return redirect('index')
         else:
             messages.error(request, "Invalid OTP.")
@@ -406,6 +404,9 @@ def add_to_cart(request, item_id):
     if created:
         cart_item.quantity = 1
     else:
+        if cart_item.quantity >= item.available_quantity:
+            messages.error(request, f"Only {item.available_quantity} {item.title} item(s) are available.")
+            return redirect('cart')
         cart_item.quantity += 1
 
     cart_item.save()
@@ -414,7 +415,7 @@ def add_to_cart(request, item_id):
 
 def cart_view(request):
     cart, _ = Cart.objects.get_or_create(user=request.user)
-    cart_items = cart.items.all()
+    cart_items = cart.items.select_related("rental_item")
 
     if request.method == "POST":
         start_date = request.POST.get("start_date")
@@ -424,6 +425,35 @@ def cart_view(request):
             messages.error(request, "Please select rental dates.")
             return redirect("cart")
 
+        try:
+            start_date_value = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_date_value = datetime.strptime(end_date, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(request, "Please select valid rental dates.")
+            return redirect("cart")
+
+        if not request.user.is_superuser:
+            today = timezone.localdate()
+            if start_date_value < today or end_date_value < today:
+                messages.error(request, "Past dates are not allowed. Please select today or a future date.")
+                return redirect("cart")
+
+        if end_date_value < start_date_value:
+            messages.error(request, "End date cannot be before start date.")
+            return redirect("cart")
+
+        for cart_item in cart_items:
+            available_quantity = cart_item.rental_item.available_quantity
+            if available_quantity <= 0:
+                messages.error(request, f"{cart_item.rental_item.title} is out of stock.")
+                return redirect("cart")
+            if cart_item.quantity > available_quantity:
+                messages.error(
+                    request,
+                    f"Only {available_quantity} {cart_item.rental_item.title} item(s) are available."
+                )
+                return redirect("cart")
+
         request.session["start_date"] = start_date
         request.session["end_date"] = end_date
         if request.user.is_superuser and request.session.get("details_filled"):
@@ -432,7 +462,7 @@ def cart_view(request):
 
         return redirect("userdetail")
 
-    return render(request, "cart.html", {"cart_items": cart_items})
+    return render(request, "cart.html", {"cart_items": cart_items, "is_admin": request.user.is_superuser})
 
 def select_delivery(request, pk):
     item = get_object_or_404(Inventory, pk=pk)
@@ -538,12 +568,10 @@ from datetime import datetime
 def paymentmethod(request):
 
     cart = Cart.objects.filter(user=request.user).first()
-
     renter_name = request.session.get("renter_name")
     patient_name = request.session.get("patient_name")
     phone = request.session.get("phone")
     address = request.session.get("address")
-
     start_date = request.session.get("start_date")
     end_date = request.session.get("end_date")
 
@@ -570,7 +598,7 @@ def paymentmethod(request):
 
         if not cart:
             messages.error(request, "Your cart is empty.")
-            return redirect('cart')
+            return redirect('bookingsammry')
 
         for ci in cart.items.select_related("rental_item"):
             item = ci.rental_item
@@ -654,11 +682,7 @@ def paymentmethod(request):
                     except Exception:
                         pass
 
-                Payment.objects.create(
-                    rental_request=rental,
-                    payment_status='SUCCESS',
-                    order_id=generate_order_id()
-                )
+                Payment.objects.create( rental_request=rental,payment_status='SUCCESS',order_id=generate_order_id())
 
             messages.success(request, "Order placed successfully with Cash on Delivery!")
 
@@ -684,17 +708,12 @@ def success(request, rental_id):
 
     rental = get_object_or_404(History, id=rental_id)
 
-    payment = Payment.objects.filter(
-        rental_request=rental
-    ).order_by("-payment_date").first()
+    payment = Payment.objects.filter(rental_request=rental).order_by("-payment_date").first()
 
     if not payment:
         return HttpResponse("Payment record not found", status=404)
 
-    related_rentals = History.objects.filter(
-        user=rental.user,
-        order_id=rental.order_id
-    ).select_related("rental_item")
+    related_rentals = History.objects.filter( user=rental.user,order_id=rental.order_id).select_related("rental_item")
 
     payment.payment_id = razorpay_payment_id
     payment.payment_status = "SUCCESS"
@@ -1031,6 +1050,7 @@ def userdetail(request):
             request.session["patient_name"] = request.POST.get("patient_name")
             request.session["phone"] = request.POST.get("phone")
             request.session["address"] = request.POST.get("address")
+            request.session["pincode"] = request.POST.get("pincode")
             request.session["start_date"] = request.POST.get("start_date")
             request.session["end_date"] = request.POST.get("end_date")
             request.session["details_filled"] = True
@@ -1041,17 +1061,51 @@ def userdetail(request):
             messages.error(request, "Your cart is empty.")
             return redirect("cart")
 
+        for cart_item in cart_items:
+            available_quantity = cart_item.rental_item.available_quantity
+            if available_quantity <= 0:
+                messages.error(request, f"{cart_item.rental_item.title} is out of stock.")
+                return redirect("cart")
+            if cart_item.quantity > available_quantity:
+                messages.error(
+                    request,
+                    f"Only {available_quantity} {cart_item.rental_item.title} item(s) are available."
+                )
+                return redirect("cart")
+
         order_id = generate_sequential_order_id()
         phone = request.POST.get("phone", "").strip()
         id_proof_type = request.POST.get("id_proof_type", "").strip()
         id_proof_number = request.POST.get("id_proof_number", "").strip()
+        id_proof_file = request.FILES.get("id_proof_file")
         address = request.POST.get("address", "").strip()
+        pincode = request.POST.get("pincode", "").strip()
         email = request.POST.get("email", "").strip()
         patient_name = request.POST.get("patient_name", "").strip()
+
+        allowed_extensions = {".png", ".jpg", ".jpeg", ".pdf"}
+        if not id_proof_file:
+            messages.error(request, "Please upload your ID proof.")
+            return redirect("userdetail")
+
+        file_extension = os.path.splitext(id_proof_file.name)[1].lower()
+        if file_extension not in allowed_extensions:
+            messages.error(request, "ID proof must be a PNG, JPG, JPEG, or PDF file.")
+            return redirect("userdetail")
+
+        if id_proof_file.size > 5 * 1024 * 1024:
+            messages.error(request, "ID proof file must be below 5 MB.")
+            return redirect("userdetail")
+
         start_date = datetime.strptime(request.session.get("start_date"), "%Y-%m-%d").date()
         end_date = datetime.strptime(request.session.get("end_date"), "%Y-%m-%d").date()
         first_cart_item = cart_items.first()
         rental_item_id = first_cart_item.rental_item.id
+        saved_address = request.session.get("address") or address
+        saved_pincode = request.session.get("pincode") or pincode
+        history_address = saved_address
+        if saved_pincode and saved_pincode not in history_address:
+            history_address = f"{history_address}, {saved_pincode}"
 
         with transaction.atomic():
 
@@ -1062,7 +1116,9 @@ def userdetail(request):
                         "phone": phone,
                         "id_proof_type": id_proof_type,
                         "id_proof_number": id_proof_number,
+                        "id_proof_file": id_proof_file,
                         "address_line1": address,
+                        "pincode": pincode,
                         "email": email or None,
                         "patient_name": patient_name,
                     }
@@ -1081,7 +1137,7 @@ def userdetail(request):
                     order_id=order_id,
                     patient_name=(request.session.get("patient_name") or patient_name),
                     phone=(request.session.get("phone") or phone),
-                    address=(request.session.get("address") or address),
+                    address=history_address,
                 )
             try:
                 if cart:
@@ -1118,6 +1174,19 @@ def update_cart_item(request, item_id):
         cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
 
         if action == 'increment':
+            available_quantity = cart_item.rental_item.available_quantity
+            if available_quantity <= 0:
+                return JsonResponse({
+                    'success': False,
+                    'quantity': cart_item.quantity,
+                    'message': f"{cart_item.rental_item.title} is out of stock."
+                }, status=400)
+            if cart_item.quantity >= available_quantity:
+                return JsonResponse({
+                    'success': False,
+                    'quantity': cart_item.quantity,
+                    'message': f"Only {available_quantity} item(s) are available."
+                }, status=400)
             cart_item.quantity += 1
             cart_item.save()
         elif action == 'decrement':
@@ -1150,10 +1219,12 @@ def bookingsammry(request):
     booking_summaries = []
 
     for order_id, items in grouped.items():
+        total_deposit = sum((item.deposit * item.quantity for item in items), Decimal("0"))
         booking_summaries.append({
             "order_id": order_id,
             "date": items[0].created_at.date(),
             "items": items,
+            "total_deposit": total_deposit,
             "customer": items[0].user if request.user.is_staff or request.user.is_superuser else None,
         })
 
@@ -1192,8 +1263,12 @@ def mark_returned(request, rental_id, item_id):
     return redirect('bookingsammry')
 
 def view_rental(request, rental_id):
-    rental = get_object_or_404( History, id=rental_id, user=request.user)
-    related_rentals = ( History.objects.filter(user=request.user, order_id=rental.order_id) .select_related("rental_item"))
+    rentals = History.objects.all()
+    if not (request.user.is_staff or request.user.is_superuser):
+        rentals = rentals.filter(user=request.user)
+
+    rental = get_object_or_404(rentals, id=rental_id)
+    related_rentals = rentals.filter(order_id=rental.order_id).select_related("rental_item")
 
     item_totals = []
     total_rent = 0
@@ -1224,7 +1299,7 @@ def view_rental(request, rental_id):
     delivery_option = rental.delivery_option
     delivery_charge = rental.delivery_charge if delivery_option == "delivery" else 0
     total_amount = total_rent + total_deposit + delivery_charge
-    user_detail = UserDetail.objects.filter(user=request.user).first()
+    user_detail = UserDetail.objects.filter(user=rental.user).first()
 
     context = {
         "order_id": rental.order_id,
@@ -1254,9 +1329,11 @@ def view_rental(request, rental_id):
 def extend_return_date(request, order_id):
     rentals = (
         History.objects.select_for_update()
-        .filter(user=request.user, order_id=order_id, is_returned=False)
+        .filter(order_id=order_id, is_returned=False)
         .select_related("rental_item")
     )
+    if not (request.user.is_staff or request.user.is_superuser):
+        rentals = rentals.filter(user=request.user)
 
     if not rentals.exists():
         messages.error(request, "Order not found or already returned.")
@@ -1329,30 +1406,105 @@ def extend_return_date(request, order_id):
 
 def return_order(request, order_id):
     donate_deposit = request.GET.get("donate_deposit") == "true"
+    donation_amount = Decimal("0")
+    donation_comment = request.GET.get("donation_comment", "").strip()
 
     rentals = (
         History.objects
         .select_for_update()
         .filter(
-            user=request.user,
             order_id=order_id,
             is_returned=False
         )
         .select_related("rental_item")
     )
+    if not (request.user.is_staff or request.user.is_superuser):
+        rentals = rentals.filter(user=request.user)
 
     if not rentals.exists():
         messages.info(request, "Return already requested or completed.")
         return redirect("bookingsammry")
 
-    for rr in rentals:
+    total_deposit = sum((rr.deposit * rr.quantity for rr in rentals), Decimal("0"))
+    if donate_deposit:
+        try:
+            donation_amount = Decimal(request.GET.get("donation_amount", "0"))
+        except Exception:
+            donation_amount = Decimal("0")
+
+        if donation_amount <= 0:
+            messages.error(request, "Please enter a valid donation amount.")
+            return redirect("bookingsammry")
+
+        if donation_amount > total_deposit:
+            messages.error(request, f"Donation amount cannot be more than the total deposit of ₹{total_deposit}.")
+            return redirect("bookingsammry")
+
+    if request.user.is_staff or request.user.is_superuser:
+        for index, rr in enumerate(rentals):
+            rr.is_return_requested = False
+            rr.is_returned = True
+            rr.status = "approved"
+            rr.actual_return_date = timezone.localdate()
+            rr.deposit_donated = donate_deposit
+            rr.donation_amount = donation_amount if index == 0 else Decimal("0")
+            rr.donation_comment = donation_comment if index == 0 else ""
+            update_fields = [
+                "is_return_requested",
+                "is_returned",
+                "status",
+                "actual_return_date",
+                "deposit_donated",
+                "donation_amount",
+                "donation_comment",
+            ]
+            rr.save(update_fields=update_fields)
+            try:
+                rr.rental_item.update_availability()
+            except Exception:
+                try:
+                    rr.rental_item.save()
+                except Exception:
+                    pass
+
+        try:
+            send_notification(
+                title=f"Order Returned for {order_id}",
+                message=(
+                    f"Admin {request.user.username} marked order {order_id} as returned. "
+                    f"{rentals.count()} item(s) returned."
+                ),
+                notification_type='return',
+                link=f"/admin/app/history/?order_id={order_id}"
+            )
+        except Exception as e:
+            print(f"[notification direct return error] {e}")
+
+        messages.success(request, "Order marked as returned successfully.")
+        return redirect("bookingsammry")
+
+    for index, rr in enumerate(rentals):
         rr.is_return_requested = True
         rr.status = "pending"      
+        rr.deposit_donated = donate_deposit
+        rr.donation_amount = donation_amount if index == 0 else Decimal("0")
+        rr.donation_comment = donation_comment if index == 0 else ""
         if donate_deposit:
-            rr.deposit_donated = True
-            rr.save(update_fields=["is_return_requested", "status", "deposit_donated"])
+            rr.save(update_fields=[
+                "is_return_requested",
+                "status",
+                "deposit_donated",
+                "donation_amount",
+                "donation_comment",
+            ])
         else:
-            rr.save(update_fields=["is_return_requested", "status"])
+            rr.save(update_fields=[
+                "is_return_requested",
+                "status",
+                "deposit_donated",
+                "donation_amount",
+                "donation_comment",
+            ])
 
     try:
         send_notification(
@@ -1377,10 +1529,12 @@ def return_order(request, order_id):
 @login_required
 def cancel_order(request, order_id):
     rentals = History.objects.filter(
-        user=request.user,
         order_id=order_id,
         is_returned=False
     ).exclude(status='cancelled')
+
+    if not (request.user.is_staff or request.user.is_superuser):
+        rentals = rentals.filter(user=request.user)
 
     if not rentals.exists():
         messages.error(request, "Order not found or cannot be cancelled.")
@@ -1402,7 +1556,7 @@ def cancel_order(request, order_id):
         send_notification(
             title="Booking Cancelled",
             message=(
-                f"Order {order_id} was cancelled by user {request.user.username}. "
+                f"Order {order_id} was cancelled by {request.user.username}. "
                 f"{rentals.count()} item(s) affected."
             ),
             notification_type='cancelled',
@@ -1483,19 +1637,20 @@ def return_receipt(request, order_id):
     rentals = (
         History.objects
         .filter(
-            user=request.user,
             order_id=order_id,
             is_returned=True
         )
         .select_related("rental_item")
     )
+    if not (request.user.is_staff or request.user.is_superuser):
+        rentals = rentals.filter(user=request.user)
 
     if not rentals.exists():
         messages.error(request, "Return receipt not available.")
         return redirect("bookingsammry")
 
     rental = rentals.first()
-    user_detail = UserDetail.objects.filter(user=request.user).first()
+    user_detail = UserDetail.objects.filter(user=rental.user).first()
 
     grouped_items = defaultdict(lambda: {
         "title": "",
@@ -1519,15 +1674,13 @@ def return_receipt(request, order_id):
     item_totals = list(grouped_items.values())
     total_quantity = sum(i["quantity"] for i in item_totals)
     total_deposit = sum(i["deposit"] for i in item_totals)
-    total_rent = rental.total_rent       
-    refund_amount = rental.refund_amount  
+    total_rent = sum(rr.total_rent for rr in rentals)
+    donation_amount = sum((rr.donation_amount for rr in rentals), Decimal("0"))
+    donation_comment = next((rr.donation_comment for rr in rentals if rr.donation_comment), "")
     delivery_charge = rental.delivery_charge
     return_pickup_charge = rental.return_pickup_charge
-
-    if rental.deposit_donated:
-        total_amount = total_rent + delivery_charge + return_pickup_charge
-    else:
-        total_amount = rental.total_amount  
+    refund_amount = max(total_deposit - donation_amount - delivery_charge - return_pickup_charge, Decimal("0"))
+    total_amount = total_rent + delivery_charge + return_pickup_charge + donation_amount
 
     context = {
         "order": rental,          
@@ -1540,6 +1693,8 @@ def return_receipt(request, order_id):
         "total_quantity": total_quantity,
         "total_rent": total_rent,
         "total_deposit": total_deposit,
+        "donation_amount": donation_amount,
+        "donation_comment": donation_comment,
         "total_amount": total_amount,
         "refund_amount": refund_amount,
         "delivery_option": rental.delivery_option,
