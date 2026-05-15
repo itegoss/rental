@@ -72,7 +72,11 @@ def index(request):
             except Exception as e:
                 print(f"[notification late-return error] {e}")
 
-    return render(request, 'index.html')
+    featured_items = Inventory.objects.all().order_by('-available', 'title')[:4]
+
+    return render(request, 'index.html', {
+        'featured_items': featured_items
+    })
 
 
 def logout(request):
@@ -638,7 +642,7 @@ def paymentmethod(request):
                     msg = (
                         f"Hi {customer_name}, your rental request {rental.order_id} for '{item.title}' "
                         f"(Qty: {rental.quantity}) from {rental.start_date} to {rental.end_date} has been submitted. "
-                        "We'll notify you when it's confirmed. - QuickNest"
+                        "We'll notify you when it's confirmed. - Kutch Yuvak Sangh"
                     )
                     send_whatsapp_message(to_digits, msg)
             except Exception as e:
@@ -875,14 +879,14 @@ def send_notify_emails(item, user_email, user_mobile):
     <body>
         <p>Hi,</p>
         <p>Thank you for your interest in <b>{item.title}</b>.</p>
-        <p>We have received your notification request and will email you as soon as this item becomes available.</p>
+        <p>We have received your notification request and will email you as soon as this item becomes available , on First Come First Serve basis .</p>
         <p>Item Details:</p>
         <ul>
             <li>Price per day: ₹{item.price_per_day}</li>
             <li>Deposit: ₹{item.deposit}</li>
         </ul>
         <br>
-        <p>Regards,<br>QuickNest Team</p>
+        <p>Regards,<br>Kutch Yuvak Sangh Team</p>
     </body>
     </html>
     """

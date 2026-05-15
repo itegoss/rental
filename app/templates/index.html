@@ -30,6 +30,8 @@
 .feat-card-body { padding:18px 20px 22px; text-align:center; }
 .feat-card-body h3 { font-size:1.05rem; font-weight:700; margin-bottom:6px; }
 .feat-card-body p { font-size:1rem; font-weight:800; color:var(--primary); }
+.feat-empty { grid-column:1/-1; text-align:center; padding:42px 20px; background:#fff; border-radius:16px; box-shadow:var(--shadow); color:var(--muted); }
+.feat-empty i { display:block; font-size:2.4rem; color:var(--primary); margin-bottom:12px; }
 .view-more-wrap { text-align:center; }
 
 /* ── ABOUT ── */
@@ -76,15 +78,6 @@
 
 <!-- WELCOME -->
 <section class="welcome-sec">
-  <h1>Welcome to <span>Kutch Yuvak Sangh</span></h1>
-  <p>We provide quality hospital equipment on rent — serving families across Bhayandar with care and affordability.</p>
-  <div class="welcome-cta">
-    <a href="{% url 'items' %}" class="btn-primary-red"><i class="fas fa-th-large"></i> Browse Items</a>
-    <a href="{% url 'services' %}" style="display:inline-flex;align-items:center;gap:8px;padding:11px 24px;border:2px solid var(--primary);color:var(--primary);border-radius:999px;font-weight:700;font-size:0.9rem;text-decoration:none;transition:all 0.22s;">
-      <i class="fas fa-concierge-bell"></i> Our Services
-    </a>
-  </div>
-</section>
 
 <!-- FEATURED ITEMS -->
 <section class="featured-sec">
@@ -93,25 +86,30 @@
     <p>Most popular rental equipment available right now</p>
   </div>
   <div class="feat-grid">
+    {% for item in featured_items %}
     <a href="{% url 'items' %}" class="feat-card">
-      <img src="{% static 'images/airBed.png' %}" alt="Air Bed" loading="lazy">
-      <div class="feat-card-body"><h3>Air Bed</h3><p>₹5 / day</p></div>
+      {% if item.image %}
+        <img src="{{ item.image.url }}" alt="{{ item.title }}" loading="lazy">
+      {% else %}
+        <img src="{% static 'images/default-placeholder.png' %}" alt="{{ item.title }}" loading="lazy">
+      {% endif %}
+      <div class="feat-card-body"><h3>{{ item.title }}</h3><p>₹{{ item.price_per_day }} / day</p></div>
     </a>
-    <a href="{% url 'items' %}" class="feat-card">
-      <img src="{% static 'images/Hospital_Bed.png' %}" alt="Hospital Bed" loading="lazy">
-      <div class="feat-card-body"><h3>Hospital Bed</h3><p>₹15 / day</p></div>
-    </a>
-    <a href="{% url 'items' %}" class="feat-card">
-      <img src="{% static 'images/IVStand.png' %}" alt="IV Stand" loading="lazy">
-      <div class="feat-card-body"><h3>IV Stand</h3><p>₹2 / day</p></div>
-    </a>
-    <a href="{% url 'items' %}" class="feat-card">
-      <img src="{% static 'images/Nebulizer1.png' %}" alt="Nebulizer" loading="lazy">
-      <div class="feat-card-body"><h3>Nebulizer</h3><p>₹5 / day</p></div>
-    </a>
+    {% empty %}
+    <div class="feat-empty">
+      <i class="fas fa-box-open"></i>
+      <p>No items available right now. Please check back later.</p>
+    </div>
+    {% endfor %}
   </div>
-  <div class="view-more-wrap">
+  <!-- <div class="view-more-wrap">
     <a href="{% url 'items' %}" class="btn-primary-red">View All Items <i class="fas fa-arrow-right"></i></a>
+  </div> -->
+  <div class="welcome-cta">
+    <a href="{% url 'items' %}" class="btn-primary-red"><i class="fas fa-th-large"></i> Browse Items</a>
+    <a href="{% url 'services' %}" style="display:inline-flex;align-items:center;gap:8px;padding:11px 24px;border:2px solid var(--primary);color:var(--primary);border-radius:999px;font-weight:700;font-size:0.9rem;text-decoration:none;transition:all 0.22s;">
+      <i class="fas fa-concierge-bell"></i> Our Services
+    </a>
   </div>
 </section>
 

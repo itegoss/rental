@@ -29,7 +29,10 @@
 .item-stock .next-date { display:block; font-size:0.78rem; color:var(--muted); font-weight:400; margin-top:3px; }
 .btn-rent { display:block; width:100%; padding:11px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; border:none; border-radius:999px; font-size:0.9rem; font-weight:700; font-family:var(--font); cursor:pointer; text-align:center; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 4px 14px rgba(236,36,39,0.22); }
 .btn-rent:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(236,36,39,0.3); }
-.btn-notify { display:block; width:100%; padding:11px; background:linear-gradient(135deg,#0ea5e9,#0284c7); color:#fff; border:none; border-radius:999px; font-size:0.9rem; font-weight:700; font-family:var(--font); cursor:pointer; text-align:center; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 4px 14px rgba(14,165,233,0.22); }
+/* .btn-notify { display:block; width:100%; padding:11px; background:linear-gradient(135deg,#0ea5e9,#0284c7); color:#fff; border:none; border-radius:999px; font-size:0.9rem; font-weight:700; font-family:var(--font); cursor:pointer; text-align:center; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 4px 14px rgba(14,165,233,0.22); } */
+
+.btn-notify { display:block; width:100%; padding:11px; color:#fff; border:none; border-radius:999px; font-size:0.9rem; font-weight:700; font-family:var(--font); cursor:pointer; text-align:center; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 4px 14px rgba(14,165,233,0.22); }
+
 .btn-notify:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(14,165,233,0.3); }
 .no-items { grid-column:1/-1; text-align:center; padding:60px 20px; background:#fff; border-radius:18px; box-shadow:var(--shadow); }
 .no-items i { font-size:3rem; color:var(--primary); margin-bottom:16px; }
@@ -93,7 +96,18 @@
             <button type="submit" class="btn-rent"><i class="fas fa-shopping-cart"></i> Rent Now</button>
           </form>
         {% else %}
-          <button class="btn-notify" onclick="openNotifyModal('{{ item.id }}','{{ item.title|escapejs }}')">
+          <button class="btn-notify" style="    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 24px;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.22s;
+" onclick="openNotifyModal('{{ item.id }}','{{ item.title|escapejs }}')">
             <i class="fas fa-bell"></i> Notify Me
           </button>
         {% endif %}

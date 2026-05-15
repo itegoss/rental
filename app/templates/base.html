@@ -47,8 +47,6 @@ body {
 }
 
 main { flex: 1 0 auto; }
-
-/* ── NAVBAR ── */
 nav {
   background: linear-gradient(90deg, #c0181b 0%, #ec2427 50%, #c0181b 100%);
   position: sticky;
@@ -73,7 +71,7 @@ nav {
   align-items: center;
 }
 .logo img {
-  height: 48px;
+  height: 60px;
   width: auto;
   display: block;
   transition: transform var(--transition);
@@ -139,7 +137,6 @@ nav {
   white-space: nowrap;
 }
 
-/* ── NOTIFICATIONS ── */
 .notification-bell {
   position: relative;
   display: inline-flex;
@@ -351,8 +348,8 @@ nav {
 }
 
 .footer-col h4 {
-  font-size: 0.8rem;
-  font-weight: 700;
+    font-size: 1.5rem;
+      font-weight: 700;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   margin-bottom: 20px;
@@ -443,9 +440,8 @@ nav {
     </div>
 
     <div class="nav-right">
-      <!-- Desktop Links -->
       <div class="nav-links desktop" id="navLinksDesktop">
-        <a href="{% url 'index' %}"><i class="fas fa-home"></i> Home</a>
+        <!-- <a href="{% url 'index' %}"><i class="fas fa-home"></i> Home</a> -->
         <a href="{% url 'services' %}"><i class="fas fa-concierge-bell"></i> Services</a>
         <a href="{% url 'items' %}"><i class="fas fa-th-large"></i> Items</a>
         {% if user.is_authenticated %}
@@ -550,11 +546,42 @@ nav {
       </div>
       <div class="footer-col">
         <h4>Contact Us</h4>
-        <div class="footer-contact-row"><i class="fas fa-phone"></i> 9867348169</div>
-        <div class="footer-contact-row"><i class="fas fa-phone"></i> 9820247550</div>
-        <div class="footer-contact-row"><i class="fas fa-envelope"></i> bhayander@kutchyuvaksangh.org</div>
-        <div class="footer-contact-row"><i class="fas fa-globe"></i><a href="https://www.kutchyuvaksangh.org" target="_blank" style="color:rgba(255,255,255,0.85); text-decoration:none;">kutchyuvaksangh.org</a></div>
+        <div class="footer-contact-row">  <a href="tel:9867348169" style="color: white;"><i class="fas fa-phone"></i> 9867348169</a></div>
+        <div class="footer-contact-row"><a href="tel:9820247550" style="color: white;"><i class="fas fa-phone"></i> 9820247550</a></div>
+<div class="footer-contact-row">
+    <a href="mailto:bhayander@kutchyuvaksangh.org" style="color:white; text-decoration:none;">
+        <i class="fas fa-envelope"></i> bhayander@kutchyuvaksangh.org
+    </a>
+</div>        
+<div class="footer-contact-row"><i class="fas fa-globe"></i><a href="https://www.kutchyuvaksangh.org" target="_blank" style="color:rgba(255,255,255,0.85); text-decoration:none;">kutchyuvaksangh.org</a></div>
       </div>
+      <div class="footer-col">
+    <h4>Social Links</h4>
+
+    <div class="footer-contact-row">
+        <a href="https://www.facebook.com/kysBhayander/" target="_blank" style="color:white; text-decoration:none;">
+            <i class="fab fa-facebook-f"></i> Facebook
+        </a>
+    </div>
+
+    <div class="footer-contact-row">
+        <a href="https://www.instagram.com/kysbhayander" target="_blank" style="color:white; text-decoration:none;">
+            <i class="fab fa-instagram"></i> Instagram
+        </a>
+    </div>
+
+    <div class="footer-contact-row">
+        <a href="https://www.youtube.com/@bhayanderkys4491" target="_blank" style="color:white; text-decoration:none;">
+            <i class="fab fa-youtube"></i> YouTube
+        </a>
+    </div>
+
+    <div class="footer-contact-row">
+        <a href="https://sites.google.com/kutchyuvaksangh.org/kysbhayander/home" target="_blank" style="color:white; text-decoration:none;">
+            <i class="fab fa-google"></i> Google
+        </a>
+    </div>
+</div>
     </div>
     <div class="footer-bottom">© 2026 Kutch Yuvak Sangh. All Rights Reserved.</div>
   </div>
