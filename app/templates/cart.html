@@ -33,7 +33,6 @@
 .stock-message { display:none; margin-top:8px; color:#dc2626; font-size:0.8rem; font-weight:600; }
 .stock-message.is-visible { display:block; }
 
-/* Summary panel */
 .summary-panel { background:#fff; border-radius:16px; padding:24px; box-shadow:var(--shadow); position:sticky; top:84px; }
 .summary-panel h2 { font-size:1.15rem; font-weight:800; margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid var(--border); }
 .date-field { margin-bottom:16px; }
@@ -51,45 +50,16 @@
 .btn-back { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:12px; color:var(--primary); font-weight:600; text-decoration:none; font-size:0.88rem; }
 .btn-back:hover { text-decoration:underline; }
 
-/* Empty */
 .empty-cart { background:#fff; border-radius:16px; padding:70px 30px; text-align:center; box-shadow:var(--shadow); }
 .empty-cart i { font-size:3rem; color:var(--border); margin-bottom:16px; }
 .empty-cart h3 { font-size:1.3rem; font-weight:700; margin-bottom:8px; }
 .empty-cart p { color:var(--muted); margin-bottom:22px; }
-/* .empty-cart .browse-items-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 200px;
-  max-width: 260px;
-  width: 100%;
-  padding: 14px 26px;
-  gap: 10px;
-  font-size: 0.98rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  line-height: 1;
-  margin: 0 auto;
-  box-shadow: 0 10px 28px rgba(236,36,39,0.22);
-}
-.empty-cart .browse-items-btn i {
-  width: 20px;
-  height: 20px;
-  margin: 0;
-  font-size: 1rem;
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-} */
 
 @media(max-width:768px) {
   .cart-summary-col { width:100%; }
   .summary-panel { position:static; }
   .cart-item-thumb { width:80px; height:80px; }
 }
-
 .cart-page-head {
     text-align: center;
     margin-bottom: 36px;
@@ -101,7 +71,6 @@
     border-radius: 4px;
     margin: 12px auto 0;
 }
-
  .btn-primary-red i{
     font-size: 1rem;
     color: var(--border);
@@ -120,7 +89,6 @@
   <form method="POST" action="{% url 'cart' %}">
     {% csrf_token %}
     <div class="cart-layout">
-      <!-- Items -->
       <div class="cart-items-col">
         {% for item in cart_items %}
         <div class="cart-item-card" data-item-id="{{ item.id }}" data-deposit="{{ item.rental_item.deposit }}" data-available="{{ item.rental_item.available_quantity }}">
@@ -155,7 +123,6 @@
         {% endfor %}
       </div>
 
-      <!-- Summary -->
       <div class="cart-summary-col">
         <div class="summary-panel">
           <h2><i class="fas fa-receipt" style="color:var(--primary);margin-right:8px;"></i>Order Summary</h2>

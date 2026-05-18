@@ -397,7 +397,7 @@ class CartItem(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 class Item(models.Model):
-    item_name = models.CharField(max_length=255, blank=False, null=False)  
+    item_name = models.CharField(max_length=255, blank=False, null=False)
     item_qty = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     donation = models.BooleanField(default=False)

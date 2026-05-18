@@ -1,9 +1,10 @@
+# pyrefly: ignore [missing-import]
 from django.contrib import admin
 from django.utils.html import format_html
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.conf import settings
-
+from django import forms
 import re
 import urllib.parse
 
@@ -21,6 +22,7 @@ from .models import (
     CartItem,
     NotifyRequest,
 )
+
 from .utils import generate_receipt, send_notification, send_whatsapp_message
 
 @admin.action(description="Approve Return")
@@ -96,8 +98,30 @@ class InventoryAdmin(admin.ModelAdmin):
     get_total_quantity.short_description = 'Total Quantity'
 
 
+class DatalistTextInput(forms.TextInput):
+    def render(self, name, value, attrs=None, renderer=None):
+        if attrs is None:
+            attrs = {}
+        attrs['list'] = 'inventory_items_list'
+        html = super().render(name, value, attrs, renderer)
+        
+        from .models import Inventory
+        titles = Inventory.objects.values_list('title', flat=True).distinct()
+        datalist_html = '<datalist id="inventory_items_list">' + ''.join([f'<option value="{t}">' for t in titles]) + '</datalist>'
+        from django.utils.safestring import mark_safe
+        return mark_safe(html + datalist_html)
+
+class ItemAdminForm(forms.ModelForm):
+    class Meta:
+        model = Item
+        fields = '__all__'
+        widgets = {
+            'item_name': DatalistTextInput(),
+        }
+
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
+    form = ItemAdminForm
     list_display = (
         'item_name',
         'item_qty',
@@ -288,7 +312,7 @@ class HistoryAdmin(admin.ModelAdmin):
                 f"🛏 Item: {obj.rental_item.title}\n"
                 f"New Return Date: {date_val.strftime('%d-%m-%Y')}\n\n"
                 f"Thank you.\n"
-                f"— Team"
+                f"— Kutch Yuvak Sangh Team"
             )
         else:
             date_val = obj.end_date
@@ -298,7 +322,7 @@ class HistoryAdmin(admin.ModelAdmin):
                 f"🛏 Item: {obj.rental_item.title}\n"
                 f"Return Date: {date_val.strftime('%d-%m-%Y')}\n\n"
                 f"Thank you.\n"
-                f"— Team"
+                f"— Kutch Yuvak Sangh Team"
             )
 
         encoded = urllib.parse.quote(message)
@@ -326,7 +350,7 @@ class HistoryAdmin(admin.ModelAdmin):
             f" Return Date: {final_date.strftime('%d-%m-%Y')}\n\n"
             f"Please return or extend.\n\n"
             f"Thank you \n"
-            f"— Team"
+            f"— Kutch Yuvak Sangh Team"
         )
 
         encoded = urllib.parse.quote(message)
@@ -386,7 +410,6 @@ class UserDetailAdmin(admin.ModelAdmin):
 class ServicesAdmin(admin.ModelAdmin):
     list_display = ('title', 'contact_number')
 
-
 class CartItemInline(admin.TabularInline):
     model = CartItem
     extra = 0
@@ -401,13 +424,10 @@ class CartItemAdmin(admin.ModelAdmin):
     list_display = ('cart', 'rental_item', 'quantity', 'created_at')
     list_filter = ('created_at',)
 
-
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
     list_display = ('name', 'phone', 'patient_name', 'created_at')
     search_fields = ('name', 'phone', 'patient_name')
-
-
 
 @admin.register(NotifyRequest)
 class NotifyRequestAdmin(admin.ModelAdmin):
@@ -415,6 +435,4 @@ class NotifyRequestAdmin(admin.ModelAdmin):
     list_filter = ('is_notified', 'created_at', 'item')
     search_fields = ('email', 'mobile', 'item__title')
     readonly_fields = ('created_at',)
-
-
 

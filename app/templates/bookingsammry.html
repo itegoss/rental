@@ -34,12 +34,12 @@
 .bookings-table th.no-sort { cursor:default; }
 .bookings-table th .sort-icon { margin-left:6px; opacity:0.7; font-size:0.7rem; }
 .bookings-table td { padding:15px 18px; border-top:1px solid var(--border); font-size:0.86rem; vertical-align:middle; }
-.bookings-table th:nth-child(1),.bookings-table td:nth-child(1) { width:150px; }
-.bookings-table th:nth-child(2),.bookings-table td:nth-child(2) { width:150px; }
-.bookings-table th:nth-child(5),.bookings-table td:nth-child(5) { width:90px; }
-.bookings-table th:nth-child(7),.bookings-table td:nth-child(7) { width:75px; }
-.bookings-table th:nth-child(8),.bookings-table td:nth-child(8) { width:180px; }
-.bookings-table th:nth-child(9),.bookings-table td:nth-child(9) { width:250px; }
+.bookings-table th.col-order, .bookings-table td.col-order { width:150px; }
+.bookings-table th.col-date, .bookings-table td.col-date { width:150px; }
+.bookings-table th.col-id, .bookings-table td.col-id { width:90px; }
+.bookings-table th.col-days, .bookings-table td.col-days { width:75px; }
+.bookings-table th.col-status, .bookings-table td.col-status { width:180px; }
+.bookings-table th.col-action, .bookings-table td.col-action { width:250px; }
 .bookings-table tbody tr:hover td { background:#fffafa; }
 .bookings-table .order-link { color:var(--primary); font-weight:800; }
 .bookings-table .item-name { font-weight:800; color:var(--text); }
@@ -186,31 +186,39 @@
         <table class="bookings-table" id="bookingsTable">
           <thead>
             <tr>
-              <th data-sort="text">Order ID <i class="fas fa-sort sort-icon"></i></th>
-              <th data-sort="date">Date <i class="fas fa-sort sort-icon"></i></th>
-              <!-- <th data-sort="text">Customer <i class="fas fa-sort sort-icon"></i></th> -->
-              <th data-sort="number">Quantity <i class="fas fa-sort sort-icon"></i></th>
-              <th data-sort="number">ID <i class="fas fa-sort sort-icon"></i></th>
-              <th data-sort="text">Item <i class="fas fa-sort sort-icon"></i></th>
-              <th data-sort="number">Days <i class="fas fa-sort sort-icon"></i></th>
-              <th data-sort="text">Status <i class="fas fa-sort sort-icon"></i></th>
-              <th class="no-sort">Action</th>
+              <th class="col-order" data-sort="text">Order ID <i class="fas fa-sort sort-icon"></i></th>
+              <th class="col-date" data-sort="date">Date <i class="fas fa-sort sort-icon"></i></th>
+              {% if request.user.is_superuser or request.user.is_staff %}
+              <th class="col-customer" data-sort="text">Customer <i class="fas fa-sort sort-icon"></i></th>
+              {% endif %}
+              <th class="col-item" data-sort="text">Item <i class="fas fa-sort sort-icon"></i></th>
+              <th class="col-qty" data-sort="number">Quantity <i class="fas fa-sort sort-icon"></i></th>
+              {% if request.user.is_superuser or request.user.is_staff %}
+              <th class="col-id" data-sort="number">ID <i class="fas fa-sort sort-icon"></i></th>
+              {% endif %}
+              <th class="col-days" data-sort="number">Days <i class="fas fa-sort sort-icon"></i></th>
+              <th class="col-status" data-sort="text">Status <i class="fas fa-sort sort-icon"></i></th>
+              <th class="col-action no-sort">Action</th>
             </tr>
           </thead>
           <tbody>
             {% for booking in booking_summaries %}
               {% for rr in booking.items %}
                 <tr>
-                  <td data-value="{{ booking.order_id }}"><span class="order-link">{{ booking.order_id }}</span></td>
-                  <td data-value="{{ booking.date|date:'Y-m-d' }}">{{ booking.date|date:"M d, Y" }}</td>
-                  <!-- <td data-value="{% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}">
+                  <td class="col-order" data-value="{{ booking.order_id }}"><span class="order-link">{{ booking.order_id }}</span></td>
+                  <td class="col-date" data-value="{{ booking.date|date:'Y-m-d' }}">{{ booking.date|date:"M d, Y" }}</td>
+                  {% if request.user.is_superuser or request.user.is_staff %}
+                  <td class="col-customer" data-value="{% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}">
                     {% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}
-                  </td> -->
-                  <td data-value="{{ booking.items|length }}">{{ booking.items|length }}</td>
-                  <td data-value="{{ rr.id }}">{{ rr.id }}</td>
-                  <td data-value="{{ rr.rental_item.title }}"><span class="item-name">{{ rr.rental_item.title }}</span></td>
-                  <td data-value="{{ rr.rental_days }}">{{ rr.rental_days }}</td>
-                  <td data-value="{% if rr.status == 'pending' and not rr.is_return_requested %}Booking Pending{% elif rr.status == 'rejected' and not rr.is_returned %}Booking Rejected{% elif rr.status == 'cancelled' %}Cancelled{% elif rr.is_returned %}Returned{% elif rr.status == 'approved' and rr.is_return_requested %}Return Pending{% elif rr.status == 'approved' %}Approved{% else %}Pending{% endif %}">
+                  </td>
+                  {% endif %}
+                  <td class="col-item" data-value="{{ rr.rental_item.title }}"><span class="item-name">{{ rr.rental_item.title }}</span></td>
+                  <td class="col-qty" data-value="{{ rr.quantity }}">{{ rr.quantity }}</td>
+                  {% if request.user.is_superuser or request.user.is_staff %}
+                  <td class="col-id" data-value="{{ rr.id }}">{{ rr.id }}</td>
+                  {% endif %}
+                  <td class="col-days" data-value="{{ rr.rental_days }}">{{ rr.rental_days }}</td>
+                  <td class="col-status" data-value="{% if rr.status == 'pending' and not rr.is_return_requested %}Booking Pending{% elif rr.status == 'rejected' and not rr.is_returned %}Booking Rejected{% elif rr.status == 'cancelled' %}Cancelled{% elif rr.is_returned %}Returned{% elif rr.status == 'approved' and rr.is_return_requested %}Return Pending{% elif rr.status == 'approved' %}Approved{% else %}Pending{% endif %}">
                     {% if rr.status == "pending" and not rr.is_return_requested %}
                       <span class="s-badge s-pending"><i class="fas fa-clock"></i> Booking Pending</span>
                     {% elif rr.status == "rejected" and not rr.is_returned %}
@@ -227,7 +235,7 @@
                       <span class="s-badge s-pending"><i class="fas fa-clock"></i> Pending</span>
                     {% endif %}
                   </td>
-                  <td>
+                  <td class="col-action">
                     <div class="actions-wrap">
                       {% if rr.status == "pending" and not rr.is_return_requested %}
                         {% if request.user.is_staff or request.user.is_superuser %}

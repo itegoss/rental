@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>{% block title %}Sick Bed Services{% endblock %}</title>
@@ -7,516 +8,653 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-{% load static notification_tags %}
-<style>
-:root {
-  --primary: #ec2427;
-  --primary-dark: #c0181b;
-  --primary-light: rgba(236,36,39,0.08);
-  --surface: #ffffff;
-  --bg: #f5f5f7;
-  --text: #1a1a1a;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --success: #16a34a;
-  --warning: #f59e0b;
-  --danger: #dc2626;
-  --radius: 14px;
-  --radius-sm: 8px;
-  --shadow: 0 4px 24px rgba(0,0,0,0.08);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,0.14);
-  --transition: 0.22s cubic-bezier(.4,0,.2,1);
-  --font: 'Inter', sans-serif;
-}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    crossorigin="anonymous">
+  {% load static notification_tags %}
+  <style>
+    :root {
+      --primary: #ec2427;
+      --primary-dark: #c0181b;
+      --primary-light: rgba(236, 36, 39, 0.08);
+      --surface: #ffffff;
+      --bg: #f5f5f7;
+      --text: #1a1a1a;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --danger: #dc2626;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.14);
+      --transition: 0.22s cubic-bezier(.4, 0, .2, 1);
+      --font: 'Inter', sans-serif;
+    }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-html { scroll-behavior: smooth; }
+    html {
+      scroll-behavior: smooth;
+    }
 
-body {
-  font-family: var(--font);
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
 
-main { flex: 1 0 auto; }
-nav {
-  background: linear-gradient(90deg, #c0181b 0%, #ec2427 50%, #c0181b 100%);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  box-shadow: 0 3px 20px rgba(160,15,17,0.45);
-}
+    main {
+      flex: 1 0 auto;
+    }
 
-.nav-inner {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 24px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
+    nav {
+      background: linear-gradient(90deg, #c0181b 0%, #ec2427 50%, #c0181b 100%);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 3px 20px rgba(160, 15, 17, 0.45);
+    }
 
-.logo a {
-  display: flex;
-  align-items: center;
-}
-.logo img {
-  height: 60px;
-  width: auto;
-  display: block;
-  transition: transform var(--transition);
-}
-.logo a:hover img { transform: scale(1.06); }
+    .nav-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
 
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+    .logo a {
+      display: flex;
+      align-items: center;
+    }
 
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
+    .logo img {
+      height: 60px;
+      width: auto;
+      display: block;
+      transition: transform var(--transition);
+    }
 
-.nav-links a,
-.nav-links button.nav-btn {
-  color: rgba(255,255,255,0.92);
-  text-decoration: none;
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  transition: background var(--transition), color var(--transition);
-  background: none;
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.nav-links a:hover,
-.nav-links button.nav-btn:hover {
-  background: rgba(255,255,255,0.15);
-  color: #fff;
-}
+    .logo a:hover img {
+      transform: scale(1.06);
+    }
 
-.nav-cart-btn {
-  position: relative;
-  color: rgba(255,255,255,0.92);
-  font-size: 1.1rem;
-  padding: 8px 12px;
-  border-radius: 8px;
-  text-decoration: none;
-  transition: background var(--transition);
-  display: inline-flex;
-  align-items: center;
-}
-.nav-cart-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
 
-.welcome-chip {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: rgba(255,255,255,0.85);
-  background: rgba(255,255,255,0.15);
-  border-radius: 999px;
-  padding: 4px 12px;
-  white-space: nowrap;
-}
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
 
-.notification-bell {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: rgba(255,255,255,0.92);
-  font-size: 0.875rem;
-  font-weight: 600;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  user-select: none;
-  transition: background var(--transition);
-}
-.notification-bell:hover { background: rgba(255,255,255,0.15); }
+    .nav-links a,
+    .nav-links button.nav-btn {
+      color: rgba(255, 255, 255, 0.92);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      transition: background var(--transition), color var(--transition);
+      background: none;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
 
-.notification-count {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  background: #fff;
-  color: var(--primary);
-  font-size: 0.65rem;
-  font-weight: 800;
-  width: 17px;
-  height: 17px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+    .nav-links a:hover,
+    .nav-links button.nav-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
 
-.notification-dropdown {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 10px);
-  width: 370px;
-  max-width: calc(100vw - 24px);
-  background: #fff;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border);
-  display: none;
-  overflow: hidden;
-  animation: dropIn 0.18s ease;
-  z-index: 2000;
-}
-.notification-dropdown.visible { display: block; }
+    .nav-cart-btn {
+      position: relative;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 1.1rem;
+      padding: 8px 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background var(--transition);
+      display: inline-flex;
+      align-items: center;
+    }
 
-@keyframes dropIn {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+    .nav-cart-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
 
-.notif-header {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.notif-header strong { font-size: 0.9rem; }
-.notif-header small { color: var(--muted); font-size: 0.78rem; }
-.notif-header a { font-size: 0.8rem; font-weight: 600; color: var(--primary); text-decoration: none; }
-.notif-header a:hover { text-decoration: underline; }
+    .welcome-chip {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      padding: 4px 12px;
+      white-space: nowrap;
+    }
 
-.notification-item {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 12px 16px;
-  border-bottom: 1px solid #f3f4f6;
-  text-decoration: none;
-  color: var(--text);
-  transition: background var(--transition);
-}
-.notification-item:hover { background: #fafafa; }
-.notification-item:last-child { border-bottom: none; }
+    .notification-bell {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      transition: background var(--transition);
+    }
 
-.notification-badge {
-  min-width: 52px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 999px;
-  text-align: center;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
+    .notification-bell:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
 
-.notif-empty {
-  padding: 28px 16px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 0.88rem;
-}
+    .notification-count {
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      background: #fff;
+      color: var(--primary);
+      font-size: 0.65rem;
+      font-weight: 800;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-/* ── HAMBURGER ── */
-.toggle-btn {
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.12);
-  border: none;
-  gap: 5px;
-  flex-shrink: 0;
-  transition: background var(--transition);
-}
-.toggle-btn:hover { background: rgba(255,255,255,0.22); }
-.toggle-btn span {
-  display: block;
-  width: 22px;
-  height: 2.5px;
-  background: #fff;
-  border-radius: 2px;
-  transition: transform 0.3s, opacity 0.3s;
-}
-.toggle-btn.active span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
-.toggle-btn.active span:nth-child(2) { opacity: 0; }
-.toggle-btn.active span:nth-child(3) { transform: translateY(-7.5px) rotate(-45deg); }
+    .notification-dropdown {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
+      width: 370px;
+      max-width: calc(100vw - 24px);
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+      display: none;
+      overflow: hidden;
+      animation: dropIn 0.18s ease;
+      z-index: 2000;
+    }
 
-/* Mobile nav drawer */
-.nav-links.mobile {
-  display: none;
-  position: fixed;
-  top: 64px;
-  right: 0;
-  width: 260px;
-  height: calc(100vh - 64px);
-  background: var(--primary);
-  flex-direction: column;
-  padding: 16px 12px;
-  gap: 4px;
-  box-shadow: -6px 0 24px rgba(0,0,0,0.18);
-  z-index: 999;
-  overflow-y: auto;
-  animation: slideIn 0.25s ease;
-}
-.nav-links.mobile.active { display: flex; }
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(30px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-.nav-links.mobile a,
-.nav-links.mobile button.nav-btn {
-  width: 100%;
-  justify-content: flex-start;
-  padding: 12px 14px;
-  font-size: 0.95rem;
-}
+    .notification-dropdown.visible {
+      display: block;
+    }
 
-/* Notification relative wrapper */
-.notif-wrapper {
-  position: relative;
-}
+    @keyframes dropIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
 
-/* ── MESSAGES ── */
-.messages-container {
-  max-width: 860px;
-  margin: 16px auto 0;
-  padding: 0 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.msg-toast {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 0.88rem;
-  font-weight: 500;
-  animation: toastIn 0.3s ease;
-}
-@keyframes toastIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.msg-toast.success { background: #f0fdf4; color: #166534; border-left: 4px solid #16a34a; }
-.msg-toast.error   { background: #fef2f2; color: #991b1b; border-left: 4px solid #dc2626; }
-.msg-toast.warning { background: #fffbeb; color: #92400e; border-left: 4px solid #f59e0b; }
-.msg-toast.info    { background: #eff6ff; color: #1e40af; border-left: 4px solid #3b82f6; }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-/* ── FOOTER ── */
-.footer-section {
-  background: var(--primary);
-  color: #fff;
-  padding: 56px 24px 28px;
-  margin-top: 60px;
-  font-family: var(--font);
-}
+    .notif-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
 
-.footer-inner {
-  max-width: 1000px;
-  margin: 0 auto;
-}
+    .notif-header strong {
+      font-size: 0.9rem;
+    }
 
-.footer-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 48px;
-  margin-bottom: 44px;
-}
+    .notif-header small {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
 
-.footer-col h4 {
-    font-size: 1.5rem;
+    .notif-header a {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .notif-header a:hover {
+      text-decoration: underline;
+    }
+
+    .notification-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px 16px;
+      border-bottom: 1px solid #f3f4f6;
+      text-decoration: none;
+      color: var(--text);
+      transition: background var(--transition);
+    }
+
+    .notification-item:hover {
+      background: #fafafa;
+    }
+
+    .notification-item:last-child {
+      border-bottom: none;
+    }
+
+    .notification-badge {
+      min-width: 52px;
+      font-size: 0.68rem;
       font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  color: rgba(255,255,255,0.6);
-}
+      padding: 3px 8px;
+      border-radius: 999px;
+      text-align: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
 
-.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .notif-empty {
+      padding: 28px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
 
-.footer-col ul li a {
-  color: rgba(255,255,255,0.85);
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: color var(--transition), padding-left var(--transition);
-  display: inline-block;
-}
-.footer-col ul li a:hover { color: #fff; padding-left: 4px; }
+    /* ── HAMBURGER ── */
+    .toggle-btn {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      border: none;
+      gap: 5px;
+      flex-shrink: 0;
+      transition: background var(--transition);
+    }
 
-.footer-contact-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  font-size: 0.9rem;
-  color: rgba(255,255,255,0.85);
-}
-.footer-contact-row i { width: 16px; flex-shrink: 0; }
+    .toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
 
-.footer-bottom {
-  border-top: 1px solid rgba(255,255,255,0.18);
-  padding-top: 22px;
-  text-align: center;
-  font-size: 0.82rem;
-  color: rgba(255,255,255,0.6);
-}
+    .toggle-btn span {
+      display: block;
+      width: 22px;
+      height: 2.5px;
+      background: #fff;
+      border-radius: 2px;
+      transition: transform 0.3s, opacity 0.3s;
+    }
 
-/* ── UTILITY ── */
-.btn-primary-red {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 11px 24px;
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  text-decoration: none;
-  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
-  box-shadow: 0 4px 14px rgba(236,36,39,0.25);
-  font-family: var(--font);
-}
-.btn-primary-red:hover {
-  background: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(236,36,39,0.32);
-  color: #fff;
-}
+    .toggle-btn.active span:nth-child(1) {
+      transform: translateY(7.5px) rotate(45deg);
+    }
 
-.card-modern {
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
+    .toggle-btn.active span:nth-child(2) {
+      opacity: 0;
+    }
 
-@media (max-width: 768px) {
-  .nav-links.desktop { display: none !important; }
-  .toggle-btn { display: flex; }
-  .footer-grid { gap: 32px; }
-}
-@media (min-width: 769px) {
-  .nav-links.mobile { display: none !important; }
-  .toggle-btn { display: none; }
-}
-</style>
+    .toggle-btn.active span:nth-child(3) {
+      transform: translateY(-7.5px) rotate(-45deg);
+    }
+
+    .nav-links.mobile {
+      display: none;
+      position: fixed;
+      top: 64px;
+      right: 0;
+      width: 260px;
+      height: calc(100vh - 64px);
+      background: var(--primary);
+      flex-direction: column;
+      padding: 16px 12px;
+      gap: 4px;
+      box-shadow: -6px 0 24px rgba(0, 0, 0, 0.18);
+      z-index: 999;
+      overflow-y: auto;
+      animation: slideIn 0.25s ease;
+    }
+
+    .nav-links.mobile.active {
+      display: flex;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .nav-links.mobile a,
+    .nav-links.mobile button.nav-btn {
+      width: 100%;
+      justify-content: flex-start;
+      padding: 12px 14px;
+      font-size: 0.95rem;
+    }
+
+    .notif-wrapper {
+      position: relative;
+    }
+
+    .messages-container {
+      max-width: 860px;
+      margin: 16px auto 0;
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .msg-toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      font-weight: 500;
+      animation: toastIn 0.3s ease;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .msg-toast.success {
+      background: #f0fdf4;
+      color: #166534;
+      border-left: 4px solid #16a34a;
+    }
+
+    .msg-toast.error {
+      background: #fef2f2;
+      color: #991b1b;
+      border-left: 4px solid #dc2626;
+    }
+
+    .msg-toast.warning {
+      background: #fffbeb;
+      color: #92400e;
+      border-left: 4px solid #f59e0b;
+    }
+
+    .msg-toast.info {
+      background: #eff6ff;
+      color: #1e40af;
+      border-left: 4px solid #3b82f6;
+    }
+
+    .footer-section {
+      background: var(--primary);
+      color: #fff;
+      padding: 56px 24px 28px;
+      margin-top: 60px;
+      font-family: var(--font);
+    }
+
+    .footer-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 48px;
+      margin-bottom: 44px;
+    }
+
+    .footer-col h4 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-col ul li a {
+      color: rgba(255, 255, 255, 0.85);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color var(--transition), padding-left var(--transition);
+      display: inline-block;
+    }
+
+    .footer-col ul li a:hover {
+      color: #fff;
+      padding-left: 4px;
+    }
+
+    .footer-contact-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .footer-contact-row i {
+      width: 16px;
+      flex-shrink: 0;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.18);
+      padding-top: 22px;
+      text-align: center;
+      font-size: 0.82rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .btn-primary-red {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 24px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+      box-shadow: 0 4px 14px rgba(236, 36, 39, 0.25);
+      font-family: var(--font);
+    }
+
+    .btn-primary-red:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(236, 36, 39, 0.32);
+      color: #fff;
+    }
+
+    .card-modern {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+      .nav-links.desktop {
+        display: none !important;
+      }
+
+      .toggle-btn {
+        display: flex;
+      }
+
+      .footer-grid {
+        gap: 32px;
+      }
+    }
+
+    @media (min-width: 769px) {
+      .nav-links.mobile {
+        display: none !important;
+      }
+
+      .toggle-btn {
+        display: none;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<nav>
-  <div class="nav-inner">
-    <div class="logo">
-      <a href="{% url 'index' %}">
-        <img src="{% static 'images/logo1.png' %}" alt="Sick Bed Services Logo">
-      </a>
-    </div>
+  <nav>
+    <div class="nav-inner">
+      <div class="logo">
+        <a href="{% url 'index' %}">
+          <img src="{% static 'images/logo1.png' %}" alt="Sick Bed Services Logo">
+        </a>
+      </div>
 
-    <div class="nav-right">
-      <div class="nav-links desktop" id="navLinksDesktop">
-        <!-- <a href="{% url 'index' %}"><i class="fas fa-home"></i> Home</a> -->
-        <a href="{% url 'services' %}"><i class="fas fa-concierge-bell"></i> Services</a>
-        <a href="{% url 'items' %}"><i class="fas fa-th-large"></i> Items</a>
-        {% if user.is_authenticated %}
+      <div class="nav-right">
+        <div class="nav-links desktop" id="navLinksDesktop">
+          <!-- <a href="{% url 'index' %}"><i class="fas fa-home"></i> Home</a> -->
+          <a href="{% url 'services' %}"><i class="fas fa-concierge-bell"></i> Services</a>
+          <a href="{% url 'items' %}"><i class="fas fa-th-large"></i> Items</a>
+          {% if user.is_authenticated %}
           <a href="{% url 'bookingsammry' %}"><i class="fas fa-list-alt"></i> My Bookings</a>
           <a href="{% url 'cart' %}" class="nav-cart-btn"><i class="fas fa-cart-plus"></i></a>
           <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
-        {% else %}
+          {% else %}
           <a href="{% url 'signin' %}"><i class="fas fa-sign-in-alt"></i> Login</a>
-        {% endif %}
-      </div>
+          {% endif %}
+        </div>
 
-      {% if user.is_authenticated %}
+        {% if user.is_authenticated %}
         <span class="welcome-chip">{{ user.username }}</span>
         {% if user.is_staff or user.is_superuser %}
-          <div class="notif-wrapper">
-            <div class="notification-bell" id="notificationBell" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
-              <i class="fas fa-bell"></i>
-              <span>Alerts</span>
-              {% with unread_notification_count as count %}
-                {% if count > 0 %}<span class="notification-count">{{ count }}</span>{% endif %}
-              {% endwith %}
-            </div>
-            <div class="notification-dropdown" id="notificationDropdown">
-              <div class="notif-header">
-                <div>
-                  <strong>Notifications</strong><br>
-                  <small>Latest activity</small>
-                </div>
-                <a href="{% url 'admin_notifications' %}">View all →</a>
-              </div>
-              {% with latest_notifications as notifications %}
-                {% if notifications %}
-                  {% for note in notifications %}
-                    <a href="{% if note.link %}{{ note.link }}{% else %}{% url 'admin_notifications' %}{% endif %}" class="notification-item">
-                      <span class="notification-badge bg-{{ note.badge_class }} text-white">{{ note.get_type_display }}</span>
-                      <div style="flex:1;">
-                        <strong style="font-size:0.85rem;">{{ note.title }}</strong>
-                        <p style="margin:3px 0 0; font-size:0.8rem; color:var(--muted);">{{ note.message|truncatechars:70 }}</p>
-                        <small style="color:var(--muted); font-size:0.75rem;">{{ note.created_at|date:"d M, H:i" }}{% if not note.is_read %} · <span style="color:var(--primary);">Unread</span>{% endif %}</small>
-                      </div>
-                    </a>
-                  {% endfor %}
-                {% else %}
-                  <div class="notif-empty"><i class="fas fa-bell-slash" style="font-size:1.5rem; margin-bottom:8px; display:block;"></i>No new notifications</div>
-                {% endif %}
-              {% endwith %}
-            </div>
+        <div class="notif-wrapper">
+          <div class="notification-bell" id="notificationBell" role="button" tabindex="0" aria-haspopup="true"
+            aria-expanded="false">
+            <i class="fas fa-bell"></i>
+            <span>Alerts</span>
+            {% with unread_notification_count as count %}
+            {% if count > 0 %}<span class="notification-count">{{ count }}</span>{% endif %}
+            {% endwith %}
           </div>
+          <div class="notification-dropdown" id="notificationDropdown">
+            <div class="notif-header">
+              <div>
+                <strong>Notifications</strong><br>
+                <small>Latest activity</small>
+              </div>
+              <a href="{% url 'admin_notifications' %}">View all →</a>
+            </div>
+            {% with latest_notifications as notifications %}
+            {% if notifications %}
+            {% for note in notifications %}
+            <a href="{% if note.link %}{{ note.link }}{% else %}{% url 'admin_notifications' %}{% endif %}"
+              class="notification-item">
+              <span class="notification-badge bg-{{ note.badge_class }} text-white">{{ note.get_type_display }}</span>
+              <div style="flex:1;">
+                <strong style="font-size:0.85rem;">{{ note.title }}</strong>
+                <p style="margin:3px 0 0; font-size:0.8rem; color:var(--muted);">{{ note.message|truncatechars:70 }}</p>
+                <small style="color:var(--muted); font-size:0.75rem;">{{ note.created_at|date:"d M, H:i" }}{% if not
+                  note.is_read %} · <span style="color:var(--primary);">Unread</span>{% endif %}</small>
+              </div>
+            </a>
+            {% endfor %}
+            {% else %}
+            <div class="notif-empty"><i class="fas fa-bell-slash"
+                style="font-size:1.5rem; margin-bottom:8px; display:block;"></i>No new notifications</div>
+            {% endif %}
+            {% endwith %}
+          </div>
+        </div>
         {% endif %}
-      {% endif %}
+        {% endif %}
 
-      <button class="toggle-btn" id="toggleBtn" aria-label="Toggle navigation" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
+        <button class="toggle-btn" id="toggleBtn" aria-label="Toggle navigation" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
     </div>
-  </div>
 
-  <!-- Mobile Drawer -->
-  <div class="nav-links mobile" id="navLinksMobile">
-    <a href="{% url 'index' %}"><i class="fas fa-home"></i> Home</a>
-    <a href="{% url 'services' %}"><i class="fas fa-concierge-bell"></i> Services</a>
-    {% if user.is_authenticated %}
+    <div class="nav-links mobile" id="navLinksMobile">
+      <a href="{% url 'index' %}"><i class="fas fa-home"></i> Home</a>
+      <a href="{% url 'services' %}"><i class="fas fa-concierge-bell"></i> Services</a>
+      {% if user.is_authenticated %}
       <a href="{% url 'items' %}"><i class="fas fa-th-large"></i> Items</a>
       <a href="{% url 'bookingsammry' %}"><i class="fas fa-list-alt"></i> My Bookings</a>
       <a href="{% url 'cart' %}"><i class="fas fa-cart-plus"></i> Cart</a>
       <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
-    {% else %}
+      {% else %}
       <a href="{% url 'signin' %}"><i class="fas fa-sign-in-alt"></i> Login</a>
-    {% endif %}
-  </div>
-</nav>
+      {% endif %}
+    </div>
+  </nav>
 
-{% if messages %}
-<div class="messages-container">
-  {% for message in messages %}
+  {% if messages %}
+  <div class="messages-container">
+    {% for message in messages %}
     <div class="msg-toast {% if message.tags %}{{ message.tags }}{% endif %}">
       {% if 'success' in message.tags %}<i class="fas fa-check-circle"></i>
       {% elif 'error' in message.tags %}<i class="fas fa-exclamation-circle"></i>
@@ -524,132 +662,134 @@ nav {
       {% else %}<i class="fas fa-info-circle"></i>{% endif %}
       {{ message }}
     </div>
-  {% endfor %}
-</div>
-{% endif %}
-
-<main>
-  {% block content %}{% endblock %}
-</main>
-
-<footer class="footer-section">
-  <div class="footer-inner">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h4>Quick Links</h4>
-        <ul>
-          <li><a href="{% url 'index' %}">Home</a></li>
-          <li><a href="{% url 'services' %}">Services</a></li>
-          <li><a href="{% url 'items' %}">Rental Items</a></li>
-          <li><a href="{% url 'terms' %}">Terms & Conditions</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Contact Us</h4>
-        <div class="footer-contact-row">  <a href="tel:9867348169" style="color: white;"><i class="fas fa-phone"></i> 9867348169</a></div>
-        <div class="footer-contact-row"><a href="tel:9820247550" style="color: white;"><i class="fas fa-phone"></i> 9820247550</a></div>
-<div class="footer-contact-row">
-    <a href="mailto:bhayander@kutchyuvaksangh.org" style="color:white; text-decoration:none;">
-        <i class="fas fa-envelope"></i> bhayander@kutchyuvaksangh.org
-    </a>
-</div>        
-<div class="footer-contact-row"><i class="fas fa-globe"></i><a href="https://www.kutchyuvaksangh.org" target="_blank" style="color:rgba(255,255,255,0.85); text-decoration:none;">kutchyuvaksangh.org</a></div>
-      </div>
-      <div class="footer-col">
-    <h4>Social Links</h4>
-
-    <div class="footer-contact-row">
-        <a href="https://www.facebook.com/kysBhayander/" target="_blank" style="color:white; text-decoration:none;">
-            <i class="fab fa-facebook-f"></i> Facebook
-        </a>
-    </div>
-
-    <div class="footer-contact-row">
-        <a href="https://www.instagram.com/kysbhayander" target="_blank" style="color:white; text-decoration:none;">
-            <i class="fab fa-instagram"></i> Instagram
-        </a>
-    </div>
-
-    <div class="footer-contact-row">
-        <a href="https://www.youtube.com/@bhayanderkys4491" target="_blank" style="color:white; text-decoration:none;">
-            <i class="fab fa-youtube"></i> YouTube
-        </a>
-    </div>
-
-    <div class="footer-contact-row">
-        <a href="https://sites.google.com/kutchyuvaksangh.org/kysbhayander/home" target="_blank" style="color:white; text-decoration:none;">
-            <i class="fab fa-google"></i> Google
-        </a>
-    </div>
-</div>
-    </div>
-    <div class="footer-bottom">© 2026 Kutch Yuvak Sangh. All Rights Reserved.</div>
+    {% endfor %}
   </div>
-</footer>
+  {% endif %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  const toggleBtn = document.getElementById('toggleBtn');
-  const navMobile = document.getElementById('navLinksMobile');
-  const notifBell = document.getElementById('notificationBell');
-  const notifDrop = document.getElementById('notificationDropdown');
+  <main>
+    {% block content %}{% endblock %}
+  </main>
 
-  // Notification dropdown
-  if (notifBell && notifDrop) {
-    notifBell.addEventListener('click', function (e) {
-      e.stopPropagation();
-      const open = notifDrop.classList.toggle('visible');
-      notifBell.setAttribute('aria-expanded', open);
-    });
-    notifBell.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); notifBell.click(); }
-    });
-    document.addEventListener('click', function (e) {
-      if (!notifDrop.contains(e.target) && !notifBell.contains(e.target)) {
-        notifDrop.classList.remove('visible');
-        notifBell.setAttribute('aria-expanded', 'false');
+  <footer class="footer-section">
+    <div class="footer-inner">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="{% url 'index' %}">Home</a></li>
+            <li><a href="{% url 'services' %}">Services</a></li>
+            <li><a href="{% url 'items' %}">Rental Items</a></li>
+            <li><a href="{% url 'terms' %}">Terms & Conditions</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Contact Us</h4>
+          <div class="footer-contact-row"> <a href="tel:9867348169" style="color: white;"><i class="fas fa-phone"></i>
+              9867348169</a></div>
+          <div class="footer-contact-row"><a href="tel:9820247550" style="color: white;"><i class="fas fa-phone"></i>
+              9820247550</a></div>
+          <div class="footer-contact-row">
+            <a href="mailto:bhayander@kutchyuvaksangh.org" style="color:white; text-decoration:none;">
+              <i class="fas fa-envelope"></i> bhayander@kutchyuvaksangh.org
+            </a>
+          </div>
+          <div class="footer-contact-row"><i class="fas fa-globe"></i><a href="https://www.kutchyuvaksangh.org"
+              target="_blank" style="color:rgba(255,255,255,0.85); text-decoration:none;">kutchyuvaksangh.org</a></div>
+        </div>
+        <div class="footer-col">
+          <h4>Social Links</h4>
+
+          <div class="footer-contact-row">
+            <a href="https://www.facebook.com/kysBhayander/" target="_blank" style="color:white; text-decoration:none;">
+              <i class="fab fa-facebook-f"></i> Facebook</a>
+          </div>
+
+          <div class="footer-contact-row">
+            <a href="https://www.instagram.com/kysbhayander" target="_blank" style="color:white; text-decoration:none;">
+              <i class="fab fa-instagram"></i> Instagram </a>
+          </div>
+
+          <div class="footer-contact-row">
+            <a href="https://www.youtube.com/@bhayanderkys4491" target="_blank"
+              style="color:white; text-decoration:none;">
+              <i class="fab fa-youtube"></i> YouTube </a>
+          </div>
+
+          <div class="footer-contact-row">
+            <a href="https://sites.google.com/kutchyuvaksangh.org/kysbhayander/home" target="_blank"
+              style="color:white; text-decoration:none;">
+              <i class="fab fa-google"></i> Google </a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2026 Kutch Yuvak Sangh. All Rights Reserved.</div>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const toggleBtn = document.getElementById('toggleBtn');
+      const navMobile = document.getElementById('navLinksMobile');
+      const notifBell = document.getElementById('notificationBell');
+      const notifDrop = document.getElementById('notificationDropdown');
+
+      // Notification dropdown
+      if (notifBell && notifDrop) {
+        notifBell.addEventListener('click', function (e) {
+          e.stopPropagation();
+          const open = notifDrop.classList.toggle('visible');
+          notifBell.setAttribute('aria-expanded', open);
+        });
+        notifBell.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); notifBell.click(); }
+        });
+        document.addEventListener('click', function (e) {
+          if (!notifDrop.contains(e.target) && !notifBell.contains(e.target)) {
+            notifDrop.classList.remove('visible');
+            notifBell.setAttribute('aria-expanded', 'false');
+          }
+        });
       }
-    });
-  }
 
-  // Hamburger
-  if (toggleBtn && navMobile) {
-    toggleBtn.addEventListener('click', function () {
-      const open = navMobile.classList.toggle('active');
-      toggleBtn.classList.toggle('active', open);
-      toggleBtn.setAttribute('aria-expanded', open);
-      document.body.style.overflow = open ? 'hidden' : '';
-    });
+      // Hamburger
+      if (toggleBtn && navMobile) {
+        toggleBtn.addEventListener('click', function () {
+          const open = navMobile.classList.toggle('active');
+          toggleBtn.classList.toggle('active', open);
+          toggleBtn.setAttribute('aria-expanded', open);
+          document.body.style.overflow = open ? 'hidden' : '';
+        });
 
-    navMobile.querySelectorAll('a').forEach(link => {
-      link.addEventListener('click', () => {
-        navMobile.classList.remove('active');
-        toggleBtn.classList.remove('active');
-        toggleBtn.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
+        navMobile.querySelectorAll('a').forEach(link => {
+          link.addEventListener('click', () => {
+            navMobile.classList.remove('active');
+            toggleBtn.classList.remove('active');
+            toggleBtn.setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = '';
+          });
+        });
+
+        document.addEventListener('click', function (e) {
+          if (navMobile.classList.contains('active') &&
+            !navMobile.contains(e.target) && !toggleBtn.contains(e.target)) {
+            navMobile.classList.remove('active');
+            toggleBtn.classList.remove('active');
+            toggleBtn.setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = '';
+          }
+        });
+      }
+
+      // Auto-dismiss messages after 5s
+      document.querySelectorAll('.msg-toast').forEach(el => {
+        setTimeout(() => {
+          el.style.transition = 'opacity 0.4s';
+          el.style.opacity = '0';
+          setTimeout(() => el.remove(), 400);
+        }, 5000);
       });
     });
-
-    document.addEventListener('click', function (e) {
-      if (navMobile.classList.contains('active') &&
-          !navMobile.contains(e.target) && !toggleBtn.contains(e.target)) {
-        navMobile.classList.remove('active');
-        toggleBtn.classList.remove('active');
-        toggleBtn.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
-      }
-    });
-  }
-
-  // Auto-dismiss messages after 5s
-  document.querySelectorAll('.msg-toast').forEach(el => {
-    setTimeout(() => {
-      el.style.transition = 'opacity 0.4s';
-      el.style.opacity = '0';
-      setTimeout(() => el.remove(), 400);
-    }, 5000);
-  });
-});
-</script>
+  </script>
 </body>
+
 </html>

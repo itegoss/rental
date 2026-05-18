@@ -3,34 +3,201 @@
 {% block title %}Admin Notifications — Sick Bed Services{% endblock %}
 {% block content %}
 <style>
-.notif-page { max-width:900px; margin:40px auto; padding:0 20px; }
-.notif-page-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:28px; }
-.notif-page-head h1 { font-size:1.9rem; font-weight:800; color:var(--text); margin-bottom:4px; }
-.notif-page-head h1 span { color:var(--primary); }
-.notif-page-head p { color:var(--muted); font-size:0.88rem; margin:0; }
-.mark-all-btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:999px; background:#f3f4f6; color:var(--text); font-size:0.85rem; font-weight:700; text-decoration:none; transition:all 0.2s; border:1.5px solid var(--border); }
-.mark-all-btn:hover { background:var(--primary); color:#fff; border-color:var(--primary); }
-.notif-list { display:flex; flex-direction:column; gap:12px; }
-.notif-item { background:#fff; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,0.05); padding:18px 22px; display:flex; gap:16px; align-items:flex-start; border-left:4px solid transparent; transition:box-shadow 0.2s; }
-.notif-item.unread { border-left-color:var(--primary); background:#fffcfc; }
-.notif-item:hover { box-shadow:0 6px 24px rgba(0,0,0,0.09); }
-.notif-icon { width:44px; height:44px; border-radius:12px; background:var(--primary-light); display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:var(--primary); flex-shrink:0; }
-.notif-content { flex:1; min-width:0; }
-.notif-badges { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
-.n-badge { display:inline-flex; padding:3px 10px; border-radius:999px; font-size:0.72rem; font-weight:700; }
-.n-unread { background:#fee2e2; color:#991b1b; }
-.notif-content h3 { font-size:0.95rem; font-weight:700; margin-bottom:4px; }
-.notif-content p { font-size:0.85rem; color:var(--muted); margin-bottom:6px; line-height:1.5; }
-.notif-content small { font-size:0.76rem; color:var(--muted); }
-.notif-actions { display:flex; flex-direction:column; gap:8px; align-items:flex-end; flex-shrink:0; }
-.n-btn { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:999px; font-size:0.78rem; font-weight:700; text-decoration:none; white-space:nowrap; transition:all 0.2s; }
-.n-btn-open { background:#eff6ff; color:#2563eb; }
-.n-btn-open:hover { background:#2563eb; color:#fff; }
-.n-btn-read { background:var(--primary); color:#fff; }
-.n-btn-read:hover { background:var(--primary-dark); color:#fff; }
-.notif-empty { background:#fff; border-radius:16px; padding:70px 30px; text-align:center; box-shadow:var(--shadow); }
-.notif-empty i { font-size:2.8rem; color:var(--border); margin-bottom:14px; }
-.notif-empty p { color:var(--muted); font-size:0.95rem; }
+  .notif-page {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+  }
+
+  .notif-page-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .notif-page-head h1 {
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .notif-page-head h1 span {
+    color: var(--primary);
+  }
+
+  .notif-page-head p {
+    color: var(--muted);
+    font-size: 0.88rem;
+    margin: 0;
+  }
+
+  .mark-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1.5px solid var(--border);
+  }
+
+  .mark-all-btn:hover {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  .notif-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .notif-item {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    padding: 18px 22px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    border-left: 4px solid transparent;
+    transition: box-shadow 0.2s;
+  }
+
+  .notif-item.unread {
+    border-left-color: var(--primary);
+    background: #fffcfc;
+  }
+
+  .notif-item:hover {
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.09);
+  }
+
+  .notif-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+
+  .notif-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .notif-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+
+  .n-badge {
+    display: inline-flex;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .n-unread {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .notif-content h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .notif-content p {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+
+  .notif-content small {
+    font-size: 0.76rem;
+    color: var(--muted);
+  }
+
+  .notif-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
+  .n-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .n-btn-open {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+
+  .n-btn-open:hover {
+    background: #2563eb;
+    color: #fff;
+  }
+
+  .n-btn-read {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .n-btn-read:hover {
+    background: var(--primary-dark);
+    color: #fff;
+  }
+
+  .notif-empty {
+    background: #fff;
+    border-radius: 16px;
+    padding: 70px 30px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+
+  .notif-empty i {
+    font-size: 2.8rem;
+    color: var(--border);
+    margin-bottom: 14px;
+  }
+
+  .notif-empty p {
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
 </style>
 
 <div class="notif-page">
@@ -59,12 +226,13 @@
       </div>
       <div class="notif-actions">
         {% if note.link %}
-          <a href="{{ note.link }}" class="n-btn n-btn-open"><i class="fas fa-external-link-alt"></i> Open</a>
+        <a href="{{ note.link }}" class="n-btn n-btn-open"><i class="fas fa-external-link-alt"></i> Open</a>
         {% endif %}
         {% if not note.is_read %}
-          <a href="{% url 'mark_notification_read' note.id %}?next={% url 'admin_notifications' %}" class="n-btn n-btn-read">
-            <i class="fas fa-check"></i> Mark Read
-          </a>
+        <a href="{% url 'mark_notification_read' note.id %}?next={% url 'admin_notifications' %}"
+          class="n-btn n-btn-read">
+          <i class="fas fa-check"></i> Mark Read
+        </a>
         {% endif %}
       </div>
     </div>
