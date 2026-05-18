@@ -3,57 +3,348 @@
 {% block title %}Rental Items — Sick Bed Services{% endblock %}
 {% block content %}
 <style>
-.items-page { max-width:1280px; margin:0 auto; padding:40px 20px; }
-.items-page-head { text-align:center; margin-bottom:44px; }
-.items-page-head h1 { font-size:2.2rem; font-weight:800; color:var(--text); margin-bottom:10px; }
-.items-page-head h1 span { color:var(--primary); }
-.items-page-head p { color:var(--muted); font-size:0.97rem; }
-.underline-bar { width:80px; height:5px; background:linear-gradient(90deg,var(--primary),#ff6b6b); border-radius:4px; margin:12px auto 0; }
-.item-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:26px; }
-.item-card { background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,0.06); transition:transform 0.3s ease,box-shadow 0.3s ease; opacity:0; transform:translateY(20px); }
-.item-card.visible { opacity:1; transform:none; transition:opacity 0.4s ease,transform 0.4s ease,box-shadow 0.3s ease; }
-.item-card:hover { transform:translateY(-8px); box-shadow:0 20px 50px rgba(236,36,39,0.12); }
-.item-thumb { position:relative; height:220px; overflow:hidden; }
-.item-thumb img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.5s ease; }
-.item-card:hover .item-thumb img { transform:scale(1.07); }
-.avail-badge { position:absolute; top:12px; right:12px; padding:5px 13px; border-radius:999px; font-size:0.73rem; font-weight:700; color:#fff; text-transform:uppercase; letter-spacing:0.5px; }
-.badge-avail { background:linear-gradient(90deg,#16a34a,#22c55e); }
-.badge-oos   { background:linear-gradient(90deg,#dc2626,#ef4444); }
-.item-body { padding:18px 20px 22px; }
-.item-title { font-size:1.05rem; font-weight:700; margin-bottom:6px; color:var(--text); }
-.item-price { font-size:1.1rem; font-weight:800; color:var(--primary); margin-bottom:4px; }
-.item-deposit { font-size:0.82rem; color:var(--muted); font-weight:500; margin-bottom:10px; }
-.item-stock { font-size:0.83rem; font-weight:600; margin-bottom:14px; }
-.item-stock .avail  { color:#16a34a; }
-.item-stock .oos    { color:#dc2626; }
-.item-stock .next-date { display:block; font-size:0.78rem; color:var(--muted); font-weight:400; margin-top:3px; }
-.btn-rent { display:block; width:100%; padding:11px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; border:none; border-radius:999px; font-size:0.9rem; font-weight:700; font-family:var(--font); cursor:pointer; text-align:center; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 4px 14px rgba(236,36,39,0.22); }
-.btn-rent:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(236,36,39,0.3); }
-/* .btn-notify { display:block; width:100%; padding:11px; background:linear-gradient(135deg,#0ea5e9,#0284c7); color:#fff; border:none; border-radius:999px; font-size:0.9rem; font-weight:700; font-family:var(--font); cursor:pointer; text-align:center; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 4px 14px rgba(14,165,233,0.22); } */
+  .items-page {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
 
-.btn-notify { display:block; width:100%; padding:11px; color:#fff; border:none; border-radius:999px; font-size:0.9rem; font-weight:700; font-family:var(--font); cursor:pointer; text-align:center; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 4px 14px rgba(14,165,233,0.22); }
+  .items-page-head {
+    text-align: center;
+    margin-bottom: 44px;
+  }
 
-.btn-notify:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(14,165,233,0.3); }
-.no-items { grid-column:1/-1; text-align:center; padding:60px 20px; background:#fff; border-radius:18px; box-shadow:var(--shadow); }
-.no-items i { font-size:3rem; color:var(--primary); margin-bottom:16px; }
-.no-items p { color:var(--muted); font-size:0.95rem; }
+  .items-page-head h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
 
-/* ── NOTIFY MODAL ── */
-.n-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9000; align-items:center; justify-content:center; }
-.n-modal-overlay.open { display:flex; }
-.n-modal-card { background:#fff; border-radius:20px; padding:36px 32px; max-width:420px; width:90%; box-shadow:var(--shadow-lg); animation:scaleIn 0.25s ease; position:relative; }
-@keyframes scaleIn { from{transform:scale(0.88);opacity:0;} to{transform:scale(1);opacity:1;} }
-.n-modal-card .n-icon { width:58px; height:58px; background:var(--primary-light); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; color:var(--primary); margin-bottom:16px; }
-.n-modal-card h2 { font-size:1.3rem; font-weight:800; margin-bottom:6px; }
-.n-modal-card p.sub { color:var(--muted); font-size:0.88rem; margin-bottom:20px; }
-.n-modal-card .n-close { position:absolute; top:14px; right:18px; font-size:1.4rem; background:none; border:none; cursor:pointer; color:var(--muted); }
-.n-modal-card .n-close:hover { color:var(--text); }
-.n-form-field { margin-bottom:14px; }
-.n-form-field label { display:block; font-size:0.78rem; font-weight:600; color:var(--muted); margin-bottom:5px; text-transform:uppercase; }
-.n-form-field input { width:100%; padding:11px 13px; border:1.5px solid var(--border); border-radius:10px; font-size:0.93rem; font-family:var(--font); outline:none; background:#fafafa; }
-.n-form-field input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
-.btn-notify-submit { width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:10px; font-weight:700; font-family:var(--font); font-size:0.95rem; cursor:pointer; }
-@media(max-width:640px) { .item-thumb { height:180px; } .items-page-head h1 { font-size:1.7rem; } }
+  .items-page-head h1 span {
+    color: var(--primary);
+  }
+
+  .items-page-head p {
+    color: var(--muted);
+    font-size: 0.97rem;
+  }
+
+  .underline-bar {
+    width: 80px;
+    height: 5px;
+    background: linear-gradient(90deg, var(--primary), #ff6b6b);
+    border-radius: 4px;
+    margin: 12px auto 0;
+  }
+
+  .item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 26px;
+  }
+
+  .item-card {
+    background: #fff;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .item-card.visible {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.4s ease, transform 0.4s ease, box-shadow 0.3s ease;
+  }
+
+  .item-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 50px rgba(236, 36, 39, 0.12);
+  }
+
+  .item-thumb {
+    position: relative;
+    height: 220px;
+    overflow: hidden;
+  }
+
+  .item-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease;
+  }
+
+  .item-card:hover .item-thumb img {
+    transform: scale(1.07);
+  }
+
+  .avail-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 5px 13px;
+    border-radius: 999px;
+    font-size: 0.73rem;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-avail {
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+  }
+
+  .badge-oos {
+    background: linear-gradient(90deg, #dc2626, #ef4444);
+  }
+
+  .item-body {
+    padding: 18px 20px 22px;
+  }
+
+  .item-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  .item-price {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 4px;
+  }
+
+  .item-deposit {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+
+  .item-stock {
+    font-size: 0.83rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+
+  .item-stock .avail {
+    color: #16a34a;
+  }
+
+  .item-stock .oos {
+    color: #dc2626;
+  }
+
+  .item-stock .next-date {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-weight: 400;
+    margin-top: 3px;
+  }
+
+  .btn-rent {
+    display: block;
+    width: 100%;
+    padding: 11px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: var(--font);
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 14px rgba(236, 36, 39, 0.22);
+  }
+
+  .btn-rent:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(236, 36, 39, 0.3);
+  }
+
+  /* .btn-notify { display:block; width:100%; padding:11px; background:linear-gradient(135deg,#0ea5e9,#0284c7); color:#fff; border:none; border-radius:999px; font-size:0.9rem; font-weight:700; font-family:var(--font); cursor:pointer; text-align:center; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 4px 14px rgba(14,165,233,0.22); } */
+
+  .btn-notify {
+    display: block;
+    width: 100%;
+    padding: 11px;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: var(--font);
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.22);
+  }
+
+  .btn-notify:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(14, 165, 233, 0.3);
+  }
+
+  .no-items {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 60px 20px;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .no-items i {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 16px;
+  }
+
+  .no-items p {
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  /* ── NOTIFY MODAL ── */
+  .n-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9000;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .n-modal-overlay.open {
+    display: flex;
+  }
+
+  .n-modal-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 36px 32px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+    animation: scaleIn 0.25s ease;
+    position: relative;
+  }
+
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.88);
+      opacity: 0;
+    }
+
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .n-modal-card .n-icon {
+    width: 58px;
+    height: 58px;
+    background: var(--primary-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--primary);
+    margin-bottom: 16px;
+  }
+
+  .n-modal-card h2 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+
+  .n-modal-card p.sub {
+    color: var(--muted);
+    font-size: 0.88rem;
+    margin-bottom: 20px;
+  }
+
+  .n-modal-card .n-close {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-size: 1.4rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+  }
+
+  .n-modal-card .n-close:hover {
+    color: var(--text);
+  }
+
+  .n-form-field {
+    margin-bottom: 14px;
+  }
+
+  .n-form-field label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+  }
+
+  .n-form-field input {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.93rem;
+    font-family: var(--font);
+    outline: none;
+    background: #fafafa;
+  }
+
+  .n-form-field input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(236, 36, 39, 0.1);
+  }
+
+  .btn-notify-submit {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-family: var(--font);
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  @media(max-width:640px) {
+    .item-thumb {
+      height: 180px;
+    }
+
+    .items-page-head h1 {
+      font-size: 1.7rem;
+    }
+  }
 </style>
 
 <div class="items-page">
@@ -68,9 +359,9 @@
     <div class="item-card">
       <div class="item-thumb">
         {% if item.image %}
-          <img src="{{ item.image.url }}" alt="{{ item.title }}" loading="lazy">
+        <img src="{{ item.image.url }}" alt="{{ item.title }}" loading="lazy">
         {% else %}
-          <img src="{% static 'images/default-placeholder.png' %}" alt="No Image" loading="lazy">
+        <img src="{% static 'images/default-placeholder.png' %}" alt="No Image" loading="lazy">
         {% endif %}
         <span class="avail-badge {% if item.available_quantity > 0 %}badge-avail{% else %}badge-oos{% endif %}">
           {% if item.available_quantity > 0 %}Available{% else %}Out of Stock{% endif %}
@@ -78,25 +369,26 @@
       </div>
       <div class="item-body">
         <div class="item-title">{{ item.title }}</div>
-        <div class="item-price">₹{{ item.price_per_day }} <small style="font-weight:500; font-size:0.75rem; color:var(--muted);">/ day</small></div>
+        <div class="item-price">₹{{ item.price_per_day }} <small
+            style="font-weight:500; font-size:0.75rem; color:var(--muted);">/ day</small></div>
         <div class="item-deposit">Deposit: ₹{{ item.deposit }}</div>
         <div class="item-stock">
           {% if item.available_quantity > 0 %}
-            <span class="avail"><i class="fas fa-check-circle"></i> {{ item.available_quantity }} left</span>
+          <span class="avail"><i class="fas fa-check-circle"></i> {{ item.available_quantity }} left</span>
           {% else %}
-            <span class="oos"><i class="fas fa-times-circle"></i> Out of Stock</span>
-            {% if item.next_available_date %}
-              <span class="next-date">Next available: {{ item.next_available_date|date:"F j, Y" }}</span>
-            {% endif %}
+          <span class="oos"><i class="fas fa-times-circle"></i> Out of Stock</span>
+          {% if item.next_available_date %}
+          <span class="next-date">Next available: {{ item.next_available_date|date:"F j, Y" }}</span>
+          {% endif %}
           {% endif %}
         </div>
         {% if item.available_quantity > 0 %}
-          <form action="{% url 'add_to_cart' item.id %}" method="POST">
-            {% csrf_token %}
-            <button type="submit" class="btn-rent"><i class="fas fa-shopping-cart"></i> Rent Now</button>
-          </form>
+        <form action="{% url 'add_to_cart' item.id %}" method="POST">
+          {% csrf_token %}
+          <button type="submit" class="btn-rent"><i class="fas fa-shopping-cart"></i> Rent Now</button>
+        </form>
         {% else %}
-          <button class="btn-notify" style="    display: inline-flex;
+        <button class="btn-notify" style="    display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 11px 24px;
@@ -108,8 +400,8 @@
     text-decoration: none;
     transition: all 0.22s;
 " onclick="openNotifyModal('{{ item.id }}','{{ item.title|escapejs }}')">
-            <i class="fas fa-bell"></i> Notify Me
-          </button>
+          <i class="fas fa-bell"></i> Notify Me
+        </button>
         {% endif %}
       </div>
     </div>
@@ -146,29 +438,29 @@
 </div>
 
 <script>
-function openNotifyModal(id, title) {
-  document.getElementById('modalItemId').value = id;
-  document.getElementById('modalItemTitle').textContent = 'We\'ll notify you when "' + title + '" becomes available.';
-  document.getElementById('notifyModal').classList.add('open');
-}
-function closeNotifyModal() { document.getElementById('notifyModal').classList.remove('open'); }
-document.getElementById('notifyModal').addEventListener('click', e => {
-  if (e.target === document.getElementById('notifyModal')) closeNotifyModal();
-});
-
-// Card entrance animation
-document.addEventListener('DOMContentLoaded', function() {
-  const cards = document.querySelectorAll('.item-card');
-  if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver((entries, obs) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) { entry.target.classList.add('visible'); obs.unobserve(entry.target); }
-      });
-    }, { threshold: 0.1 });
-    cards.forEach(c => io.observe(c));
-  } else {
-    cards.forEach(c => c.classList.add('visible'));
+  function openNotifyModal(id, title) {
+    document.getElementById('modalItemId').value = id;
+    document.getElementById('modalItemTitle').textContent = 'We\'ll notify you when "' + title + '" becomes available.';
+    document.getElementById('notifyModal').classList.add('open');
   }
-});
+  function closeNotifyModal() { document.getElementById('notifyModal').classList.remove('open'); }
+  document.getElementById('notifyModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('notifyModal')) closeNotifyModal();
+  });
+
+  // Card entrance animation
+  document.addEventListener('DOMContentLoaded', function () {
+    const cards = document.querySelectorAll('.item-card');
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) { entry.target.classList.add('visible'); obs.unobserve(entry.target); }
+        });
+      }, { threshold: 0.1 });
+      cards.forEach(c => io.observe(c));
+    } else {
+      cards.forEach(c => c.classList.add('visible'));
+    }
+  });
 </script>
 {% endblock %}

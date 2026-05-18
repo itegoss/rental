@@ -1,155 +1,711 @@
 {% extends "base.html" %}
 {% block title %}My Bookings — Sick Bed Services{% endblock %}
 {% block content %}
-
-
-
-
-
-
-
-
 <style>
-.bookings-page { max-width:1360px; margin:40px auto; padding:0 40px; }
-.bookings-head { text-align:center; margin-bottom:36px; }
-.bookings-head h1 { font-size:2rem; font-weight:800; color:var(--text); margin-bottom:6px; }
-.bookings-head h1 span { color:var(--primary); }
-.bookings-head p { color:var(--muted); font-size:0.92rem; }
-.underline-bar { width:64px; height:5px; background:linear-gradient(90deg,var(--primary),#ff6b6b); border-radius:4px; margin:10px auto 0; }
-.contact-notice { background:#fff8f8; border:1px solid #fca5a5; border-radius:12px; padding:14px 20px; margin-bottom:24px; display:flex; align-items:center; gap:12px; }
-.contact-notice i { color:var(--primary); font-size:1.1rem; flex-shrink:0; }
-.contact-notice p { font-size:0.88rem; color:#7f1d1d; margin:0; }
-.contact-notice strong { color:var(--primary); }
-.table-tools { background:#fff; border-radius:16px; box-shadow:var(--shadow); padding:16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
-.search-wrap { position:relative; flex:1; min-width:260px; }
-.search-wrap i { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:0.9rem; }
-.search-wrap input { width:100%; padding:11px 14px 11px 38px; border:1.5px solid var(--border); border-radius:10px; font-family:var(--font); font-size:0.9rem; outline:none; background:#fafafa; }
-.search-wrap input:focus { border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
-.page-size { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:0.85rem; font-weight:700; }
-.page-size select { padding:9px 12px; border:1.5px solid var(--border); border-radius:10px; font-family:var(--font); background:#fff; outline:none; }
-.bookings-table-wrap { background:#fff; border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
-.bookings-table-scroll { overflow-x:auto; }
-.bookings-table { width:100%; border-collapse:collapse; min-width:1180px; table-layout:auto; }
-.bookings-table th { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; font-size:0.76rem; font-weight:800; text-transform:uppercase; letter-spacing:0.45px; padding:15px 18px; text-align:left; white-space:nowrap; cursor:pointer; user-select:none; }
-.bookings-table th.no-sort { cursor:default; }
-.bookings-table th .sort-icon { margin-left:6px; opacity:0.7; font-size:0.7rem; }
-.bookings-table td { padding:15px 18px; border-top:1px solid var(--border); font-size:0.86rem; vertical-align:middle; }
-.bookings-table th.col-order, .bookings-table td.col-order { width:150px; }
-.bookings-table th.col-date, .bookings-table td.col-date { width:150px; }
-.bookings-table th.col-id, .bookings-table td.col-id { width:90px; }
-.bookings-table th.col-days, .bookings-table td.col-days { width:75px; }
-.bookings-table th.col-status, .bookings-table td.col-status { width:180px; }
-.bookings-table th.col-action, .bookings-table td.col-action { width:250px; }
-.bookings-table tbody tr:hover td { background:#fffafa; }
-.bookings-table .order-link { color:var(--primary); font-weight:800; }
-.bookings-table .item-name { font-weight:800; color:var(--text); }
-.pagination-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-top:1px solid var(--border); flex-wrap:wrap; }
-.page-info { color:var(--muted); font-size:0.85rem; font-weight:600; }
-.page-buttons { display:flex; gap:8px; flex-wrap:wrap; }
-.page-btn { min-width:34px; height:34px; border:none; border-radius:8px; background:#f3f4f6; color:var(--text); font-weight:800; cursor:pointer; }
-.page-btn:hover,.page-btn.active { background:var(--primary); color:#fff; }
-.page-btn:disabled { opacity:0.45; cursor:not-allowed; background:#f3f4f6; color:var(--muted); }
-.no-results-row td { text-align:center; color:var(--muted); padding:34px 16px; font-weight:700; }
+  .bookings-page {
+    max-width: 1360px;
+    margin: 40px auto;
+    padding: 0 40px;
+  }
 
-/* Booking card */
-.booking-card { background:#fff; border-radius:18px; box-shadow:var(--shadow); margin-bottom:22px; overflow:hidden; }
-.booking-card-header { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); padding:14px 22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
-.booking-card-header .b-title { font-size:1rem; font-weight:700; color:#fff; }
-.booking-card-header .b-meta { display:flex; gap:16px; font-size:0.83rem; color:rgba(255,255,255,0.88); flex-wrap:wrap; }
-.order-id-bar { background:#f8fafc; padding:9px 22px; font-size:0.82rem; font-weight:700; color:var(--muted); border-bottom:1px solid var(--border); }
-.order-id-bar span { color:var(--primary); }
+  .bookings-head {
+    text-align: center;
+    margin-bottom: 36px;
+  }
 
-/* Table */
-.b-table { width:100%; border-collapse:collapse; }
-.b-table th { background:#f3f4f6; font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:11px 16px; color:var(--muted); text-align:left; }
-.b-table td { padding:12px 16px; font-size:0.88rem; border-top:1px solid var(--border); vertical-align:middle; }
-.b-table tr:hover td { background:#fafafa; }
+  .bookings-head h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
 
-/* Status badges */
-.s-badge { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:999px; font-size:0.76rem; font-weight:700; white-space:nowrap; }
-.s-pending  { background:#fff3cd; color:#92400e; }
-.s-approved { background:#dbeafe; color:#1e40af; }
-.s-returned { background:#d1fae5; color:#065f46; }
-.s-rejected { background:#fee2e2; color:#991b1b; }
-.s-cancelled { background:#f3f4f6; color:#4b5563; }
+  .bookings-head h1 span {
+    color: var(--primary);
+  }
 
-/* Action buttons */
-.act-btn { display:inline-flex; align-items:center; gap:5px; padding:7px 12px; border-radius:999px; font-size:0.78rem; font-weight:700; text-decoration:none; cursor:pointer; border:none; font-family:var(--font); transition:all 0.2s; white-space:nowrap; }
-.act-btn[data-tooltip] { position:relative; }
-.act-btn[data-tooltip]::after { content:attr(data-tooltip); position:absolute; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%) translateY(4px); background:#111827; color:#fff; padding:6px 9px; border-radius:7px; font-size:0.72rem; font-weight:700; opacity:0; pointer-events:none; white-space:nowrap; transition:opacity 0.18s,transform 0.18s; z-index:20; box-shadow:0 6px 16px rgba(0,0,0,0.18); }
-.act-btn[data-tooltip]::before { content:""; position:absolute; left:50%; bottom:calc(100% + 3px); transform:translateX(-50%) translateY(4px); border:5px solid transparent; border-top-color:#111827; opacity:0; pointer-events:none; transition:opacity 0.18s,transform 0.18s; z-index:21; }
-.act-btn[data-tooltip]:hover::after,.act-btn[data-tooltip]:hover::before { opacity:1; transform:translateX(-50%) translateY(0); }
-.act-return  { background:#3b82f6; color:#fff; box-shadow:0 2px 8px rgba(236,36,39,0.22); }
+  .bookings-head p {
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
 
-.act-return1  { color:#fff; box-shadow:0 2px 8px rgba(236,36,39,0.22); }
+  .underline-bar {
+    width: 64px;
+    height: 5px;
+    background: linear-gradient(90deg, var(--primary), #ff6b6b);
+    border-radius: 4px;
+    margin: 10px auto 0;
+  }
 
-.act-return:hover { background:var(--primary-dark); transform:translateY(-1px); color:#fff; }
-.act-extend  { background:#f59e0b; color:#fff; box-shadow:0 2px 8px rgba(245,158,11,0.22); }
-.act-extend:hover { background:#d97706; transform:translateY(-1px); color:#fff; }
-.act-cancel  { background:#6b7280; color:#fff; }
-.act-cancel:hover { background:#4b5563; transform:translateY(-1px); color:#fff; }
-.act-view    { background:var(--primary); color:#fff; }
-.act-view:hover { background:#2563eb; transform:translateY(-1px); color:#fff; }
-.actions-wrap { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .contact-notice {
+    background: #fff8f8;
+    border: 1px solid #fca5a5;
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
 
-/* Empty */
-.empty-bookings { background:#fff; border-radius:18px; box-shadow:var(--shadow); padding:70px 30px; text-align:center; }
-.empty-bookings i { font-size:3rem; color:var(--border); margin-bottom:16px; }
-.empty-bookings h2 { font-size:1.4rem; font-weight:700; margin-bottom:8px; }
-.empty-bookings p { color:var(--muted); margin-bottom:22px; }
+  .contact-notice i {
+    color: var(--primary);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
 
-/* Deposit modal */
-.d-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; }
-.d-modal-overlay.open { display:flex; }
-.d-modal-card { background:#fff; border-radius:20px; padding:36px 32px; max-width:400px; width:90%; text-align:center; box-shadow:var(--shadow-lg); animation:scaleIn 0.25s ease; position:relative; }
-.d-close { position:absolute; top:14px; right:16px; width:34px; height:34px; border:none; border-radius:50%; background:#f3f4f6; color:#6b7280; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.95rem; transition:all 0.2s; }
-.d-close:hover { background:#e5e7eb; color:var(--text); }
-@keyframes scaleIn { from{transform:scale(0.88);opacity:0;} to{transform:scale(1);opacity:1;} }
-.d-modal-card .d-icon { font-size:2.4rem; color:var(--primary); margin-bottom:14px; }
-.d-modal-card h2 { font-size:1.25rem; font-weight:800; margin-bottom:8px; }
-.d-modal-card p { color:var(--muted); font-size:0.9rem; margin-bottom:22px; line-height:1.6; }
-.d-donate-fields { display:none; text-align:left; margin:0 0 18px; }
-.d-donate-fields.open { display:block; }
-.d-current-deposit { background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px; color:var(--text); font-size:0.9rem; font-weight:700; }
-.d-current-deposit span { color:var(--primary); }
-.d-field { margin-bottom:12px; }
-.d-field label { display:block; font-size:0.78rem; font-weight:700; color:var(--muted); margin-bottom:5px; text-transform:uppercase; }
-.d-field input,.d-field textarea { width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-family:var(--font); font-size:0.9rem; outline:none; }
-.d-field input:focus,.d-field textarea:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
-.d-error { display:none; color:#dc2626; font-size:0.78rem; font-weight:700; margin:-6px 0 12px; text-align:left; }
-.d-error.open { display:block; }
-.d-modal-btns { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+  .contact-notice p {
+    font-size: 0.88rem;
+    color: #7f1d1d;
+    margin: 0;
+  }
 
-@media(max-width:640px) {
-  .bookings-page { padding:0 16px; }
-  .booking-card-header { flex-direction:column; align-items:flex-start; }
-  .b-table th, .b-table td { padding:9px 12px; }
-}
+  .contact-notice strong {
+    color: var(--primary);
+  }
 
-/* .btn-primary-red{
-   display: inline-flex !important;
-    align-items: center !important;
-    background: var(--primary) !important;
-    justify-content: center !important;
-    min-width: 200px !important;
-    max-width: 260px !important;
-    width: 100% !important;
-    padding: 14px 26px !important;
-    gap: 10px !important;
-    font-size: 0.98rem !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.6px !important;
-    line-height: 1 !important;
-    margin: 0 auto !important;
-    box-shadow: 0 10px 28px rgba(236, 36, 39, 0.22) !important; 
-} */
+  .table-tools {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
 
- .btn-primary-red i{
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 260px;
+  }
+
+  .search-wrap i {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .search-wrap input {
+    width: 100%;
+    padding: 11px 14px 11px 38px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font);
+    font-size: 0.9rem;
+    outline: none;
+    background: #fafafa;
+  }
+
+  .search-wrap input:focus {
+    border-color: var(--primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(236, 36, 39, 0.1);
+  }
+
+  .page-size {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .page-size select {
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font);
+    background: #fff;
+    outline: none;
+  }
+
+  .bookings-table-wrap {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .bookings-table-scroll {
+    overflow-x: auto;
+  }
+
+  .bookings-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1180px;
+    table-layout: auto;
+  }
+
+  .bookings-table th {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.45px;
+    padding: 15px 18px;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .bookings-table th.no-sort {
+    cursor: default;
+  }
+
+  .bookings-table th .sort-icon {
+    margin-left: 6px;
+    opacity: 0.7;
+    font-size: 0.7rem;
+  }
+
+  .bookings-table td {
+    padding: 15px 18px;
+    border-top: 1px solid var(--border);
+    font-size: 0.86rem;
+    vertical-align: middle;
+  }
+
+  .bookings-table th.col-order,
+  .bookings-table td.col-order {
+    width: 150px;
+  }
+
+  .bookings-table th.col-date,
+  .bookings-table td.col-date {
+    width: 150px;
+  }
+
+  .bookings-table th.col-id,
+  .bookings-table td.col-id {
+    width: 90px;
+  }
+
+  .bookings-table th.col-days,
+  .bookings-table td.col-days {
+    width: 75px;
+  }
+
+  .bookings-table th.col-status,
+  .bookings-table td.col-status {
+    width: 180px;
+  }
+
+  .bookings-table th.col-action,
+  .bookings-table td.col-action {
+    width: 250px;
+  }
+
+  .bookings-table tbody tr:hover td {
+    background: #fffafa;
+  }
+
+  .bookings-table .order-link {
+    color: var(--primary);
+    font-weight: 800;
+  }
+
+  .bookings-table .item-name {
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  .pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .page-info {
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .page-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .page-btn {
+    min-width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 8px;
+    background: #f3f4f6;
+    color: var(--text);
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .page-btn:hover,
+  .page-btn.active {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .page-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: #f3f4f6;
+    color: var(--muted);
+  }
+
+  .no-results-row td {
+    text-align: center;
+    color: var(--muted);
+    padding: 34px 16px;
+    font-weight: 700;
+  }
+
+  /* Booking card */
+  .booking-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    margin-bottom: 22px;
+    overflow: hidden;
+  }
+
+  .booking-card-header {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    padding: 14px 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .booking-card-header .b-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .booking-card-header .b-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 0.83rem;
+    color: rgba(255, 255, 255, 0.88);
+    flex-wrap: wrap;
+  }
+
+  .order-id-bar {
+    background: #f8fafc;
+    padding: 9px 22px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .order-id-bar span {
+    color: var(--primary);
+  }
+
+  /* Table */
+  .b-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .b-table th {
+    background: #f3f4f6;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 11px 16px;
+    color: var(--muted);
+    text-align: left;
+  }
+
+  .b-table td {
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    border-top: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .b-table tr:hover td {
+    background: #fafafa;
+  }
+
+  /* Status badges */
+  .s-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .s-pending {
+    background: #fff3cd;
+    color: #92400e;
+  }
+
+  .s-approved {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .s-returned {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .s-rejected {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .s-cancelled {
+    background: #f3f4f6;
+    color: #4b5563;
+  }
+
+  /* Action buttons */
+  .act-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    font-family: var(--font);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .act-btn[data-tooltip] {
+    position: relative;
+  }
+
+  .act-btn[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%) translateY(4px);
+    background: #111827;
+    color: #fff;
+    padding: 6px 9px;
+    border-radius: 7px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    opacity: 0;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: opacity 0.18s, transform 0.18s;
+    z-index: 20;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  }
+
+  .act-btn[data-tooltip]::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 3px);
+    transform: translateX(-50%) translateY(4px);
+    border: 5px solid transparent;
+    border-top-color: #111827;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s, transform 0.18s;
+    z-index: 21;
+  }
+
+  .act-btn[data-tooltip]:hover::after,
+  .act-btn[data-tooltip]:hover::before {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .act-return {
+    background: #3b82f6;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(236, 36, 39, 0.22);
+  }
+
+  .act-return1 {
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(236, 36, 39, 0.22);
+  }
+
+  .act-return:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  .act-extend {
+    background: #f59e0b;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.22);
+  }
+
+  .act-extend:hover {
+    background: #d97706;
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  .act-cancel {
+    background: #6b7280;
+    color: #fff;
+  }
+
+  .act-cancel:hover {
+    background: #4b5563;
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  .act-view {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .act-view:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  .actions-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* Empty */
+  .empty-bookings {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 70px 30px;
+    text-align: center;
+  }
+
+  .empty-bookings i {
+    font-size: 3rem;
+    color: var(--border);
+    margin-bottom: 16px;
+  }
+
+  .empty-bookings h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .empty-bookings p {
+    color: var(--muted);
+    margin-bottom: 22px;
+  }
+
+  /* Deposit modal */
+  .d-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .d-modal-overlay.open {
+    display: flex;
+  }
+
+  .d-modal-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 36px 32px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    animation: scaleIn 0.25s ease;
+    position: relative;
+  }
+
+  .d-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: #f3f4f6;
+    color: #6b7280;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+  }
+
+  .d-close:hover {
+    background: #e5e7eb;
+    color: var(--text);
+  }
+
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.88);
+      opacity: 0;
+    }
+
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .d-modal-card .d-icon {
+    font-size: 2.4rem;
+    color: var(--primary);
+    margin-bottom: 14px;
+  }
+
+  .d-modal-card h2 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .d-modal-card p {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 22px;
+    line-height: 1.6;
+  }
+
+  .d-donate-fields {
+    display: none;
+    text-align: left;
+    margin: 0 0 18px;
+  }
+
+  .d-donate-fields.open {
+    display: block;
+  }
+
+  .d-current-deposit {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .d-current-deposit span {
+    color: var(--primary);
+  }
+
+  .d-field {
+    margin-bottom: 12px;
+  }
+
+  .d-field label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+  }
+
+  .d-field input,
+  .d-field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font);
+    font-size: 0.9rem;
+    outline: none;
+  }
+
+  .d-field input:focus,
+  .d-field textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(236, 36, 39, 0.1);
+  }
+
+  .d-error {
+    display: none;
+    color: #dc2626;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin: -6px 0 12px;
+    text-align: left;
+  }
+
+  .d-error.open {
+    display: block;
+  }
+
+  .d-modal-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  @media(max-width:640px) {
+    .bookings-page {
+      padding: 0 16px;
+    }
+
+    .booking-card-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .b-table th,
+    .b-table td {
+      padding: 9px 12px;
+    }
+  }
+
+  .btn-primary-red i {
     font-size: 1rem;
     color: var(--border);
     margin-bottom: 1px !important;
- }
+  }
 </style>
 
 <div class="bookings-page">
@@ -160,134 +716,149 @@
   </div>
 
   {% if booking_summaries %}
-    <div class="contact-notice">
-      <i class="fas fa-phone-alt"></i>
-      <p>To extend your rental period, contact admin: <strong>+91 88505 13009</strong></p>
-    </div>
+  <div class="contact-notice">
+    <i class="fas fa-phone-alt"></i>
+    <p>To extend your rental period, contact admin: <strong>+91 88505 13009</strong></p>
+  </div>
 
-    <div class="table-tools">
-      <div class="search-wrap">
-        <i class="fas fa-search"></i>
-        <input type="search" id="bookingSearch" placeholder="Search by order, item, date, customer, status">
-      </div>
-      <label class="page-size" for="pageSize">
-        Show
-        <select id="pageSize">
-          <option value="5">5</option>
-          <option value="10" selected>10</option>
-          <option value="25">25</option>
-          <option value="50">50</option>
-        </select>
-      </label>
+  <div class="table-tools">
+    <div class="search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="search" id="bookingSearch" placeholder="Search by order, item, date, customer, status">
     </div>
+    <label class="page-size" for="pageSize">
+      Show
+      <select id="pageSize">
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+      </select>
+    </label>
+  </div>
 
-    <div class="bookings-table-wrap">
-      <div class="bookings-table-scroll">
-        <table class="bookings-table" id="bookingsTable">
-          <thead>
-            <tr>
-              <th class="col-order" data-sort="text">Order ID <i class="fas fa-sort sort-icon"></i></th>
-              <th class="col-date" data-sort="date">Date <i class="fas fa-sort sort-icon"></i></th>
-              {% if request.user.is_superuser or request.user.is_staff %}
-              <th class="col-customer" data-sort="text">Customer <i class="fas fa-sort sort-icon"></i></th>
+  <div class="bookings-table-wrap">
+    <div class="bookings-table-scroll">
+      <table class="bookings-table" id="bookingsTable">
+        <thead>
+          <tr>
+            <th class="col-order" data-sort="text">Order ID <i class="fas fa-sort sort-icon"></i></th>
+            <th class="col-date" data-sort="date">Date <i class="fas fa-sort sort-icon"></i></th>
+            {% if request.user.is_superuser or request.user.is_staff %}
+            <th class="col-customer" data-sort="text">Customer <i class="fas fa-sort sort-icon"></i></th>
+            {% endif %}
+            <th class="col-item" data-sort="text">Item <i class="fas fa-sort sort-icon"></i></th>
+            <th class="col-qty" data-sort="number">Quantity <i class="fas fa-sort sort-icon"></i></th>
+            {% if request.user.is_superuser or request.user.is_staff %}
+            <th class="col-id" data-sort="number">ID <i class="fas fa-sort sort-icon"></i></th>
+            {% endif %}
+            <th class="col-days" data-sort="number">Days <i class="fas fa-sort sort-icon"></i></th>
+            <th class="col-status" data-sort="text">Status <i class="fas fa-sort sort-icon"></i></th>
+            <th class="col-action no-sort">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for booking in booking_summaries %}
+          {% for rr in booking.items %}
+          <tr>
+            <td class="col-order" data-value="{{ booking.order_id }}"><span class="order-link">{{ booking.order_id
+                }}</span></td>
+            <td class="col-date" data-value="{{ booking.date|date:'Y-m-d' }}">{{ booking.date|date:"M d, Y" }}</td>
+            {% if request.user.is_superuser or request.user.is_staff %}
+            <td class="col-customer"
+              data-value="{% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}">
+              {% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}
+            </td>
+            {% endif %}
+            <td class="col-item" data-value="{{ rr.rental_item.title }}"><span class="item-name">{{ rr.rental_item.title
+                }}</span></td>
+            <td class="col-qty" data-value="{{ rr.quantity }}">{{ rr.quantity }}</td>
+            {% if request.user.is_superuser or request.user.is_staff %}
+            <td class="col-id" data-value="{{ rr.id }}">{{ rr.id }}</td>
+            {% endif %}
+            <td class="col-days" data-value="{{ rr.rental_days }}">{{ rr.rental_days }}</td>
+            <td class="col-status"
+              data-value="{% if rr.status == 'pending' and not rr.is_return_requested %}Booking Pending{% elif rr.status == 'rejected' and not rr.is_returned %}Booking Rejected{% elif rr.status == 'cancelled' %}Cancelled{% elif rr.is_returned %}Returned{% elif rr.status == 'approved' and rr.is_return_requested %}Return Pending{% elif rr.status == 'approved' %}Approved{% else %}Pending{% endif %}">
+              {% if rr.status == "pending" and not rr.is_return_requested %}
+              <span class="s-badge s-pending"><i class="fas fa-clock"></i> Booking Pending</span>
+              {% elif rr.status == "rejected" and not rr.is_returned %}
+              <span class="s-badge s-rejected"><i class="fas fa-times-circle"></i> Booking Rejected</span>
+              {% elif rr.status == "cancelled" %}
+              <span class="s-badge s-cancelled"><i class="fas fa-ban"></i> Cancelled</span>
+              {% elif rr.is_returned %}
+              <span class="s-badge s-returned"><i class="fas fa-check-circle"></i> Returned</span>
+              {% elif rr.status == "approved" and rr.is_return_requested %}
+              <span class="s-badge s-pending"><i class="fas fa-clock"></i> Return Pending</span>
+              {% elif rr.status == "approved" %}
+              <span class="s-badge s-approved"><i class="fas fa-check-circle"></i> Approved</span>
+              {% else %}
+              <span class="s-badge s-pending"><i class="fas fa-clock"></i> Pending</span>
               {% endif %}
-              <th class="col-item" data-sort="text">Item <i class="fas fa-sort sort-icon"></i></th>
-              <th class="col-qty" data-sort="number">Quantity <i class="fas fa-sort sort-icon"></i></th>
-              {% if request.user.is_superuser or request.user.is_staff %}
-              <th class="col-id" data-sort="number">ID <i class="fas fa-sort sort-icon"></i></th>
-              {% endif %}
-              <th class="col-days" data-sort="number">Days <i class="fas fa-sort sort-icon"></i></th>
-              <th class="col-status" data-sort="text">Status <i class="fas fa-sort sort-icon"></i></th>
-              <th class="col-action no-sort">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for booking in booking_summaries %}
-              {% for rr in booking.items %}
-                <tr>
-                  <td class="col-order" data-value="{{ booking.order_id }}"><span class="order-link">{{ booking.order_id }}</span></td>
-                  <td class="col-date" data-value="{{ booking.date|date:'Y-m-d' }}">{{ booking.date|date:"M d, Y" }}</td>
-                  {% if request.user.is_superuser or request.user.is_staff %}
-                  <td class="col-customer" data-value="{% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}">
-                    {% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}
-                  </td>
-                  {% endif %}
-                  <td class="col-item" data-value="{{ rr.rental_item.title }}"><span class="item-name">{{ rr.rental_item.title }}</span></td>
-                  <td class="col-qty" data-value="{{ rr.quantity }}">{{ rr.quantity }}</td>
-                  {% if request.user.is_superuser or request.user.is_staff %}
-                  <td class="col-id" data-value="{{ rr.id }}">{{ rr.id }}</td>
-                  {% endif %}
-                  <td class="col-days" data-value="{{ rr.rental_days }}">{{ rr.rental_days }}</td>
-                  <td class="col-status" data-value="{% if rr.status == 'pending' and not rr.is_return_requested %}Booking Pending{% elif rr.status == 'rejected' and not rr.is_returned %}Booking Rejected{% elif rr.status == 'cancelled' %}Cancelled{% elif rr.is_returned %}Returned{% elif rr.status == 'approved' and rr.is_return_requested %}Return Pending{% elif rr.status == 'approved' %}Approved{% else %}Pending{% endif %}">
-                    {% if rr.status == "pending" and not rr.is_return_requested %}
-                      <span class="s-badge s-pending"><i class="fas fa-clock"></i> Booking Pending</span>
-                    {% elif rr.status == "rejected" and not rr.is_returned %}
-                      <span class="s-badge s-rejected"><i class="fas fa-times-circle"></i> Booking Rejected</span>
-                    {% elif rr.status == "cancelled" %}
-                      <span class="s-badge s-cancelled"><i class="fas fa-ban"></i> Cancelled</span>
-                    {% elif rr.is_returned %}
-                      <span class="s-badge s-returned"><i class="fas fa-check-circle"></i> Returned</span>
-                    {% elif rr.status == "approved" and rr.is_return_requested %}
-                      <span class="s-badge s-pending"><i class="fas fa-clock"></i> Return Pending</span>
-                    {% elif rr.status == "approved" %}
-                      <span class="s-badge s-approved"><i class="fas fa-check-circle"></i> Approved</span>
-                    {% else %}
-                      <span class="s-badge s-pending"><i class="fas fa-clock"></i> Pending</span>
-                    {% endif %}
-                  </td>
-                  <td class="col-action">
-                    <div class="actions-wrap">
-                      {% if rr.status == "pending" and not rr.is_return_requested %}
-                        {% if request.user.is_staff or request.user.is_superuser %}
-                          <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"><i class="fas fa-ban"></i> Cancel</a>
-                        {% endif %}
-                      {% elif rr.is_returned %}
-                        <a href="{% url 'return_receipt' booking.order_id %}" class="act-btn act-view" data-tooltip="View Receipt" aria-label="View Receipt"><i class="fas fa-eye"></i> </a>
-                      {% elif rr.status == "approved" and rr.is_return_requested %}
-                        {% if request.user.is_staff or request.user.is_superuser %}
-                          <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"><i class="fas fa-ban"></i> Cancel</a>
-                        {% endif %}
-                      {% elif rr.status == "approved" %}
-                        {% if request.user.is_staff or request.user.is_superuser %}
-                          <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return" data-tooltip="Return" data-deposit="{{ booking.total_deposit }}" onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> </a>
-                        {% else %}
-                          <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return" data-tooltip="Request Return" aria-label="Request Return" data-deposit="{{ booking.total_deposit }}" onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> </a>
-                        {% endif %}
-                        <a href="{% url 'extend_return_date' booking.order_id %}" class="act-btn act-extend" data-tooltip="Extend" aria-label="Extend"><i class="fas fa-calendar-plus"></i> </a>
-                        <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel" aria-label="Cancel"><i class="fas fa-ban"></i> </a>
-                        <a href="{% url 'view_rental' rr.id %}" class="act-btn act-view" data-tooltip="Receipt" aria-label="Receipt"><i class="fas fa-eye"></i> </a>
-                      {% endif %}
-                    </div>
-                  </td>
-                </tr>
-              {% endfor %}
-            {% endfor %}
-            <tr class="no-results-row" id="noResultsRow" style="display:none;">
-              <td colspan="9">No bookings match your search.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="pagination-bar">
-        <div class="page-info" id="pageInfo"></div>
-        <div class="page-buttons" id="pageButtons"></div>
-      </div>
+            </td>
+            <td class="col-action">
+              <div class="actions-wrap">
+                {% if rr.status == "pending" and not rr.is_return_requested %}
+                {% if request.user.is_staff or request.user.is_superuser %}
+                <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"><i
+                    class="fas fa-ban"></i> Cancel</a>
+                {% endif %}
+                {% elif rr.is_returned %}
+                <a href="{% url 'return_receipt' booking.order_id %}" class="act-btn act-view"
+                  data-tooltip="View Receipt" aria-label="View Receipt"><i class="fas fa-eye"></i> </a>
+                {% elif rr.status == "approved" and rr.is_return_requested %}
+                {% if request.user.is_staff or request.user.is_superuser %}
+                <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"><i
+                    class="fas fa-ban"></i> Cancel</a>
+                {% endif %}
+                {% elif rr.status == "approved" %}
+                {% if request.user.is_staff or request.user.is_superuser %}
+                <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return" data-tooltip="Return"
+                  data-deposit="{{ booking.total_deposit }}"
+                  onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> </a>
+                {% else %}
+                <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return"
+                  data-tooltip="Request Return" aria-label="Request Return" data-deposit="{{ booking.total_deposit }}"
+                  onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> </a>
+                {% endif %}
+                <a href="{% url 'extend_return_date' booking.order_id %}" class="act-btn act-extend"
+                  data-tooltip="Extend" aria-label="Extend"><i class="fas fa-calendar-plus"></i> </a>
+                <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"
+                  aria-label="Cancel"><i class="fas fa-ban"></i> </a>
+                <a href="{% url 'view_rental' rr.id %}" class="act-btn act-view" data-tooltip="Receipt"
+                  aria-label="Receipt"><i class="fas fa-eye"></i> </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+          <tr class="no-results-row" id="noResultsRow" style="display:none;">
+            <td colspan="9">No bookings match your search.</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
+    <div class="pagination-bar">
+      <div class="page-info" id="pageInfo"></div>
+      <div class="page-buttons" id="pageButtons"></div>
+    </div>
+  </div>
 
   {% else %}
-    <div class="empty-bookings">
-      <i class="fas fa-box-open"></i>
-      <h2>No Bookings Yet</h2>
-      <p>You haven't rented any items yet. Browse our catalog to get started!</p>
-      <a href="{% url 'items' %}" class="btn-primary-red"><i class="fas fa-th-large"></i> Browse Items</a>
-    </div>
+  <div class="empty-bookings">
+    <i class="fas fa-box-open"></i>
+    <h2>No Bookings Yet</h2>
+    <p>You haven't rented any items yet. Browse our catalog to get started!</p>
+    <a href="{% url 'items' %}" class="btn-primary-red"><i class="fas fa-th-large"></i> Browse Items</a>
+  </div>
   {% endif %}
 </div>
 
 <!-- Deposit Modal -->
 <div class="d-modal-overlay" id="depositModal">
   <div class="d-modal-card">
-    <button class="d-close" type="button" onclick="closeDepositModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+    <button class="d-close" type="button" onclick="closeDepositModal()" aria-label="Close"><i
+        class="fas fa-times"></i></button>
     <div class="d-icon"><i class="fas fa-hand-holding-heart"></i></div>
     <h2>Donate Your Deposit?</h2>
     <p>Be generous , help us to support for the good cause.</p>
@@ -306,203 +877,178 @@
     <div class="d-modal-btns">
       <button class="act-btn act-return1" style="display: inline-flex; align-items: center; gap: 8px;
     padding: 11px 24px; border: 2px solid var(--primary); color: var(--primary); border-radius: 999px;
-    font-weight: 700; font-size: 0.9rem; text-decoration: none; transition: all 0.22s;" 
-    onclick="submitDepositChoice(true)"><i class="fas fa-heart"></i> Yes, Donate</button>
-      <button class="act-btn act-view" onclick="submitDepositChoice(false)"><i class="fas fa-wallet"></i> Not interested</button>
+    font-weight: 700; font-size: 0.9rem; text-decoration: none; transition: all 0.22s;"
+        onclick="submitDepositChoice(true)"><i class="fas fa-heart"></i> Yes, Donate</button>
+      <button class="act-btn act-view" onclick="submitDepositChoice(false)"><i class="fas fa-wallet"></i> Not
+        interested</button>
     </div>
   </div>
 </div>
 
 <script>
-const bookingsTable = document.getElementById('bookingsTable');
-if (bookingsTable) {
-  const searchInput = document.getElementById('bookingSearch');
-  const pageSizeSelect = document.getElementById('pageSize');
-  const pageInfo = document.getElementById('pageInfo');
-  const pageButtons = document.getElementById('pageButtons');
-  const noResultsRow = document.getElementById('noResultsRow');
-  const rows = Array.from(bookingsTable.querySelectorAll('tbody tr:not(.no-results-row)'));
-  let filteredRows = [...rows];
-  let currentPage = 1;
-  let sortColumn = null;
-  let sortDirection = 'asc';
+  const bookingsTable = document.getElementById('bookingsTable');
+  if (bookingsTable) {
+    const searchInput = document.getElementById('bookingSearch');
+    const pageSizeSelect = document.getElementById('pageSize');
+    const pageInfo = document.getElementById('pageInfo');
+    const pageButtons = document.getElementById('pageButtons');
+    const noResultsRow = document.getElementById('noResultsRow');
+    const rows = Array.from(bookingsTable.querySelectorAll('tbody tr:not(.no-results-row)'));
+    let filteredRows = [...rows];
+    let currentPage = 1;
+    let sortColumn = null;
+    let sortDirection = 'asc';
 
-  function getCellValue(row, columnIndex) {
-    const cell = row.children[columnIndex];
-    return (cell.dataset.value || cell.textContent || '').trim();
-  }
-
-  function compareRows(a, b, columnIndex, type) {
-    let aValue = getCellValue(a, columnIndex);
-    let bValue = getCellValue(b, columnIndex);
-
-    if (type === 'number') {
-      aValue = parseFloat(aValue) || 0;
-      bValue = parseFloat(bValue) || 0;
-      return aValue - bValue;
+    function getCellValue(row, columnIndex) {
+      const cell = row.children[columnIndex];
+      return (cell.dataset.value || cell.textContent || '').trim();
     }
 
-    if (type === 'date') {
-      return new Date(aValue) - new Date(bValue);
+    function compareRows(a, b, columnIndex, type) {
+      let aValue = getCellValue(a, columnIndex);
+      let bValue = getCellValue(b, columnIndex);
+
+      if (type === 'number') {
+        aValue = parseFloat(aValue) || 0;
+        bValue = parseFloat(bValue) || 0;
+        return aValue - bValue;
+      }
+
+      if (type === 'date') {
+        return new Date(aValue) - new Date(bValue);
+      }
+
+      return aValue.localeCompare(bValue, undefined, { numeric: true, sensitivity: 'base' });
     }
 
-    return aValue.localeCompare(bValue, undefined, { numeric:true, sensitivity:'base' });
-  }
-
-  function applySearch() {
-    const query = searchInput.value.trim().toLowerCase();
-    filteredRows = rows.filter(row => row.textContent.toLowerCase().includes(query));
-    currentPage = 1;
-    if (sortColumn !== null) {
-      const header = bookingsTable.querySelectorAll('th')[sortColumn];
-      const type = header.dataset.sort || 'text';
-      filteredRows.sort((a, b) => compareRows(a, b, sortColumn, type) * (sortDirection === 'asc' ? 1 : -1));
+    function applySearch() {
+      const query = searchInput.value.trim().toLowerCase();
+      filteredRows = rows.filter(row => row.textContent.toLowerCase().includes(query));
+      currentPage = 1;
+      if (sortColumn !== null) {
+        const header = bookingsTable.querySelectorAll('th')[sortColumn];
+        const type = header.dataset.sort || 'text';
+        filteredRows.sort((a, b) => compareRows(a, b, sortColumn, type) * (sortDirection === 'asc' ? 1 : -1));
+      }
+      renderTable();
     }
+
+    function renderPagination(totalPages) {
+      pageButtons.innerHTML = '';
+      const prev = document.createElement('button');
+      prev.type = 'button';
+      prev.className = 'page-btn';
+      prev.innerHTML = '<i class="fas fa-chevron-left"></i>';
+      prev.disabled = currentPage === 1;
+      prev.addEventListener('click', () => { currentPage--; renderTable(); });
+      pageButtons.appendChild(prev);
+
+      for (let page = 1; page <= totalPages; page++) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'page-btn' + (page === currentPage ? ' active' : '');
+        button.textContent = page;
+        button.addEventListener('click', () => { currentPage = page; renderTable(); });
+        pageButtons.appendChild(button);
+      }
+
+      const next = document.createElement('button');
+      next.type = 'button';
+      next.className = 'page-btn';
+      next.innerHTML = '<i class="fas fa-chevron-right"></i>';
+      next.disabled = currentPage === totalPages;
+      next.addEventListener('click', () => { currentPage++; renderTable(); });
+      pageButtons.appendChild(next);
+    }
+
+    function renderTable() {
+      const pageSize = parseInt(pageSizeSelect.value, 10);
+      const totalRows = filteredRows.length;
+      const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+      currentPage = Math.min(currentPage, totalPages);
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+
+      rows.forEach(row => row.style.display = 'none');
+      filteredRows.slice(start, end).forEach(row => row.style.display = '');
+      noResultsRow.style.display = totalRows === 0 ? '' : 'none';
+
+      if (totalRows === 0) {
+        pageInfo.textContent = 'Showing 0 bookings';
+        pageButtons.innerHTML = '';
+      } else {
+        pageInfo.textContent = `Showing ${start + 1}-${Math.min(end, totalRows)} of ${totalRows} booking row(s)`;
+        renderPagination(totalPages);
+      }
+    }
+
+    bookingsTable.querySelectorAll('th:not(.no-sort)').forEach((header, index) => {
+      header.addEventListener('click', () => {
+        sortDirection = sortColumn === index && sortDirection === 'asc' ? 'desc' : 'asc';
+        sortColumn = index;
+        const type = header.dataset.sort || 'text';
+        filteredRows.sort((a, b) => compareRows(a, b, index, type) * (sortDirection === 'asc' ? 1 : -1));
+        bookingsTable.querySelectorAll('.sort-icon').forEach(icon => icon.className = 'fas fa-sort sort-icon');
+        const icon = header.querySelector('.sort-icon');
+        if (icon) icon.className = `fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'} sort-icon`;
+        renderTable();
+      });
+    });
+
+    searchInput.addEventListener('input', applySearch);
+    pageSizeSelect.addEventListener('change', () => { currentPage = 1; renderTable(); });
     renderTable();
   }
 
-  function renderPagination(totalPages) {
-    pageButtons.innerHTML = '';
-    const prev = document.createElement('button');
-    prev.type = 'button';
-    prev.className = 'page-btn';
-    prev.innerHTML = '<i class="fas fa-chevron-left"></i>';
-    prev.disabled = currentPage === 1;
-    prev.addEventListener('click', () => { currentPage--; renderTable(); });
-    pageButtons.appendChild(prev);
-
-    for (let page = 1; page <= totalPages; page++) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'page-btn' + (page === currentPage ? ' active' : '');
-      button.textContent = page;
-      button.addEventListener('click', () => { currentPage = page; renderTable(); });
-      pageButtons.appendChild(button);
-    }
-
-    const next = document.createElement('button');
-    next.type = 'button';
-    next.className = 'page-btn';
-    next.innerHTML = '<i class="fas fa-chevron-right"></i>';
-    next.disabled = currentPage === totalPages;
-    next.addEventListener('click', () => { currentPage++; renderTable(); });
-    pageButtons.appendChild(next);
+  let depositReturnHref = null;
+  let depositTotal = 0;
+  let donationStepOpen = false;
+  function openDepositModal(event, href, deposit) {
+    event.preventDefault();
+    depositReturnHref = href;
+    depositTotal = parseFloat(deposit || '0') || 0;
+    donationStepOpen = false;
+    document.getElementById('donationAmount').value = '';
+    document.getElementById('donationComment').value = '';
+    document.getElementById('donationError').textContent = 'Please enter a valid donation amount.';
+    document.getElementById('donationError').classList.remove('open');
+    document.getElementById('donateFields').classList.remove('open');
+    document.getElementById('currentDepositAmount').textContent = depositTotal.toFixed(2);
+    document.getElementById('depositModal').classList.add('open');
   }
-
-  function renderTable() {
-    const pageSize = parseInt(pageSizeSelect.value, 10);
-    const totalRows = filteredRows.length;
-    const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
-    currentPage = Math.min(currentPage, totalPages);
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-
-    rows.forEach(row => row.style.display = 'none');
-    filteredRows.slice(start, end).forEach(row => row.style.display = '');
-    noResultsRow.style.display = totalRows === 0 ? '' : 'none';
-
-    if (totalRows === 0) {
-      pageInfo.textContent = 'Showing 0 bookings';
-      pageButtons.innerHTML = '';
-    } else {
-      pageInfo.textContent = `Showing ${start + 1}-${Math.min(end, totalRows)} of ${totalRows} booking row(s)`;
-      renderPagination(totalPages);
-    }
+  function closeDepositModal() {
+    document.getElementById('depositModal').classList.remove('open');
+    depositReturnHref = null;
+    donationStepOpen = false;
   }
-
-  bookingsTable.querySelectorAll('th:not(.no-sort)').forEach((header, index) => {
-    header.addEventListener('click', () => {
-      sortDirection = sortColumn === index && sortDirection === 'asc' ? 'desc' : 'asc';
-      sortColumn = index;
-      const type = header.dataset.sort || 'text';
-      filteredRows.sort((a, b) => compareRows(a, b, index, type) * (sortDirection === 'asc' ? 1 : -1));
-      bookingsTable.querySelectorAll('.sort-icon').forEach(icon => icon.className = 'fas fa-sort sort-icon');
-      const icon = header.querySelector('.sort-icon');
-      if (icon) icon.className = `fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'} sort-icon`;
-      renderTable();
-    });
+  function submitDepositChoice(donate) {
+    if (!depositReturnHref) { closeDepositModal(); return; }
+    if (donate && !donationStepOpen) {
+      donationStepOpen = true;
+      document.getElementById('donateFields').classList.add('open');
+      return;
+    }
+    const sep = depositReturnHref.includes('?') ? '&' : '?';
+    let url = depositReturnHref + sep + 'donate_deposit=' + (donate ? 'true' : 'false');
+    if (donate) {
+      const amount = document.getElementById('donationAmount').value;
+      const comment = document.getElementById('donationComment').value;
+      if (!amount || parseFloat(amount) <= 0) {
+        document.getElementById('donationError').classList.add('open');
+        return;
+      }
+      if (parseFloat(amount) > depositTotal) {
+        document.getElementById('donationError').textContent = 'Donation amount cannot be more than current deposit.';
+        document.getElementById('donationError').classList.add('open');
+        return;
+      }
+      url += '&donation_amount=' + encodeURIComponent(amount);
+      url += '&donation_comment=' + encodeURIComponent(comment);
+    }
+    window.location.href = url;
+  }
+  document.getElementById('depositModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('depositModal')) closeDepositModal();
   });
-
-  searchInput.addEventListener('input', applySearch);
-  pageSizeSelect.addEventListener('change', () => { currentPage = 1; renderTable(); });
-  renderTable();
-}
-
-let depositReturnHref = null;
-let depositTotal = 0;
-let donationStepOpen = false;
-function openDepositModal(event, href, deposit) {
-  event.preventDefault();
-  depositReturnHref = href;
-  depositTotal = parseFloat(deposit || '0') || 0;
-  donationStepOpen = false;
-  document.getElementById('donationAmount').value = '';
-  document.getElementById('donationComment').value = '';
-  document.getElementById('donationError').textContent = 'Please enter a valid donation amount.';
-  document.getElementById('donationError').classList.remove('open');
-  document.getElementById('donateFields').classList.remove('open');
-  document.getElementById('currentDepositAmount').textContent = depositTotal.toFixed(2);
-  document.getElementById('depositModal').classList.add('open');
-}
-function closeDepositModal() {
-  document.getElementById('depositModal').classList.remove('open');
-  depositReturnHref = null;
-  donationStepOpen = false;
-}
-function submitDepositChoice(donate) {
-  if (!depositReturnHref) { closeDepositModal(); return; }
-  if (donate && !donationStepOpen) {
-    donationStepOpen = true;
-    document.getElementById('donateFields').classList.add('open');
-    return;
-  }
-  const sep = depositReturnHref.includes('?') ? '&' : '?';
-  let url = depositReturnHref + sep + 'donate_deposit=' + (donate ? 'true' : 'false');
-  if (donate) {
-    const amount = document.getElementById('donationAmount').value;
-    const comment = document.getElementById('donationComment').value;
-    if (!amount || parseFloat(amount) <= 0) {
-      document.getElementById('donationError').classList.add('open');
-      return;
-    }
-    if (parseFloat(amount) > depositTotal) {
-      document.getElementById('donationError').textContent = 'Donation amount cannot be more than current deposit.';
-      document.getElementById('donationError').classList.add('open');
-      return;
-    }
-    url += '&donation_amount=' + encodeURIComponent(amount);
-    url += '&donation_comment=' + encodeURIComponent(comment);
-  }
-  window.location.href = url;
-}
-document.getElementById('depositModal').addEventListener('click', e => {
-  if (e.target === document.getElementById('depositModal')) closeDepositModal();
-});
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 {% endblock %}
-
-
-
-
-

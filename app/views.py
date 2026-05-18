@@ -42,9 +42,6 @@ from .models import (
 from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, send_whatsapp_message, send_notification
 
 def index(request):
-    if request.user.is_authenticated and request.user.is_superuser:
-        if not request.session.get("details_filled"):
-            return redirect("userdetail")
 
     today = timezone.now().date()
     rentals = History.objects.filter(status='approved')
@@ -226,8 +223,6 @@ def signin(request):
             if authenticated_user is not None:
                 login(request, authenticated_user)
 
-                if authenticated_user.is_superuser:
-                    return redirect('userdetail')
                 return redirect('index')
             else:
                 messages.error(request, "Invalid username or password.", extra_tags="signin")

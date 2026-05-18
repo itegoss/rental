@@ -98,30 +98,8 @@ class InventoryAdmin(admin.ModelAdmin):
     get_total_quantity.short_description = 'Total Quantity'
 
 
-class DatalistTextInput(forms.TextInput):
-    def render(self, name, value, attrs=None, renderer=None):
-        if attrs is None:
-            attrs = {}
-        attrs['list'] = 'inventory_items_list'
-        html = super().render(name, value, attrs, renderer)
-        
-        from .models import Inventory
-        titles = Inventory.objects.values_list('title', flat=True).distinct()
-        datalist_html = '<datalist id="inventory_items_list">' + ''.join([f'<option value="{t}">' for t in titles]) + '</datalist>'
-        from django.utils.safestring import mark_safe
-        return mark_safe(html + datalist_html)
-
-class ItemAdminForm(forms.ModelForm):
-    class Meta:
-        model = Item
-        fields = '__all__'
-        widgets = {
-            'item_name': DatalistTextInput(),
-        }
-
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    form = ItemAdminForm
     list_display = (
         'item_name',
         'item_qty',
@@ -131,7 +109,7 @@ class ItemAdmin(admin.ModelAdmin):
         'donor_contact',
         'created_at',
     )
-    search_fields = ('item_name', 'donor_name')
+    search_fields = ('item_name__title', 'donor_name')
     list_filter = ('donation',)
 
 

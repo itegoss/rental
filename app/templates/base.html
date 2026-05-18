@@ -333,6 +333,7 @@
       transform: translateY(-7.5px) rotate(-45deg);
     }
 
+    /* Mobile nav drawer */
     .nav-links.mobile {
       display: none;
       position: fixed;
@@ -374,10 +375,12 @@
       font-size: 0.95rem;
     }
 
+    /* Notification relative wrapper */
     .notif-wrapper {
       position: relative;
     }
 
+    /* ── MESSAGES ── */
     .messages-container {
       max-width: 860px;
       margin: 16px auto 0;
@@ -434,6 +437,7 @@
       border-left: 4px solid #3b82f6;
     }
 
+    /* ── FOOTER ── */
     .footer-section {
       background: var(--primary);
       color: #fff;
@@ -505,6 +509,7 @@
       color: rgba(255, 255, 255, 0.6);
     }
 
+    /* ── UTILITY ── */
     .btn-primary-red {
       display: inline-flex;
       align-items: center;
@@ -617,8 +622,7 @@
               <div style="flex:1;">
                 <strong style="font-size:0.85rem;">{{ note.title }}</strong>
                 <p style="margin:3px 0 0; font-size:0.8rem; color:var(--muted);">{{ note.message|truncatechars:70 }}</p>
-                <small style="color:var(--muted); font-size:0.75rem;">{{ note.created_at|date:"d M, H:i" }}{% if not
-                  note.is_read %} · <span style="color:var(--primary);">Unread</span>{% endif %}</small>
+                <small style="color:var(--muted); font-size:0.75rem;">{{ note.created_at|date:"d M, H:i" }}{% if not note.is_read %} · <span style="color:var(--primary);">Unread</span>{% endif %}</small>
               </div>
             </a>
             {% endfor %}
@@ -638,6 +642,7 @@
       </div>
     </div>
 
+    <!-- Mobile Drawer -->
     <div class="nav-links mobile" id="navLinksMobile">
       <a href="{% url 'index' %}"><i class="fas fa-home"></i> Home</a>
       <a href="{% url 'services' %}"><i class="fas fa-concierge-bell"></i> Services</a>
@@ -701,24 +706,28 @@
 
           <div class="footer-contact-row">
             <a href="https://www.facebook.com/kysBhayander/" target="_blank" style="color:white; text-decoration:none;">
-              <i class="fab fa-facebook-f"></i> Facebook</a>
+              <i class="fab fa-facebook-f"></i> Facebook
+            </a>
           </div>
 
           <div class="footer-contact-row">
             <a href="https://www.instagram.com/kysbhayander" target="_blank" style="color:white; text-decoration:none;">
-              <i class="fab fa-instagram"></i> Instagram </a>
+              <i class="fab fa-instagram"></i> Instagram
+            </a>
           </div>
 
           <div class="footer-contact-row">
             <a href="https://www.youtube.com/@bhayanderkys4491" target="_blank"
               style="color:white; text-decoration:none;">
-              <i class="fab fa-youtube"></i> YouTube </a>
+              <i class="fab fa-youtube"></i> YouTube
+            </a>
           </div>
 
           <div class="footer-contact-row">
             <a href="https://sites.google.com/kutchyuvaksangh.org/kysbhayander/home" target="_blank"
               style="color:white; text-decoration:none;">
-              <i class="fab fa-google"></i> Google </a>
+              <i class="fab fa-google"></i> Google
+            </a>
           </div>
         </div>
       </div>
