@@ -15,7 +15,13 @@ SECURE_PROXY_SSL_HEADER = None
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "*"]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://rental-856395380155.us-central1.run.app",
+    "https://sickbed.itegoss.in",
+]
+
+ALLOWED_HOSTS = ["localhost", "127.0.0.1","rental-856395380155.us-central1.run.app","sickbed.itegoss.in", "*"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
