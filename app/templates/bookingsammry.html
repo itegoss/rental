@@ -761,8 +761,7 @@
           {% for booking in booking_summaries %}
           {% for rr in booking.items %}
           <tr>
-            <td class="col-order" data-value="{{ booking.order_id }}"><span class="order-link">{{ booking.order_id
-                }}</span></td>
+            <td class="col-order" data-value="{{ booking.order_id }}"><span class="order-link">{{ rr.display_order_id }}</span></td>
             <td class="col-date" data-value="{{ booking.date|date:'Y-m-d' }}">{{ booking.date|date:"M d, Y" }}</td>
             {% if request.user.is_superuser or request.user.is_staff %}
             <td class="col-customer"
@@ -770,8 +769,7 @@
               {% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}
             </td>
             {% endif %}
-            <td class="col-item" data-value="{{ rr.rental_item.title }}"><span class="item-name">{{ rr.rental_item.title
-                }}</span></td>
+            <td class="col-item" data-value="{{ rr.display_item_title }}"><span class="item-name">{{ rr.display_item_title }}</span></td>
             <td class="col-qty" data-value="{{ rr.quantity }}">{{ rr.quantity }}</td>
             {% if request.user.is_superuser or request.user.is_staff %}
             <td class="col-id" data-value="{{ rr.id }}">{{ rr.id }}</td>

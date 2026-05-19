@@ -1213,6 +1213,8 @@ def bookingsammry(request):
 
     for rr in rental_requests:
         key = rr.order_id or f"SINGLE-{rr.id}"
+        rr.display_order_id = key
+        rr.display_item_title = rr.rental_item.title
         grouped[key].append(rr)
 
     booking_summaries = []
