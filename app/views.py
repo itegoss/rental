@@ -466,6 +466,8 @@ def cart_view(request):
 def select_delivery(request, pk):
     item = get_object_or_404(Inventory, pk=pk)
     request.session['item_id'] = pk
+    cart = Cart.objects.filter(user=request.user).first()
+    has_cart_items = bool(cart and cart.items.exists())
 
     start_date = request.session.get("start_date")
     end_date = request.session.get("end_date")
@@ -486,7 +488,7 @@ def select_delivery(request, pk):
 
         request.session['delivery_option'] = delivery_option
 
-        rental = History.objects.filter(rental_item=item, user=request.user).last()
+        rental = None if has_cart_items else History.objects.filter(rental_item=item, user=request.user).last()
         if rental:
             if delivery_option and delivery_option.lower() == "delivery":
                 if delivery_charge_str:
@@ -522,7 +524,7 @@ def select_delivery(request, pk):
 
         return redirect('paymentmethod')
 
-    rental = History.objects.filter(rental_item=item, user=request.user).last()
+    rental = None if has_cart_items else History.objects.filter(rental_item=item, user=request.user).last()
 
     cart_items = []
     total_rent = 0
@@ -540,7 +542,6 @@ def select_delivery(request, pk):
         total_rent = rental.total_rent
         total_deposit = rental.deposit * rental.quantity
     else:
-        cart = Cart.objects.filter(user=request.user).first()
         if cart:
             days = 1
             if start_date and end_date:
@@ -587,7 +588,10 @@ def paymentmethod(request):
         end_date = None
 
     delivery_option = request.session.get('delivery_option')
-    delivery_charge = 500 if delivery_option == "Delivery" else 0
+    try:
+        delivery_charge = Decimal(request.session.get('delivery_charge', '0'))
+    except Exception:
+        delivery_charge = Decimal('0')
 
     order_id = generate_sequential_order_id()
 
@@ -1054,6 +1058,8 @@ def userdetail(request):
             request.session["end_date"] = request.POST.get("end_date")
             request.session["details_filled"] = True
 
+            if cart_items:
+                return redirect("select_delivery", pk=cart_items.first().rental_item.id)
             return redirect("items")
 
         if not cart_items:
