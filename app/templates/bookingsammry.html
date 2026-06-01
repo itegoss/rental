@@ -191,6 +191,11 @@
     width: 90px;
   }
 
+  .bookings-table th.col-renter,
+  .bookings-table td.col-renter {
+    width: 160px;
+  }
+
   .bookings-table th.col-days,
   .bookings-table td.col-days {
     width: 75px;
@@ -746,6 +751,7 @@
             <th class="col-date" data-sort="date">Date <i class="fas fa-sort sort-icon"></i></th>
             {% if request.user.is_superuser or request.user.is_staff %}
             <th class="col-customer" data-sort="text">Customer <i class="fas fa-sort sort-icon"></i></th>
+            <th class="col-renter" data-sort="text">Renter Name <i class="fas fa-sort sort-icon"></i></th>
             {% endif %}
             <th class="col-item" data-sort="text">Item <i class="fas fa-sort sort-icon"></i></th>
             <th class="col-qty" data-sort="number">Quantity <i class="fas fa-sort sort-icon"></i></th>
@@ -767,6 +773,9 @@
             <td class="col-customer"
               data-value="{% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}">
               {% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}
+            </td>
+            <td class="col-renter" data-value="{{ rr.renter_name|default:'' }}">
+              {{ rr.renter_name|default:"-" }}
             </td>
             {% endif %}
             <td class="col-item" data-value="{{ rr.display_item_title }}"><span class="item-name">{{ rr.display_item_title }}</span></td>
@@ -831,7 +840,7 @@
           {% endfor %}
           {% endfor %}
           <tr class="no-results-row" id="noResultsRow" style="display:none;">
-            <td colspan="9">No bookings match your search.</td>
+            <td colspan="{% if request.user.is_superuser or request.user.is_staff %}10{% else %}7{% endif %}">No bookings match your search.</td>
           </tr>
         </tbody>
       </table>

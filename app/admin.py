@@ -125,35 +125,45 @@ class NotificationAdmin(admin.ModelAdmin):
         queryset.update(is_read=True)
 
 
+from django.contrib.admin.views.main import ChangeList
+
+class HistoryChangeList(ChangeList):
+    pass
+
 @admin.register(History)
 class HistoryAdmin(admin.ModelAdmin):
 
     list_display = (
-        'user','rental_item','renter_name','start_date','end_date',
+        'serial_number','user','rental_item','renter_name', 'phone','address', 'patient_name','start_date','end_date',
         'extended_end_date','actual_return_date','get_rental_days',
         'get_per_day_rent','status','total_amount','is_reminder_sent',
         'is_overdue_email_sent','order_id','deposit','download_receipt',
         'send_whatsapp','patient_name','delivery_option','delivery_charge',
         'is_return_requested','is_returned','send_reminder_whatsapp',
     )
+    list_display_links = ('serial_number',)
 
     list_filter = ('status','payment_method','start_date','end_date','extended_end_date')
+    date_hierarchy = 'start_date'
 
     search_fields = ('user__username','rental_item__title','patient_name','order_id')
 
     actions = [approve_return]
 
     fields = (
-        'user','rental_item','renter_name','start_date','end_date',
+        'id','user','rental_item','renter_name','phone','address', 'patient_name','start_date','end_date',
         'extended_end_date','actual_return_date','quantity','payment_method',
         'deposit','delivery_option','delivery_charge','status',
         'is_return_requested','is_returned','deposit_donated',
-        'donation_amount','donation_comment','order_id','patient_name',
+        'donation_amount','donation_comment','order_id',
     )
 
-    readonly_fields = ('order_id','total_amount')
+    readonly_fields = ('id','order_id','total_amount')
 
     change_list_template = 'admin/history_changelist.html'
+
+    def get_changelist(self, request, **kwargs):
+        return HistoryChangeList
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
@@ -174,7 +184,22 @@ class HistoryAdmin(admin.ModelAdmin):
                 
                 return self.generate_report_pdf(queryset, start, end)
         
-        return super().changelist_view(request, extra_context)
+        response = super().changelist_view(request, extra_context)
+        if hasattr(response, 'context_data') and response.context_data:
+            cl = response.context_data.get('cl')
+            if cl is not None:
+                start = getattr(cl, 'first_result', 0) + 1
+                self._serial_numbers = {item.pk: idx for idx, item in enumerate(cl.result_list, start)}
+            else:
+                self._serial_numbers = {}
+        else:
+            self._serial_numbers = {}
+        return response
+
+    def serial_number(self, obj):
+        return getattr(self, '_serial_numbers', {}).get(obj.pk, '')
+
+    serial_number.short_description = 'ID'
 
     def generate_report_pdf(self, queryset, start_date, end_date):
         from reportlab.pdfgen import canvas

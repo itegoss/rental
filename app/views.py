@@ -1229,7 +1229,7 @@ def bookingsammry(request):
         total_deposit = sum((item.deposit * item.quantity for item in items), Decimal("0"))
         booking_summaries.append({
             "order_id": order_id,
-            "date": items[0].created_at.date(),
+            "date": items[0].start_date,
             "items": items,
             "total_deposit": total_deposit,
             "customer": items[0].user if request.user.is_staff or request.user.is_superuser else None,
