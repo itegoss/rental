@@ -150,8 +150,14 @@
 <script>
 function downloadPDF() {
   const element = document.getElementById("pdf-content");
+  const renterName = "{{ rental.renter_name|default:rental.user.username|escapejs }}";
+  const safeFileName = renterName
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "_")
+    .replace(/\s+/g, "_")
+    .replace(/^_+|_+$/g, "") || "Receipt";
   const opt = {
-    margin:3, filename:"Receipt.pdf",
+    margin:3, filename:`${safeFileName}.pdf`,
     image:{type:"jpeg",quality:1},
     html2canvas:{scale:2,useCORS:true,scrollY:0,windowWidth:element.scrollWidth},
     jsPDF:{unit:"mm",format:"a5",orientation:"landscape"}

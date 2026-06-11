@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from app.models import RentalItem, NotifyRequest
+from app.models import Inventory, NotifyRequest
 from django.conf import settings
 
 
@@ -26,10 +26,10 @@ class Command(BaseCommand):
         self.stdout.write("\n✓ TEST 2: Database Records")
         self.stdout.write("-" * 70)
         
-        items_count = RentalItem.objects.count()
+        items_count = Inventory.objects.count()
         self.stdout.write(f"  Total Items: {items_count}")
         
-        out_of_stock = RentalItem.objects.filter(available_quantity=0).count()
+        out_of_stock = Inventory.objects.filter(available_quantity=0).count()
         self.stdout.write(f"  Out of Stock Items: {out_of_stock}")
         
         notify_count = NotifyRequest.objects.count()

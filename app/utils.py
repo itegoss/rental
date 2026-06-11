@@ -1,6 +1,7 @@
 from django.core.mail import send_mail
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.utils.text import get_valid_filename
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from io import BytesIO
@@ -8,6 +9,16 @@ import re
 from .models import Notification, UserDetail, History
 import requests
 
+def receipt_filename(order):
+    renter_name = (
+        getattr(order, "renter_name", None)
+        or order.user.get_full_name()
+        or order.user.username
+        or getattr(order, "order_id", None)
+        or "receipt"
+    )
+    filename = get_valid_filename(str(renter_name).strip()).strip("._")
+    return f"{filename or 'receipt'}.pdf"
 
 def send_overdue_email(user, rental):
     subject = "Rental Overdue Notice"
@@ -59,7 +70,7 @@ def generate_receipt(order):
     p.save()
     buffer.seek(0)
 
-    return ContentFile(buffer.getvalue(), f"receipt_{order.order_id}.pdf")
+    return ContentFile(buffer.getvalue(), receipt_filename(order))
 
 def send_telegram_message(message):
     token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
@@ -85,7 +96,6 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"[telegram] error: {e}")
     return False
-
 
 def send_notification(title, message, notification_type='info', link=None):
     try:
@@ -159,7 +169,6 @@ def send_whatsapp_message(mobile, message):
     else:
         to_number = f"whatsapp:+{m}"
 
-    # P
     phone_id = getattr(settings, 'WHATSAPP_PHONE_ID', None)
     access_token = getattr(settings, 'WHATSAPP_ACCESS_TOKEN', None)
     if phone_id and access_token:
@@ -208,3 +217,78 @@ def send_whatsapp_message(mobile, message):
     except Exception as e:
         print(f"[whatsapp error] {e}")
         return False
+
+def generate_rental_report_pdf(queryset, start_date, end_date):
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import inch
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib import colors
+    from io import BytesIO
+    from django.http import HttpResponse
+    
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+    title = Paragraph(f"Rental History Report ({start_date} to {end_date})", styles['Heading1'])
+    elements.append(title)
+    elements.append(Spacer(1, 12))
+    
+    total_orders = queryset.count()
+    total_revenue = sum(q.total_amount or 0 for q in queryset)
+    total_deposit = sum(q.deposit * q.quantity for q in queryset)
+    
+    summary_data = [
+        ['Total Orders', str(total_orders)],
+        ['Total Revenue', f"₹{total_revenue}"],
+        ['Total Deposit', f"₹{total_deposit}"],
+    ]
+    
+    summary_table = Table(summary_data, colWidths=[2*inch, 2*inch])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 14),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 24))
+    
+    data = [['Order ID', 'User', 'Item', 'Start Date', 'End Date', 'Status', 'Total Amount']]
+    
+    for history in queryset:
+        data.append([
+            history.order_id or 'N/A',
+            history.user.username,
+            history.rental_item.title,
+            str(history.start_date),
+            str(history.end_date),
+            history.status,
+            f"₹{history.total_amount or 0}",
+        ])
+    
+    table = Table(data, colWidths=[1*inch, 1.5*inch, 2*inch, 1*inch, 1*inch, 1*inch, 1*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+    elements.append(table)
+    
+    doc.build(elements)
+    buffer.seek(0)
+    
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="rental_report_{start_date}_to_{end_date}.pdf"'
+    return response

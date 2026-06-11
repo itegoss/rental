@@ -38,6 +38,72 @@
     margin: 12px auto 0;
   }
 
+  .items-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 26px;
+  }
+
+  .items-search {
+    flex: 1;
+    position: relative;
+    max-width: 520px;
+  }
+
+  .items-search i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+
+  .items-search input {
+    width: 100%;
+    height: 48px;
+    padding: 0 18px 0 44px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.94rem;
+    box-shadow: 0 8px 24px rgba(17, 24, 39, 0.06);
+    outline: none;
+  }
+
+  .items-search input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(236, 36, 39, 0.1);
+  }
+
+  .btn-add-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    height: 48px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    font-family: var(--font);
+    font-weight: 800;
+    font-size: 0.92rem;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 10px 24px rgba(236, 36, 39, 0.22);
+  }
+
+  .btn-add-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 30px rgba(236, 36, 39, 0.28);
+  }
+
   .item-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -173,8 +239,6 @@
     box-shadow: 0 8px 22px rgba(236, 36, 39, 0.3);
   }
 
-  /* .btn-notify { display:block; width:100%; padding:11px; background:linear-gradient(135deg,#0ea5e9,#0284c7); color:#fff; border:none; border-radius:999px; font-size:0.9rem; font-weight:700; font-family:var(--font); cursor:pointer; text-align:center; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 4px 14px rgba(14,165,233,0.22); } */
-
   .btn-notify {
     display: block;
     width: 100%;
@@ -216,7 +280,6 @@
     font-size: 0.95rem;
   }
 
-  /* ── NOTIFY MODAL ── */
   .n-modal-overlay {
     display: none;
     position: fixed;
@@ -337,10 +400,6 @@
   }
 
   @media(max-width:640px) {
-    .item-thumb {
-      height: 180px;
-    }
-
     .items-page-head h1 {
       font-size: 1.7rem;
     }
@@ -354,6 +413,7 @@
     <div class="underline-bar"></div>
   </div>
 
+  <!-- Gallery View -->
   <div class="item-grid">
     {% for item in items %}
     <div class="item-card">
@@ -388,20 +448,11 @@
           <button type="submit" class="btn-rent"><i class="fas fa-shopping-cart"></i> Rent Now</button>
         </form>
         {% else %}
-        <button class="btn-notify" style="    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 11px 24px;
-    border: 2px solid var(--primary);
-    color: var(--primary);
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 0.9rem;
-    text-decoration: none;
-    transition: all 0.22s;
+        <button class="btn-notify" style="display: inline-flex;align-items: center;gap: 8px;padding: 11px 24px;
+    border: 2px solid var(--primary);color: var(--primary);border-radius: 999px;font-weight: 700;
+    font-size: 0.9rem;text-decoration: none;transition: all 0.22s;
 " onclick="openNotifyModal('{{ item.id }}','{{ item.title|escapejs }}')">
-          <i class="fas fa-bell"></i> Notify Me
-        </button>
+          <i class="fas fa-bell"></i> Notify Me</button>
         {% endif %}
       </div>
     </div>
@@ -443,7 +494,11 @@
     document.getElementById('modalItemTitle').textContent = 'We\'ll notify you when "' + title + '" becomes available.';
     document.getElementById('notifyModal').classList.add('open');
   }
-  function closeNotifyModal() { document.getElementById('notifyModal').classList.remove('open'); }
+  
+  function closeNotifyModal() { 
+    document.getElementById('notifyModal').classList.remove('open'); 
+  }
+  
   document.getElementById('notifyModal').addEventListener('click', e => {
     if (e.target === document.getElementById('notifyModal')) closeNotifyModal();
   });
@@ -454,7 +509,10 @@
     if ('IntersectionObserver' in window) {
       const io = new IntersectionObserver((entries, obs) => {
         entries.forEach(entry => {
-          if (entry.isIntersecting) { entry.target.classList.add('visible'); obs.unobserve(entry.target); }
+          if (entry.isIntersecting) { 
+            entry.target.classList.add('visible'); 
+            obs.unobserve(entry.target); 
+          }
         });
       }, { threshold: 0.1 });
       cards.forEach(c => io.observe(c));

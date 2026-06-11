@@ -64,7 +64,7 @@
   </div>
 </div>
 
-<div id="pdf-content" style="max-width:820px; margin:0 auto; padding:0 20px 40px;">
+<div id="pdf-content" style="max-width:820px; margin:0 auto; padding:0 20px;">
   <div class="receipt-container">
     <div class="receipt-header">
       <div class="logo-container"><img src="/static/images/logo1.png" alt="Logo"></div>
@@ -170,11 +170,18 @@
 <script>
 function downloadPDF() {
   const element = document.getElementById("pdf-content");
+  const renterName = "{{ order.renter_name|default:order.user.username|escapejs }}";
+  const safeFileName = renterName
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "_")
+    .replace(/\s+/g, "_")
+    .replace(/^_+|_+$/g, "") || "ReturnReceipt";
   const opt = {
-    margin:3, filename:"ReturnReceipt.pdf",
+    margin:2, filename:`${safeFileName}.pdf`,
     image:{type:"jpeg",quality:1},
     html2canvas:{scale:2,useCORS:true,scrollY:0,windowWidth:element.scrollWidth},
-    jsPDF:{unit:"mm",format:"a5",orientation:"landscape"}
+    jsPDF:{unit:"mm",format:"a5",orientation:"landscape"},
+    pagebreak:{mode:["avoid-all","css","legacy"]}
   };
   html2pdf().set(opt).from(element).save();
 }

@@ -107,6 +107,14 @@ class Inventory(models.Model):
 
     available = models.BooleanField(default=True)
     next_available_date = models.DateField(null=True, blank=True)
+    
+    # Item tracking fields
+    item_qty = models.PositiveIntegerField(default=1)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    donation = models.BooleanField(default=False)
+    donor_name = models.CharField(max_length=200, blank=True, null=True)
+    donor_contact = models.CharField(max_length=30, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
@@ -203,6 +211,17 @@ class History(models.Model):
     is_reminder_sent = models.BooleanField(default=False)
     is_overdue_email_sent = models.BooleanField(default=False)
     patient_name = models.CharField(max_length=200, null=True, blank=True)
+    id_proof_type = models.CharField(max_length=20, blank=True, null=True)
+    id_proof_number = models.CharField(max_length=30, blank=True, null=True)
+    id_proof_file = models.FileField(
+        upload_to='id_proofs/',
+        blank=True,
+        null=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=['png', 'jpg', 'jpeg', 'pdf']),
+            validate_id_proof_file_size,
+        ],
+    )
     delivery_option = models.CharField(max_length=20, choices=[("delivery", "Delivery"), ("pickup", "Pickup")],
         blank=True, null=True)
     delivery_charge = models.DecimalField( max_digits=10, decimal_places=2, default=0)
@@ -339,7 +358,7 @@ class Notification(models.Model):
 
 class Payment(models.Model):
     rental_request = models.ForeignKey('app.History',on_delete=models.CASCADE,related_name="payments")
-    order_id = models.CharField(max_length=10, editable=False)
+    order_id = models.CharField(max_length=20, editable=False)
     razorpay_order_id = models.CharField(max_length=100, blank=True, null=True)
     payment_id = models.CharField(max_length=100, blank=True, null=True)
     payment_status = models.CharField(

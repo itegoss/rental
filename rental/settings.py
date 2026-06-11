@@ -11,21 +11,10 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 
 SECURE_SSL_REDIRECT = False
 SECURE_PROXY_SSL_HEADER = None
-
-# SESSION_COOKIE_SECURE = False
-# CSRF_COOKIE_SECURE = False
-
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
-
-# CSRF_TRUSTED_ORIGINS = [
-#     "https://rental-856395380155.us-central1.run.app",
-#     "https://sickbed.itegoss.in",
-# ]
-
-# ALLOWED_HOSTS = ["localhost", "127.0.0.1","rental-856395380155.us-central1.run.app","sickbed.itegoss.in", "*"]
 
 ALLOWED_HOSTS = [
     "rental-856395380155.us-central1.run.app",
@@ -36,7 +25,6 @@ CSRF_TRUSTED_ORIGINS = [
     "https://rental-856395380155.us-central1.run.app",
     "https://sickbed.itegoss.in",
 ]
-
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -86,12 +74,39 @@ TEMPLATES = [
     },
 ]
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
+
+ENV = os.getenv("ENV", "DEV")
+
+if ENV == "PROD":
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DATABASE_NAME'),
+            'USER': os.environ.get('DATABASE_USER'),
+            'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
+            'HOST': os.environ.get('DATABASE_HOST'),
+            'PORT': os.environ.get('DATABASE_PORT'),
+        }
+    }
+
+else:
+   DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'kys',
+        'USER': 'postgres',
+        'PASSWORD': 'admin',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -156,7 +171,5 @@ SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")
-print(SOCIAL_AUTH_GOOGLE_OAUTH2_KEY)
-print(SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET) 
 TIME_ZONE = 'Asia/Kolkata'
 USE_TZ = True

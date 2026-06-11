@@ -1,0 +1,817 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Inventory Management — Sick Bed Services{% endblock %}
+{% block content %}
+<style>
+  .inventory-page {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  .inventory-head {
+    text-align: center;
+    margin-bottom: 44px;
+  }
+
+  .inventory-head h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  .inventory-head h1 span {
+    color: var(--primary);
+  }
+
+  .inventory-head p {
+    color: var(--muted);
+    font-size: 0.97rem;
+  }
+
+  .underline-bar {
+    width: 80px;
+    height: 5px;
+    background: linear-gradient(90deg, var(--primary), #ff6b6b);
+    border-radius: 4px;
+    margin: 12px auto 0;
+  }
+
+  .items-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 26px;
+  }
+
+  .items-search {
+    flex: 1;
+    position: relative;
+    max-width: 520px;
+  }
+
+  .items-search i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+
+  .items-search input {
+    width: 100%;
+    height: 48px;
+    padding: 0 18px 0 44px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.94rem;
+    box-shadow: 0 8px 24px rgba(17, 24, 39, 0.06);
+    outline: none;
+  }
+
+  .items-search input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(236, 36, 39, 0.1);
+  }
+
+  .btn-add-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    height: 48px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    font-family: var(--font);
+    font-weight: 800;
+    font-size: 0.92rem;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 10px 24px rgba(236, 36, 39, 0.22);
+  }
+
+  .btn-add-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 30px rgba(236, 36, 39, 0.28);
+  }
+
+  .items-table-wrap {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+  }
+
+  .items-table-scroll {
+    overflow-x: auto;
+  }
+
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1000px;
+  }
+
+  .items-table thead {
+    color: #fff;
+  }
+
+  .items-table th {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    padding: 16px 15px;
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .items-table td {
+    padding: 14px 18px;
+    border-top: 1px solid var(--border);
+    font-size: 0.9rem;
+    vertical-align: middle;
+  }
+
+  .items-table tbody tr:hover {
+    background: #fafafa;
+  }
+
+  .item-name-cell {
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .price-cell {
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  .qty-cell {
+    text-align: center;
+  }
+
+  .table-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .table-actions a,
+  .table-actions button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .btn-edit-item {
+    background: #3b82f6;
+    color: #fff;
+  }
+
+  .btn-edit-item:hover {
+    background: #2563eb;
+  }
+
+  .btn-delete-item-table {
+    background: #dc2626;
+    color: #fff;
+    border: none;
+  }
+
+  .btn-delete-item-table:hover {
+    background: #b91c1c;
+  }
+
+  .item-drawer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9200;
+    display: none;
+    background: rgba(17, 24, 39, 0.48);
+  }
+
+  .item-drawer-overlay.open {
+    display: block;
+  }
+
+  .item-drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: min(760px, 100%);
+    height: 100%;
+    overflow-y: auto;
+    background: #fff;
+    box-shadow: -20px 0 60px rgba(17, 24, 39, 0.25);
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+  }
+
+  .item-drawer-overlay.open .item-drawer {
+    transform: translateX(0);
+  }
+
+  .item-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 24px 28px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+  }
+
+  .item-drawer-head h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+  }
+
+  .item-drawer-close {
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.15rem;
+  }
+
+  .item-add-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 26px 28px 30px;
+  }
+
+  .form-fields {
+    display: grid;
+    gap: 14px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .item-field label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .item-field input,
+  .item-field textarea {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fafafa;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.93rem;
+    outline: none;
+  }
+
+  .item-field input {
+    height: 44px;
+    padding: 0 12px;
+  }
+
+  .item-field textarea {
+    min-height: 108px;
+    padding: 12px;
+    resize: vertical;
+  }
+
+  .item-field input:focus,
+  .item-field textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(236, 36, 39, 0.1);
+  }
+
+  .check-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fafafa;
+  }
+
+  .check-field input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+  }
+
+  .check-field span {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 0.92rem;
+  }
+
+  .drawer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    grid-column: 1 / -1;
+    padding-top: 4px;
+  }
+
+  .btn-secondary,
+  .btn-save-item {
+    height: 44px;
+    padding: 0 18px;
+    border-radius: 999px;
+    font-family: var(--font);
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .btn-secondary {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--muted);
+  }
+
+  .btn-secondary:hover {
+    background: #f3f4f6;
+  }
+
+  .btn-save-item {
+    border: 0;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(236, 36, 39, 0.22);
+  }
+
+  .btn-save-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(236, 36, 39, 0.28);
+  }
+
+  @media(max-width:640px) {
+    .inventory-page {
+      padding: 20px;
+    }
+
+    .inventory-head h1 {
+      font-size: 1.7rem;
+    }
+
+    .items-toolbar {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .btn-add-item {
+      width: 100%;
+    }
+
+    .item-add-form {
+      padding: 20px;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="inventory-page">
+  <div class="inventory-head">
+    <h1>Inventory <span>Management</span></h1>
+    <p>Manage all rental items in one place</p>
+    <div class="underline-bar"></div>
+  </div>
+
+  <div class="items-toolbar">
+    <form class="items-search" method="GET" action="{% url 'inventory' %}">
+      <i class="fas fa-search"></i>
+      <input type="search" name="q" value="{{ search_query }}" placeholder="Search rental items..." aria-label="Search rental items">
+    </form>
+    <button type="button" class="btn-add-item" onclick="openItemDrawer()">
+      <i class="fas fa-plus"></i> Add New Item
+    </button>
+  </div>
+
+  <div class="items-table-wrap">
+    <div class="items-table-scroll">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <!-- <th>Description</th> -->
+            <th>Price/Day</th>
+            <th>Deposit</th>
+            <th>Item Qty</th>
+            <th>Price</th>
+            <th>Donation</th>
+            <!-- <th>Donor Name</th>
+            <th>Donor Contact</th> -->
+            <th>Total Qty</th>
+            <th>Available</th>
+            <th>Booked</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td class="item-name-cell">{{ item.title }}</td>
+            <!-- <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item.description|truncatewords:10 }}</td> -->
+            <td class="price-cell">₹{{ item.price_per_day }}</td>
+            <td class="price-cell">₹{{ item.deposit }}</td>
+            <td class="qty-cell">{{ item.item_qty }}</td>
+            <td class="price-cell">₹{{ item.price }}</td>
+            <td style="text-align: center;">
+              {% if item.donation %}
+              <span style="color: #16a34a;"><i class="fas fa-check-circle"></i> Yes</span>
+              {% else %}
+              <span style="color: #999;">-</span>
+              {% endif %}
+            </td>
+            <!-- <td>{{ item.donor_name|default:"-" }}</td>
+            <td>{{ item.donor_contact|default:"-" }}</td> -->
+            <td class="qty-cell">{{ item.total_quantity }}</td>
+            <td class="qty-cell" style="color: #16a34a; font-weight: 700;">{{ item.available_quantity }}</td>
+            <td class="qty-cell" style="color: #dc2626; font-weight: 700;">{{ item.booked_quantity }}</td>
+            <td>
+              {% if item.available %}
+              <span style="color: #16a34a;"><i class="fas fa-check-circle"></i> Available</span>
+              {% else %}
+              <span style="color: #dc2626;"><i class="fas fa-times-circle"></i> Out of Stock</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="table-actions">
+                <button type="button" class="btn-edit-item" onclick="openEditDrawer(this)"
+                  data-id="{{ item.id }}"
+                  data-title="{{ item.title }}"
+                  data-description="{{ item.description }}"
+                  data-price_per_day="{{ item.price_per_day }}"
+                  data-deposit="{{ item.deposit }}"
+                  data-total_quantity="{{ item.total_quantity }}"
+                  data-available_quantity="{{ item.available_quantity }}"
+                  data-booked_quantity="{{ item.booked_quantity }}"
+                  data-available="{% if item.available %}true{% else %}false{% endif %}"
+                  data-next_available_date="{{ item.next_available_date|date:'Y-m-d'|default:'' }}"
+                  data-item_qty="{{ item.item_qty }}"
+                  data-price="{{ item.price }}"
+                  data-donation="{% if item.donation %}true{% else %}false{% endif %}"
+                  data-donor_name="{{ item.donor_name|default:'' }}"
+                  data-donor_contact="{{ item.donor_contact|default:'' }}"
+                  data-image_url="{% if item.image %}{{ item.image.url }}{% endif %}"
+                >
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <a href="{% url 'delete_inventory_item' item.id %}" class="btn-delete-item-table" onclick="return confirm('Are you sure do you want to delete this record?');">
+                  <i class="fas fa-trash"></i> Delete
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="14" style="text-align: center; padding: 40px; color: var(--muted);">
+              No items found
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Item Drawer -->
+<div class="item-drawer-overlay" id="itemDrawerOverlay">
+  <aside class="item-drawer" aria-label="Add new rental item">
+    <div class="item-drawer-head">
+      <h2>Add New Item</h2>
+      <button type="button" class="item-drawer-close" onclick="closeItemDrawer()" aria-label="Close add item form">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <form class="item-add-form" action="{% url 'add_inventory_item' %}" method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-fields">
+        <div class="item-field">
+          <label for="itemTitle">Title</label>
+          <input id="itemTitle" type="text" name="title" placeholder="Rental item name" required>
+        </div>
+
+        <div class="item-field">
+          <label for="itemDesc">Description</label>
+          <textarea id="itemDesc" name="description" placeholder="Item description" rows="3"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="item-field">
+            <label for="itemPrice">Price per Day</label>
+            <input id="itemPrice" type="number" name="price_per_day" min="0" step="0.01" placeholder="0.00" required>
+          </div>
+          <div class="item-field">
+            <label for="itemDeposit">Deposit</label>
+            <input id="itemDeposit" type="number" name="deposit" min="0" step="0.01" placeholder="0.00" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="item-field">
+            <label for="itemTotalQty">Total Quantity</label>
+            <input id="itemTotalQty" type="number" name="total_quantity" min="1" value="1" required>
+          </div>
+          <input id="itemAvailableQty" type="hidden" name="available_quantity" value="1">
+        </div>
+
+        <input id="itemBookedQty" type="hidden" name="booked_quantity" value="0">
+
+        <input id="itemQty" type="hidden" name="item_qty" value="1">
+        <div class="item-field">
+          <label for="itemTrackingPrice">Price</label>
+          <input id="itemTrackingPrice" type="number" name="price" min="0" step="0.01" placeholder="0.00" required>
+        </div>
+
+        <label class="check-field">
+          <input type="checkbox" name="donation" id="donationCheckbox">
+          <span>Donation</span>
+        </label>
+
+        <div class="item-field">
+          <label for="donorName">Donor Name</label>
+          <input id="donorName" type="text" name="donor_name" placeholder="">
+        </div>
+
+        <div class="item-field">
+          <label for="donorContact">Donor Contact</label>
+          <input id="donorContact" type="text" name="donor_contact" placeholder="">
+        </div>
+
+        <div class="item-field">
+          <label for="itemImage">Image</label>
+          <input id="itemImage" type="file" name="image" accept="image/*">
+        </div>
+
+        <input type="hidden" name="available" value="on">
+        <input type="hidden" name="next_available_date" value="">
+      </div>
+
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary" onclick="closeItemDrawer()">Cancel</button>
+        <button type="submit" class="btn-save-item"><i class="fas fa-save"></i> SAVE</button>
+      </div>
+    </form>
+  </aside>
+</div>
+
+<!-- Edit Item Drawer -->
+<div class="item-drawer-overlay" id="editDrawerOverlay">
+  <aside class="item-drawer" aria-label="Edit rental item">
+    <div class="item-drawer-head">
+      <h2>Edit Item</h2>
+      <button type="button" class="item-drawer-close" onclick="closeEditDrawer()" aria-label="Close edit item form">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <form class="item-add-form" id="editItemForm" action="" method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="item_id" id="editItemId">
+      <div class="form-fields">
+        <div class="item-field">
+          <label for="editTitle">Title</label>
+          <input id="editTitle" type="text" name="title" placeholder="Rental item name" required>
+        </div>
+
+        <div class="item-field">
+          <label for="editDesc">Description</label>
+          <textarea id="editDesc" name="description" placeholder="Item description" rows="3"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="item-field">
+            <label for="editPricePerDay">Price per Day</label>
+            <input id="editPricePerDay" type="number" name="price_per_day" min="0" step="0.01" placeholder="0.00" required>
+          </div>
+          <div class="item-field">
+            <label for="editDeposit">Deposit</label>
+            <input id="editDeposit" type="number" name="deposit" min="0" step="0.01" placeholder="0.00" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="item-field">
+            <label for="editTotalQty">Total Quantity</label>
+            <input id="editTotalQty" type="number" name="total_quantity" min="1" required>
+          </div>
+          <div class="item-field">
+            <label for="editAvailableQty">Available Quantity</label>
+            <input id="editAvailableQty" type="number" name="available_quantity" min="0" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="item-field">
+            <label for="editBookedQty">Booked Quantity</label>
+            <input id="editBookedQty" type="number" name="booked_quantity" min="0" required>
+          </div>
+          <div class="item-field">
+            <label for="editItemQty">Item Qty</label>
+            <input id="editItemQty" type="number" name="item_qty" min="1" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="item-field">
+            <label for="editPrice">Price</label>
+            <input id="editPrice" type="number" name="price" min="0" step="0.01" placeholder="0.00" required>
+          </div>
+          <div class="item-field">
+            <label for="editNextAvailableDate">Next Available Date</label>
+            <input id="editNextAvailableDate" type="date" name="next_available_date">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label class="check-field">
+            <input type="checkbox" name="available" id="editAvailableCheckbox">
+            <span>Available for Rent</span>
+          </label>
+          <label class="check-field">
+            <input type="checkbox" name="donation" id="editDonationCheckbox">
+            <span>Donation</span>
+          </label>
+        </div>
+
+        <div class="form-row">
+          <div class="item-field">
+            <label for="editDonorName">Donor Name</label>
+            <input id="editDonorName" type="text" name="donor_name" placeholder="">
+          </div>
+          <div class="item-field">
+            <label for="editDonorContact">Donor Contact</label>
+            <input id="editDonorContact" type="text" name="donor_contact" placeholder="">
+          </div>
+        </div>
+
+        <div class="item-field">
+          <label for="editImage">Image</label>
+          <div id="editCurrentImageContainer" style="margin-bottom: 8px; font-size: 0.85rem; color: var(--muted); font-weight: bold;"></div>
+          <input id="editImage" type="file" name="image" accept="image/*">
+        </div>
+      </div>
+
+      <div class="drawer-actions">
+        <button type="button" class="btn-secondary" onclick="closeEditDrawer()">Cancel</button>
+        <button type="submit" class="btn-save-item"><i class="fas fa-save"></i> SAVE CHANGES</button>
+      </div>
+    </form>
+  </aside>
+</div>
+
+<script>
+  function openItemDrawer() {
+    const drawer = document.getElementById('itemDrawerOverlay');
+    if (drawer) drawer.classList.add('open');
+  }
+  
+  function closeItemDrawer() {
+    const drawer = document.getElementById('itemDrawerOverlay');
+    if (drawer) drawer.classList.remove('open');
+  }
+
+  const itemDrawerOverlay = document.getElementById('itemDrawerOverlay');
+  if (itemDrawerOverlay) {
+    itemDrawerOverlay.addEventListener('click', e => {
+      if (e.target === itemDrawerOverlay) closeItemDrawer();
+    });
+  }
+
+  // Sync Total Quantity input to hidden Available Quantity field
+  const totalQtyInput = document.getElementById('itemTotalQty');
+  const availableQtyInput = document.getElementById('itemAvailableQty');
+  if (totalQtyInput && availableQtyInput) {
+    totalQtyInput.addEventListener('input', () => {
+      availableQtyInput.value = totalQtyInput.value;
+    });
+  }
+
+  // Edit Drawer Controllers
+  function openEditDrawer(btn) {
+    const id = btn.getAttribute('data-id');
+    const title = btn.getAttribute('data-title');
+    const description = btn.getAttribute('data-description');
+    const price_per_day = btn.getAttribute('data-price_per_day');
+    const deposit = btn.getAttribute('data-deposit');
+    const total_quantity = btn.getAttribute('data-total_quantity');
+    const available_quantity = btn.getAttribute('data-available_quantity');
+    const booked_quantity = btn.getAttribute('data-booked_quantity');
+    const available = btn.getAttribute('data-available') === 'true';
+    const next_available_date = btn.getAttribute('data-next_available_date');
+    const item_qty = btn.getAttribute('data-item_qty');
+    const price = btn.getAttribute('data-price');
+    const donation = btn.getAttribute('data-donation') === 'true';
+    const donor_name = btn.getAttribute('data-donor_name');
+    const donor_contact = btn.getAttribute('data-donor_contact');
+    const image_url = btn.getAttribute('data-image_url');
+
+    document.getElementById('editItemId').value = id;
+    document.getElementById('editTitle').value = title;
+    document.getElementById('editDesc').value = description;
+    document.getElementById('editPricePerDay').value = price_per_day;
+    document.getElementById('editDeposit').value = deposit;
+    document.getElementById('editTotalQty').value = total_quantity;
+    document.getElementById('editAvailableQty').value = available_quantity;
+    document.getElementById('editBookedQty').value = booked_quantity;
+    document.getElementById('editAvailableCheckbox').checked = available;
+    document.getElementById('editNextAvailableDate').value = next_available_date;
+    document.getElementById('editItemQty').value = item_qty;
+    document.getElementById('editPrice').value = price;
+    document.getElementById('editDonationCheckbox').checked = donation;
+    document.getElementById('editDonorName').value = donor_name;
+    document.getElementById('editDonorContact').value = donor_contact;
+
+    const imgContainer = document.getElementById('editCurrentImageContainer');
+    if (image_url) {
+      imgContainer.innerHTML = `Current: <a href="${image_url}" target="_blank" style="color: #3b82f6; text-decoration: underline;">${image_url.split('/').pop()}</a>`;
+    } else {
+      imgContainer.innerHTML = 'No image uploaded';
+    }
+
+    const form = document.getElementById('editItemForm');
+    form.action = `/inventory/edit/${id}/`;
+
+    const drawer = document.getElementById('editDrawerOverlay');
+    if (drawer) drawer.classList.add('open');
+  }
+
+  function closeEditDrawer() {
+    const drawer = document.getElementById('editDrawerOverlay');
+    if (drawer) drawer.classList.remove('open');
+  }
+
+  const editDrawerOverlay = document.getElementById('editDrawerOverlay');
+  if (editDrawerOverlay) {
+    editDrawerOverlay.addEventListener('click', e => {
+      if (e.target === editDrawerOverlay) closeEditDrawer();
+    });
+  }
+
+  // Edit Drawer calculations synchronization
+  const editTotalQtyInput = document.getElementById('editTotalQty');
+  const editBookedQtyInput = document.getElementById('editBookedQty');
+  const editAvailableQtyInput = document.getElementById('editAvailableQty');
+  const editAvailableCheckbox = document.getElementById('editAvailableCheckbox');
+  const editNextAvailableDate = document.getElementById('editNextAvailableDate');
+
+  function updateEditCalculations() {
+    const total = parseInt(editTotalQtyInput.value, 10) || 0;
+    const booked = parseInt(editBookedQtyInput.value, 10) || 0;
+    const availableQty = Math.max(total - booked, 0);
+    
+    editAvailableQtyInput.value = availableQty;
+    
+    if (availableQty > 0) {
+      editAvailableCheckbox.checked = true;
+      editNextAvailableDate.value = '';
+    } else {
+      editAvailableCheckbox.checked = false;
+      if (!editNextAvailableDate.value) {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        editNextAvailableDate.value = d.toISOString().split('T')[0];
+      }
+    }
+  }
+
+  if (editTotalQtyInput && editBookedQtyInput) {
+    editTotalQtyInput.addEventListener('input', updateEditCalculations);
+    editBookedQtyInput.addEventListener('input', updateEditCalculations);
+  }
+</script>
+{% endblock %}

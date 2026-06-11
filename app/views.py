@@ -19,6 +19,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.template.loader import render_to_string
+from django.core.files.storage import default_storage
 import razorpay
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A5
@@ -39,7 +40,7 @@ from .models import (
     Customer,
     NotifyRequest,
 )
-from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, send_whatsapp_message, send_notification
+from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, receipt_filename, send_whatsapp_message, send_notification
 
 def index(request):
 
@@ -357,9 +358,106 @@ def resetpass(request, username):
 
 def items(request):
     items = Inventory.objects.all().order_by('-available', 'title')
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        items = items.filter(title__icontains=search_query)
     return render(request, 'items.html', {
-        'items': items
+        'items': items,
+        'search_query': search_query,
     })
+
+@login_required
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+def inventory(request):
+    items = Inventory.objects.all().order_by('-available', 'title')
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        items = items.filter(title__icontains=search_query)
+    return render(request, 'inventory.html', {
+        'items': items,
+        'search_query': search_query,
+    })
+
+@login_required
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+def add_inventory_item(request):
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        price_per_day = request.POST.get('price_per_day', 0)
+        deposit = request.POST.get('deposit', 0)
+        total_quantity = int(request.POST.get('total_quantity', 1) or 1)
+        available_quantity = int(request.POST.get('available_quantity', 1) or 1)
+        booked_quantity = int(request.POST.get('booked_quantity', 0) or 0)
+        next_available_date = request.POST.get('next_available_date') or None
+        available = request.POST.get('available') == 'on'
+        item_qty = int(request.POST.get('item_qty', 1) or 1)
+        price = request.POST.get('price', 0)
+        donation = request.POST.get('donation') == 'on'
+        donor_name = request.POST.get('donor_name', '').strip()
+        donor_contact = request.POST.get('donor_contact', '').strip()
+
+        Inventory.objects.create(
+            title=title,
+            description=description,
+            price_per_day=price_per_day,
+            deposit=deposit,
+            total_quantity=total_quantity,
+            available_quantity=available_quantity,
+            booked_quantity=booked_quantity,
+            available=available,
+            next_available_date=next_available_date,
+            image=request.FILES.get('image'),
+            item_qty=item_qty,
+            price=price,
+            donation=donation,
+            donor_name=donor_name,
+            donor_contact=donor_contact,
+        )
+        messages.success(request, "New rental item added successfully.")
+        return redirect('inventory')
+
+    return redirect('inventory')
+
+@login_required
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+def delete_inventory_item(request, item_id):
+    item = get_object_or_404(Inventory, id=item_id)
+    item.delete()
+    messages.success(request, f"Item '{item.title}' deleted successfully.")
+    return redirect('inventory')
+
+@login_required
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+def edit_inventory_item(request, item_id):
+    item = get_object_or_404(Inventory, id=item_id)
+    if request.method == 'POST':
+        item.title = request.POST.get('title', '').strip()
+        item.description = request.POST.get('description', '').strip()
+        item.price_per_day = request.POST.get('price_per_day', 0)
+        item.deposit = request.POST.get('deposit', 0)
+        item.total_quantity = int(request.POST.get('total_quantity', 1) or 1)
+        item.available_quantity = int(request.POST.get('available_quantity', 0) or 0)
+        item.booked_quantity = int(request.POST.get('booked_quantity', 0) or 0)
+        item.available = request.POST.get('available') == 'on'
+        
+        next_avail = request.POST.get('next_available_date')
+        item.next_available_date = next_avail if next_avail else None
+        
+        item.item_qty = int(request.POST.get('item_qty', 1) or 1)
+        item.price = request.POST.get('price', 0)
+        item.donation = request.POST.get('donation') == 'on'
+        item.donor_name = request.POST.get('donor_name', '').strip()
+        item.donor_contact = request.POST.get('donor_contact', '').strip()
+        
+        if request.FILES.get('image'):
+            item.image = request.FILES.get('image')
+            
+        item.save()
+        messages.success(request, f"Item '{item.title}' updated successfully.")
+        return redirect('inventory')
+    
+    return redirect('inventory')
 
 def notify_request(request):
     if request.method == 'POST':
@@ -572,6 +670,9 @@ def paymentmethod(request):
     patient_name = request.session.get("patient_name")
     phone = request.session.get("phone")
     address = request.session.get("address")
+    id_proof_type = request.session.get("id_proof_type")
+    id_proof_number = request.session.get("id_proof_number")
+    id_proof_file = request.session.get("id_proof_file")
     start_date = request.session.get("start_date")
     end_date = request.session.get("end_date")
 
@@ -622,6 +723,9 @@ def paymentmethod(request):
                 deposit=item.deposit,
                 payment_method=payment_method.lower(),
                 order_id=order_id,
+                id_proof_type=id_proof_type,
+                id_proof_number=id_proof_number,
+                id_proof_file=id_proof_file,
                 delivery_option=delivery_option.lower() if delivery_option else None,
                 delivery_charge=delivery_charge,
             )
@@ -802,10 +906,10 @@ def success(request, rental_id):
     if not existing:
         content_file = generate_receipt(rental)
         new_receipt = Receipt.objects.create(rental_request=rental, receipt_type="booking")
-        new_receipt.file.save(f"receipt_{rental.order_id}.pdf", content_file)
+        new_receipt.file.save(receipt_filename(rental), content_file)
         new_receipt.save()
 
-    for k in ("renter_name", "patient_name", "phone", "address", "start_date", "end_date", "details_filled", "delivery_option", "delivery_charge", "rental_id", "item_id"):
+    for k in ("renter_name", "patient_name", "phone", "address", "id_proof_type", "id_proof_number", "id_proof_file", "start_date", "end_date", "details_filled", "delivery_option", "delivery_charge", "rental_id", "item_id"):
         request.session.pop(k, None)
 
     return render(request, "success.html", {
@@ -1012,18 +1116,94 @@ def generate_order_id():
     return f"{prefix}{new_num}"
 
 
+@login_required
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
 def approve_order(request, order_id):
-    order = get_object_or_404(History, order_id=order_id)
-    order.status = "approved"
-    order.save()
-
-    if not order.receipts.exists():
-        content_file = generate_receipt(order)
-        new_receipt = Receipt.objects.create(rental_request=order, receipt_type='booking')
-        new_receipt.file.save(f"receipt_{order.order_id}.pdf", content_file)
+    orders = History.objects.filter(order_id=order_id)
+    if not orders.exists():
+        raise Http404("Order not found")
+    
+    orders.update(status="approved")
+    
+    first_order = orders.first()
+    if not first_order.receipts.exists():
+        content_file = generate_receipt(first_order)
+        new_receipt = Receipt.objects.create(rental_request=first_order, receipt_type='booking')
+        new_receipt.file.save(receipt_filename(first_order), content_file)
         new_receipt.save()
 
-    return redirect("order_detail", order_id=order.order_id)
+    try:
+        send_notification(
+            title=f"Order Approved: {order_id}",
+            message=f"Order {order_id} has been approved by admin {request.user.username}.",
+            notification_type='booking',
+            link=f"/admin/app/history/?order_id={order_id}"
+        )
+    except Exception as e:
+        print(f"[notification error] {e}")
+
+    messages.success(request, f"Order {order_id} approved successfully.")
+    return redirect("bookingsammry")
+
+@login_required
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+@transaction.atomic
+def approve_return_order(request, order_id):
+    rentals = History.objects.select_for_update().filter(order_id=order_id, is_returned=False)
+    if not rentals.exists():
+        messages.error(request, "No return request found for this order.")
+        return redirect("bookingsammry")
+    
+    for index, rr in enumerate(rentals):
+        rr.is_returned = True
+        rr.is_return_requested = False
+        rr.status = "approved"
+        rr.actual_return_date = timezone.localdate()
+        rr.save()
+        try:
+            rr.rental_item.update_availability()
+        except Exception:
+            try:
+                rr.rental_item.save()
+            except Exception:
+                pass
+    
+    try:
+        send_notification(
+            title=f"Return Approved for {order_id}",
+            message=f"Admin {request.user.username} approved the return for order {order_id}.",
+            notification_type='return',
+            link=f"/admin/app/history/?order_id={order_id}"
+        )
+    except Exception as e:
+        print(f"[notification error] {e}")
+
+    messages.success(request, "Return approved successfully.")
+    return redirect("bookingsammry")
+
+@login_required
+@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+def download_rental_report(request):
+    if request.method == 'POST':
+        start_date_str = request.POST.get('start_date')
+        end_date_str = request.POST.get('end_date')
+        
+        if start_date_str and end_date_str:
+            from datetime import datetime
+            from .utils import generate_rental_report_pdf
+            
+            start = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            
+            queryset = History.objects.filter(
+                start_date__gte=start,
+                start_date__lte=end
+            ).select_related('user', 'rental_item')
+            
+            return generate_rental_report_pdf(queryset, start, end)
+            
+    messages.error(request, "Invalid report parameters.")
+    return redirect("bookingsammry")
 
 def terms(request):
     return render(request, 'terms.html')
@@ -1047,6 +1227,23 @@ def userdetail(request):
             return redirect("items")
 
     if request.method == "POST":
+        id_proof_type = request.POST.get("id_proof_type", "").strip()
+        id_proof_number = request.POST.get("id_proof_number", "").strip()
+        id_proof_file = request.FILES.get("id_proof_file")
+
+        allowed_extensions = {".png", ".jpg", ".jpeg", ".pdf"}
+        if not id_proof_file:
+            messages.error(request, "Please upload your ID proof.")
+            return redirect("userdetail")
+
+        file_extension = os.path.splitext(id_proof_file.name)[1].lower()
+        if file_extension not in allowed_extensions:
+            messages.error(request, "ID proof must be a PNG, JPG, JPEG, or PDF file.")
+            return redirect("userdetail")
+
+        if id_proof_file.size > 5 * 1024 * 1024:
+            messages.error(request, "ID proof file must be below 5 MB.")
+            return redirect("userdetail")
 
         if is_admin and not request.session.get("details_filled"):
             request.session["renter_name"] = request.POST.get("name") or request.user.username
@@ -1056,6 +1253,12 @@ def userdetail(request):
             request.session["pincode"] = request.POST.get("pincode")
             request.session["start_date"] = request.POST.get("start_date")
             request.session["end_date"] = request.POST.get("end_date")
+            request.session["id_proof_type"] = id_proof_type
+            request.session["id_proof_number"] = id_proof_number
+            request.session["id_proof_file"] = default_storage.save(
+                f"id_proofs/{id_proof_file.name}",
+                id_proof_file,
+            )
             request.session["details_filled"] = True
 
             if cart_items:
@@ -1080,27 +1283,10 @@ def userdetail(request):
 
         order_id = generate_sequential_order_id()
         phone = request.POST.get("phone", "").strip()
-        id_proof_type = request.POST.get("id_proof_type", "").strip()
-        id_proof_number = request.POST.get("id_proof_number", "").strip()
-        id_proof_file = request.FILES.get("id_proof_file")
         address = request.POST.get("address", "").strip()
         pincode = request.POST.get("pincode", "").strip()
         email = request.POST.get("email", "").strip()
         patient_name = request.POST.get("patient_name", "").strip()
-
-        allowed_extensions = {".png", ".jpg", ".jpeg", ".pdf"}
-        if not id_proof_file:
-            messages.error(request, "Please upload your ID proof.")
-            return redirect("userdetail")
-
-        file_extension = os.path.splitext(id_proof_file.name)[1].lower()
-        if file_extension not in allowed_extensions:
-            messages.error(request, "ID proof must be a PNG, JPG, JPEG, or PDF file.")
-            return redirect("userdetail")
-
-        if id_proof_file.size > 5 * 1024 * 1024:
-            messages.error(request, "ID proof file must be below 5 MB.")
-            return redirect("userdetail")
 
         start_date = datetime.strptime(request.session.get("start_date"), "%Y-%m-%d").date()
         end_date = datetime.strptime(request.session.get("end_date"), "%Y-%m-%d").date()
@@ -1114,8 +1300,9 @@ def userdetail(request):
 
         with transaction.atomic():
 
+            user_detail = None
             if not is_admin:
-                UserDetail.objects.update_or_create(
+                user_detail, _ = UserDetail.objects.update_or_create(
                     user=request.user,
                     defaults={
                         "phone": phone,
@@ -1143,6 +1330,9 @@ def userdetail(request):
                     patient_name=(request.session.get("patient_name") or patient_name),
                     phone=(request.session.get("phone") or phone),
                     address=history_address,
+                    id_proof_type=id_proof_type,
+                    id_proof_number=id_proof_number,
+                    id_proof_file=user_detail.id_proof_file.name if user_detail and user_detail.id_proof_file else None,
                 )
             try:
                 if cart:
@@ -1211,7 +1401,7 @@ def remove_cart_item(request, item_id):
 from collections import defaultdict
 
 def bookingsammry(request):
-    rental_requests = History.objects.select_related('user', 'rental_item').order_by('-created_at')
+    rental_requests = History.objects.select_related('user', 'user__userdetail', 'rental_item').order_by('-created_at')
     if not request.user.is_staff and not request.user.is_superuser:
         rental_requests = rental_requests.filter(user=request.user)
 
@@ -1227,12 +1417,26 @@ def bookingsammry(request):
 
     for order_id, items in grouped.items():
         total_deposit = sum((item.deposit * item.quantity for item in items), Decimal("0"))
+        id_proof_url = ""
+        for item in items:
+            if item.id_proof_file:
+                id_proof_url = item.id_proof_file.url
+                break
+        if not id_proof_url:
+            try:
+                user_detail = items[0].user.userdetail
+                if user_detail.id_proof_file:
+                    id_proof_url = user_detail.id_proof_file.url
+            except Exception:
+                id_proof_url = ""
+
         booking_summaries.append({
             "order_id": order_id,
             "date": items[0].start_date,
             "items": items,
             "total_deposit": total_deposit,
             "customer": items[0].user if request.user.is_staff or request.user.is_superuser else None,
+            "id_proof_url": id_proof_url,
         })
 
     returned_order_ids = (
@@ -1432,7 +1636,25 @@ def return_order(request, order_id):
         messages.info(request, "Return already requested or completed.")
         return redirect("bookingsammry")
 
-    total_deposit = sum((rr.deposit * rr.quantity for rr in rentals), Decimal("0"))
+    rental_rows = list(rentals)
+
+    def format_return_item_details(rows):
+        details = ["Rental Details:"]
+        for rr in rows:
+            details.extend([
+                f"Item Name: {rr.rental_item.title}",
+                f"Item Quantity: {rr.quantity}",
+                f"Renter Name: {rr.renter_name or rr.user.username}",
+                f"Start Date: {rr.start_date}",
+                f"End Date: {rr.billing_end_date}",
+                f"Amount: Rs. {rr.total_rent}",
+                "",
+            ])
+        return "\n".join(details).strip()
+
+    item_details = format_return_item_details(rental_rows)
+    item_count = len(rental_rows)
+    total_deposit = sum((rr.deposit * rr.quantity for rr in rental_rows), Decimal("0"))
     if donate_deposit:
         try:
             donation_amount = Decimal(request.GET.get("donation_amount", "0"))
@@ -1448,7 +1670,7 @@ def return_order(request, order_id):
             return redirect("bookingsammry")
 
     if request.user.is_staff or request.user.is_superuser:
-        for index, rr in enumerate(rentals):
+        for index, rr in enumerate(rental_rows):
             rr.is_return_requested = False
             rr.is_returned = True
             rr.status = "approved"
@@ -1479,7 +1701,8 @@ def return_order(request, order_id):
                 title=f"Order Returned for {order_id}",
                 message=(
                     f"Admin {request.user.username} marked order {order_id} as returned. "
-                    f"{rentals.count()} item(s) returned."
+                    f"{item_count} item(s) returned.\n\n"
+                    f"{item_details}"
                 ),
                 notification_type='return',
                 link=f"/admin/app/history/?order_id={order_id}"
@@ -1490,7 +1713,7 @@ def return_order(request, order_id):
         messages.success(request, "Order marked as returned successfully.")
         return redirect("bookingsammry")
 
-    for index, rr in enumerate(rentals):
+    for index, rr in enumerate(rental_rows):
         rr.is_return_requested = True
         rr.status = "pending"      
         rr.deposit_donated = donate_deposit
@@ -1518,7 +1741,8 @@ def return_order(request, order_id):
             title=f"Return Request Submitted for {order_id}",
             message=(
                 f"User {request.user.username} requested return for order {order_id}. "
-                f"{rentals.count()} item(s) are awaiting approval."
+                f"{item_count} item(s) are awaiting approval.\n\n"
+                f"{item_details}"
             ),
             notification_type='return',
             link=f"/admin/app/history/?order_id={order_id}"

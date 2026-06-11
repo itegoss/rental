@@ -208,7 +208,7 @@
 
   .bookings-table th.col-action,
   .bookings-table td.col-action {
-    width: 250px;
+    width: 290px;
   }
 
   .bookings-table tbody tr:hover td {
@@ -278,7 +278,6 @@
     font-weight: 700;
   }
 
-  /* Booking card */
   .booking-card {
     background: #fff;
     border-radius: 18px;
@@ -324,7 +323,6 @@
     color: var(--primary);
   }
 
-  /* Table */
   .b-table {
     width: 100%;
     border-collapse: collapse;
@@ -352,7 +350,6 @@
     background: #fafafa;
   }
 
-  /* Status badges */
   .s-badge {
     display: inline-flex;
     align-items: center;
@@ -389,7 +386,6 @@
     color: #4b5563;
   }
 
-  /* Action buttons */
   .act-btn {
     display: inline-flex;
     align-items: center;
@@ -501,6 +497,116 @@
     color: #fff;
   }
 
+  .act-id-proof {
+    background: #10b981;
+    color: #fff;
+  }
+
+  .act-id-proof:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  .act-id-proof-missing {
+    background: #9ca3af;
+    color: #fff;
+    cursor: not-allowed;
+  }
+
+  .act-approve {
+    background: #10b981;
+    color: #fff;
+  }
+
+  .act-approve:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  .report-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+  }
+
+  .report-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .report-icon {
+    font-size: 1.4rem;
+    color: var(--primary);
+  }
+
+  .report-header h2 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--text);
+  }
+
+  .report-form {
+    width: 100%;
+  }
+
+  .report-inputs {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .report-inputs .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .report-inputs label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .report-inputs input[type="date"] {
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-family: var(--font);
+    font-size: 0.9rem;
+    outline: none;
+    background: #fafafa;
+    transition: all 0.2s;
+  }
+
+  .report-inputs input[type="date"]:focus {
+    border-color: var(--primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(236, 36, 39, 0.1);
+  }
+
+  .report-btn {
+    height: 42px;
+    padding: 0 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 10px !important;
+  }
+
   .actions-wrap {
     display: flex;
     flex-wrap: wrap;
@@ -508,7 +614,6 @@
     align-items: center;
   }
 
-  /* Empty */
   .empty-bookings {
     background: #fff;
     border-radius: 18px;
@@ -534,7 +639,6 @@
     margin-bottom: 22px;
   }
 
-  /* Deposit modal */
   .d-modal-overlay {
     display: none;
     position: fixed;
@@ -711,6 +815,275 @@
     color: var(--border);
     margin-bottom: 1px !important;
   }
+
+  .btn-primary-red {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 24px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--font);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(236, 36, 39, 0.22);
+    text-decoration: none;
+  }
+
+  .btn-primary-red:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(236, 36, 39, 0.28);
+  }
+
+  .btn-primary-red i {
+    font-size: 0.9rem;
+    margin-bottom: 0;
+  }
+
+  .add-item-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9998;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .add-item-modal-overlay.open {
+    display: flex;
+  }
+
+  .add-item-modal {
+    background: #fff;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateY(-50px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .add-item-modal-header {
+    background: var(--primary);
+    color: #fff;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .add-item-modal-header h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .modal-close-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .modal-close-btn:hover {
+    transform: rotate(90deg);
+  }
+
+  .add-item-modal-body {
+    padding: 28px 24px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-bottom: 20px;
+  }
+
+  .form-col-full {
+    grid-column: 1 / -1;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .form-group label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #666;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: 0.9rem;
+    outline: none;
+    background: #fff;
+    transition: all 0.2s;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(236, 36, 39, 0.1);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .image-upload-box {
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fafafa;
+  }
+
+  .image-upload-box:hover {
+    border-color: var(--primary);
+    background: #fff5f5;
+  }
+
+  .image-upload-box i {
+    font-size: 2.5rem;
+    color: var(--primary);
+    margin-bottom: 10px;
+  }
+
+  .image-upload-box p {
+    margin: 8px 0 0;
+    color: #666;
+    font-weight: 600;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0;
+  }
+
+  .checkbox-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: var(--primary);
+  }
+
+  .checkbox-row label {
+    margin: 0;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .add-item-modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  .modal-btn {
+    padding: 11px 24px;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-cancel {
+    background: #f3f4f6;
+    color: #666;
+    border: 1px solid #ddd;
+  }
+
+  .btn-cancel:hover {
+    background: #e5e7eb;
+  }
+
+  .btn-save-item {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(236, 36, 39, 0.22);
+  }
+
+  .btn-save-item:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+  }
+
+  @media(max-width:640px) {
+    .add-item-modal {
+      width: 95%;
+      max-height: 95vh;
+    }
+
+    .add-item-modal-body {
+      padding: 20px 16px;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .add-item-modal-footer {
+      flex-direction: column;
+    }
+
+    .modal-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
 </style>
 
 <div class="bookings-page">
@@ -718,13 +1091,132 @@
     <h1>My <span>Bookings</span></h1>
     <p>Track your rentals, view receipts, and manage returns</p>
     <div class="underline-bar"></div>
+    <!-- <button class="btn-primary-red" style="margin-top: 20px;" onclick="openAddItemModal()">
+      <i class="fas fa-plus"></i> Add New Item
+    </button> -->
   </div>
 
+  <!-- Add New Item Modal -->
+  <!-- <div class="add-item-modal-overlay" id="addItemModal">
+    <div class="add-item-modal">
+      <div class="add-item-modal-header">
+        <h2>Add New Item</h2>
+        <button class="modal-close-btn" onclick="closeAddItemModal()" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="add-item-modal-body">
+        <form id="addItemForm">
+          <div class="form-row">
+            <div class="form-group form-col-full">
+              <label for="itemName">ITEM NAME</label>
+              <input type="text" id="itemName" name="item_name" placeholder="" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group form-col-full">
+              <label for="description">DESCRIPTION</label>
+              <textarea id="description" name="description" placeholder=""></textarea>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group form-col-full">
+              <label for="itemImage">ITEM IMAGE</label>
+              <div class="image-upload-box" onclick="document.getElementById('itemImage').click()">
+                <i class="fas fa-image"></i>
+                <p>Item Image</p>
+              </div>
+              <input type="file" id="itemImage" name="item_image" accept="image/*" style="display: none;">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="rentPerDay">RENT PER DAY</label>
+              <input type="number" id="rentPerDay" name="rent_per_day" value="0" min="0" step="0.01" required>
+            </div>
+
+            <div class="form-group">
+              <label for="deposit">DEPOSIT</label>
+              <input type="number" id="deposit" name="deposit" value="0" min="0" step="0.01" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="totalQuantity">TOTAL QUANTITY</label>
+              <input type="number" id="totalQuantity" name="total_quantity" value="1" min="1" required>
+            </div>
+
+            <div class="form-group">
+              <label for="availableQuantity">AVAILABLE QUANTITY</label>
+              <input type="number" id="availableQuantity" name="available_quantity" value="1" min="0" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="bookedQuantity">BOOKED QUANTITY</label>
+              <input type="number" id="bookedQuantity" name="booked_quantity" value="0" min="0" readonly>
+            </div>
+
+            <div class="form-group">
+              <label for="nextAvailableDate">NEXT AVAILABLE DATE</label>
+              <input type="text" id="nextAvailableDate" name="next_available_date" placeholder="dd-mm-yyyy">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group form-col-full">
+              <div class="checkbox-row">
+                <input type="checkbox" id="availableForRent" name="available_for_rent" checked>
+                <label for="availableForRent">Available for rent</label>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="add-item-modal-footer">
+        <button type="button" class="modal-btn btn-cancel" onclick="closeAddItemModal()">Cancel</button>
+        <button type="button" class="modal-btn btn-save-item" onclick="saveNewItem()">
+          <i class="fas fa-save"></i> Save Item
+        </button>
+      </div>
+    </div>
+  </div> -->
+
   {% if booking_summaries %}
-  <div class="contact-notice">
+  <!-- <div class="contact-notice">
     <i class="fas fa-phone-alt"></i>
     <p>To extend your rental period, contact admin: <strong>+91 88505 13009</strong></p>
+  </div> -->
+
+  {% if request.user.is_staff or request.user.is_superuser %}
+  <div class="report-card">
+    <div class="report-header">
+      <i class="fas fa-file-pdf report-icon"></i>
+      <h2>Generate Rental Report</h2>
+    </div>
+    <form method="post" action="{% url 'download_rental_report' %}" class="report-form">
+      {% csrf_token %}
+      <div class="report-inputs">
+        <div class="input-group">
+          <label for="report_start_date">Start Date</label>
+          <input type="date" id="report_start_date" name="start_date" required>
+        </div>
+        <div class="input-group">
+          <label for="report_end_date">End Date</label>
+          <input type="date" id="report_end_date" name="end_date" required>
+        </div>
+        <button type="submit" class="btn-primary-red report-btn">
+          <i class="fas fa-download"></i> Download Report
+        </button>
+      </div>
+    </form>
   </div>
+  {% endif %}
 
   <div class="table-tools">
     <div class="search-wrap">
@@ -785,17 +1277,17 @@
             {% endif %}
             <td class="col-days" data-value="{{ rr.rental_days }}">{{ rr.rental_days }}</td>
             <td class="col-status"
-              data-value="{% if rr.status == 'pending' and not rr.is_return_requested %}Booking Pending{% elif rr.status == 'rejected' and not rr.is_returned %}Booking Rejected{% elif rr.status == 'cancelled' %}Cancelled{% elif rr.is_returned %}Returned{% elif rr.status == 'approved' and rr.is_return_requested %}Return Pending{% elif rr.status == 'approved' %}Approved{% else %}Pending{% endif %}">
-              {% if rr.status == "pending" and not rr.is_return_requested %}
+              data-value="{% if rr.is_returned %}Returned{% elif rr.is_return_requested %}Return Pending{% elif rr.status == 'pending' %}Booking Pending{% elif rr.status == 'rejected' %}Booking Rejected{% elif rr.status == 'cancelled' %}Cancelled{% elif rr.status == 'approved' %}Approved{% else %}Pending{% endif %}">
+              {% if rr.is_returned %}
+              <span class="s-badge s-returned"><i class="fas fa-check-circle"></i> Returned</span>
+              {% elif rr.is_return_requested %}
+              <span class="s-badge s-pending"><i class="fas fa-clock"></i> Return Pending</span>
+              {% elif rr.status == "pending" %}
               <span class="s-badge s-pending"><i class="fas fa-clock"></i> Booking Pending</span>
-              {% elif rr.status == "rejected" and not rr.is_returned %}
+              {% elif rr.status == "rejected" %}
               <span class="s-badge s-rejected"><i class="fas fa-times-circle"></i> Booking Rejected</span>
               {% elif rr.status == "cancelled" %}
               <span class="s-badge s-cancelled"><i class="fas fa-ban"></i> Cancelled</span>
-              {% elif rr.is_returned %}
-              <span class="s-badge s-returned"><i class="fas fa-check-circle"></i> Returned</span>
-              {% elif rr.status == "approved" and rr.is_return_requested %}
-              <span class="s-badge s-pending"><i class="fas fa-clock"></i> Return Pending</span>
               {% elif rr.status == "approved" %}
               <span class="s-badge s-approved"><i class="fas fa-check-circle"></i> Approved</span>
               {% else %}
@@ -804,29 +1296,26 @@
             </td>
             <td class="col-action">
               <div class="actions-wrap">
-                {% if rr.status == "pending" and not rr.is_return_requested %}
                 {% if request.user.is_staff or request.user.is_superuser %}
+                <!-- Admin Actions -->
+                {% if not rr.is_returned %}
+                {% if rr.is_return_requested %}
+                <!-- Return Pending -->
+                <a href="{% url 'approve_return_order' booking.order_id %}" class="act-btn act-approve"
+                  data-tooltip="Approve Return"><i class="fas fa-check"></i> Approve Return</a>
                 <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"><i
                     class="fas fa-ban"></i> Cancel</a>
-                {% endif %}
-                {% elif rr.is_returned %}
-                <a href="{% url 'return_receipt' booking.order_id %}" class="act-btn act-view"
-                  data-tooltip="View Receipt" aria-label="View Receipt"><i class="fas fa-eye"></i> </a>
-                {% elif rr.status == "approved" and rr.is_return_requested %}
-                {% if request.user.is_staff or request.user.is_superuser %}
+                {% elif rr.status == "pending" %}
+                <!-- Booking Pending -->
+                <a href="{% url 'approve_order' booking.order_id %}" class="act-btn act-approve"
+                  data-tooltip="Approve Booking"><i class="fas fa-check"></i> Approve</a>
                 <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"><i
                     class="fas fa-ban"></i> Cancel</a>
-                {% endif %}
                 {% elif rr.status == "approved" %}
-                {% if request.user.is_staff or request.user.is_superuser %}
+                <!-- Approved -->
                 <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return" data-tooltip="Return"
                   data-deposit="{{ booking.total_deposit }}"
                   onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> </a>
-                {% else %}
-                <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return"
-                  data-tooltip="Request Return" aria-label="Request Return" data-deposit="{{ booking.total_deposit }}"
-                  onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> </a>
-                {% endif %}
                 <a href="{% url 'extend_return_date' booking.order_id %}" class="act-btn act-extend"
                   data-tooltip="Extend" aria-label="Extend"><i class="fas fa-calendar-plus"></i> </a>
                 <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"
@@ -834,13 +1323,49 @@
                 <a href="{% url 'view_rental' rr.id %}" class="act-btn act-view" data-tooltip="Receipt"
                   aria-label="Receipt"><i class="fas fa-eye"></i> </a>
                 {% endif %}
+                {% else %}
+                <!-- Returned -->
+                <a href="{% url 'return_receipt' booking.order_id %}" class="act-btn act-view"
+                  data-tooltip="View Receipt" aria-label="View Receipt"><i class="fas fa-eye"></i> </a>
+                {% endif %}
+
+                {% if booking.id_proof_url %}
+                <a href="{{ booking.id_proof_url }}" class="act-btn act-id-proof" target="_blank" rel="noopener"
+                  data-tooltip="View ID Proof" aria-label="View ID Proof"><i class="fas fa-id-card"></i> </a>
+                {% else %}
+                <span class="act-btn act-id-proof-missing" data-tooltip="No ID Proof Uploaded"
+                  aria-label="No ID Proof Uploaded"><i class="fas fa-id-card"></i> </span>
+                {% endif %}
+
+                {% else %}
+                <!-- Customer Actions -->
+                {% if not rr.is_returned %}
+                {% if rr.status == "approved" %}
+                {% if not rr.is_return_requested %}
+                <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return"
+                  data-tooltip="Request Return" data-deposit="{{ booking.total_deposit }}"
+                  onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> </a>
+                <a href="{% url 'extend_return_date' booking.order_id %}" class="act-btn act-extend"
+                  data-tooltip="Extend" aria-label="Extend"><i class="fas fa-calendar-plus"></i> </a>
+                <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"
+                  aria-label="Cancel"><i class="fas fa-ban"></i> </a>
+                {% endif %}
+                <a href="{% url 'view_rental' rr.id %}" class="act-btn act-view" data-tooltip="Receipt"
+                  aria-label="Receipt"><i class="fas fa-eye"></i> </a>
+                {% endif %}
+                {% else %}
+                <a href="{% url 'return_receipt' booking.order_id %}" class="act-btn act-view"
+                  data-tooltip="View Receipt" aria-label="View Receipt"><i class="fas fa-eye"></i> </a>
+                {% endif %}
+                {% endif %}
               </div>
             </td>
           </tr>
           {% endfor %}
           {% endfor %}
           <tr class="no-results-row" id="noResultsRow" style="display:none;">
-            <td colspan="{% if request.user.is_superuser or request.user.is_staff %}10{% else %}7{% endif %}">No bookings match your search.</td>
+            <td colspan="{% if request.user.is_superuser or request.user.is_staff %}10{% else %}7{% endif %}">No
+              bookings match your search.</td>
           </tr>
         </tbody>
       </table>
@@ -900,6 +1425,7 @@
     const pageInfo = document.getElementById('pageInfo');
     const pageButtons = document.getElementById('pageButtons');
     const noResultsRow = document.getElementById('noResultsRow');
+    const tableBody = bookingsTable.querySelector('tbody');
     const rows = Array.from(bookingsTable.querySelectorAll('tbody tr:not(.no-results-row)'));
     let filteredRows = [...rows];
     let currentPage = 1;
@@ -975,10 +1501,15 @@
       currentPage = Math.min(currentPage, totalPages);
       const start = (currentPage - 1) * pageSize;
       const end = start + pageSize;
+      const visibleRows = filteredRows.slice(start, end);
 
       rows.forEach(row => row.style.display = 'none');
-      filteredRows.slice(start, end).forEach(row => row.style.display = '');
       noResultsRow.style.display = totalRows === 0 ? '' : 'none';
+      visibleRows.forEach(row => {
+        row.style.display = '';
+        tableBody.appendChild(row);
+      });
+      tableBody.appendChild(noResultsRow);
 
       if (totalRows === 0) {
         pageInfo.textContent = 'Showing 0 bookings';
@@ -989,12 +1520,13 @@
       }
     }
 
-    bookingsTable.querySelectorAll('th:not(.no-sort)').forEach((header, index) => {
+    bookingsTable.querySelectorAll('th:not(.no-sort)').forEach(header => {
       header.addEventListener('click', () => {
-        sortDirection = sortColumn === index && sortDirection === 'asc' ? 'desc' : 'asc';
-        sortColumn = index;
+        const columnIndex = header.cellIndex;
+        sortDirection = sortColumn === columnIndex && sortDirection === 'asc' ? 'desc' : 'asc';
+        sortColumn = columnIndex;
         const type = header.dataset.sort || 'text';
-        filteredRows.sort((a, b) => compareRows(a, b, index, type) * (sortDirection === 'asc' ? 1 : -1));
+        filteredRows.sort((a, b) => compareRows(a, b, columnIndex, type) * (sortDirection === 'asc' ? 1 : -1));
         bookingsTable.querySelectorAll('.sort-icon').forEach(icon => icon.className = 'fas fa-sort sort-icon');
         const icon = header.querySelector('.sort-icon');
         if (icon) icon.className = `fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'} sort-icon`;
@@ -1056,6 +1588,55 @@
   }
   document.getElementById('depositModal').addEventListener('click', e => {
     if (e.target === document.getElementById('depositModal')) closeDepositModal();
+  });
+
+  // Add Item Modal Functions
+  function openAddItemModal() {
+    document.getElementById('addItemModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeAddItemModal() {
+    document.getElementById('addItemModal').classList.remove('open');
+    document.body.style.overflow = 'auto';
+    document.getElementById('addItemForm').reset();
+  }
+
+  function saveNewItem() {
+    const form = document.getElementById('addItemForm');
+    const formData = new FormData(form);
+
+    const itemData = {
+      item_name: document.getElementById('itemName').value,
+      description: document.getElementById('description').value,
+      rent_per_day: document.getElementById('rentPerDay').value,
+      deposit: document.getElementById('deposit').value,
+      total_quantity: document.getElementById('totalQuantity').value,
+      available_quantity: document.getElementById('availableQuantity').value,
+      booked_quantity: document.getElementById('bookedQuantity').value,
+      next_available_date: document.getElementById('nextAvailableDate').value,
+      available_for_rent: document.getElementById('availableForRent').checked,
+      item_image: document.getElementById('itemImage').files[0]
+    };
+
+    console.log('Item saved:', itemData);
+    alert('Item saved successfully!');
+    closeAddItemModal();
+  }
+
+  // Handle modal overlay click to close
+  document.getElementById('addItemModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('addItemModal')) {
+      closeAddItemModal();
+    }
+  });
+
+  // Update booked quantity when available quantity changes
+  document.getElementById('availableQuantity').addEventListener('change', function () {
+    const total = parseInt(document.getElementById('totalQuantity').value) || 0;
+    const available = parseInt(this.value) || 0;
+    const booked = Math.max(0, total - available);
+    document.getElementById('bookedQuantity').value = booked;
   });
 </script>
 {% endblock %}

@@ -1,8 +1,8 @@
 # pyrefly: ignore [missing-import]
 from django.contrib import admin
 from django.utils.html import format_html
-from django.http import HttpResponse, HttpResponseRedirect
-from django.urls import reverse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
+from django.urls import path, reverse
 from django.conf import settings
 from django import forms
 import re
@@ -23,7 +23,7 @@ from .models import (
     NotifyRequest,
 )
 
-from .utils import generate_receipt, send_notification, send_whatsapp_message
+from .utils import generate_receipt, receipt_filename, send_notification, send_whatsapp_message, generate_rental_report_pdf
 
 @admin.action(description="Approve Return")
 def approve_return(modeladmin, request, queryset):
@@ -71,8 +71,8 @@ class ReceiptAdmin(admin.ModelAdmin):
     def download_receipt(self, obj):
         if obj.file:
             return format_html(
-                '<a href="{}" target="_blank">Download</a>',
-                obj.file.url
+                '<a href="{}">Download</a>',
+                reverse("admin:download_receipt", args=[obj.rental_request_id])
             )
         return "—"
 
@@ -88,10 +88,29 @@ class InventoryAdmin(admin.ModelAdmin):
         'available_quantity',
         'booked_quantity',
         'available',
+        'item_qty',
+        'price',
+        'donation',
+        'donor_name',
         'next_available_date',
     )
-    search_fields = ('title',)
-    list_filter = ('available',)
+    search_fields = ('title', 'donor_name')
+    list_filter = ('available', 'donation')
+    
+    fieldsets = (
+        ('Item Information', {
+            'fields': ('title', 'description', 'image')
+        }),
+        ('Rental Pricing', {
+            'fields': ('price_per_day', 'deposit')
+        }),
+        ('Inventory Management', {
+            'fields': ('total_quantity', 'available_quantity', 'booked_quantity', 'available', 'next_available_date')
+        }),
+        ('Item Tracking', {
+            'fields': ('item_qty', 'price', 'donation', 'donor_name', 'donor_contact')
+        }),
+    )
 
     def get_total_quantity(self, obj):
         return (obj.booked_quantity or 0) + (obj.available_quantity or 0)
@@ -138,6 +157,7 @@ class HistoryAdmin(admin.ModelAdmin):
         'extended_end_date','actual_return_date','get_rental_days',
         'get_per_day_rent','status','total_amount','is_reminder_sent',
         'is_overdue_email_sent','order_id','deposit','download_receipt',
+        'view_id_proof',
         'send_whatsapp','patient_name','delivery_option','delivery_charge',
         'is_return_requested','is_returned','send_reminder_whatsapp',
     )
@@ -154,16 +174,54 @@ class HistoryAdmin(admin.ModelAdmin):
         'id','user','rental_item','renter_name','phone','address', 'patient_name','start_date','end_date',
         'extended_end_date','actual_return_date','quantity','payment_method',
         'deposit','delivery_option','delivery_charge','status',
+        'id_proof_type','id_proof_number','id_proof_file','view_id_proof',
         'is_return_requested','is_returned','deposit_donated',
         'donation_amount','donation_comment','order_id',
     )
 
-    readonly_fields = ('id','order_id','total_amount')
+    readonly_fields = ('id','order_id','total_amount','view_id_proof')
 
     change_list_template = 'admin/history_changelist.html'
 
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                '<int:history_id>/download-receipt/',
+                self.admin_site.admin_view(self.download_receipt_file),
+                name='download_receipt',
+            ),
+        ]
+        return custom_urls + urls
+
+    def download_receipt_file(self, request, history_id):
+        obj = self.get_queryset(request).filter(pk=history_id).first()
+        if not obj:
+            raise Http404("Rental not found")
+
+        receipt = obj.receipts.order_by('-created_at').first()
+        if not receipt or not receipt.file:
+            raise Http404("Receipt not found")
+
+        return FileResponse(
+            receipt.file.open('rb'),
+            as_attachment=True,
+            filename=receipt_filename(obj),
+        )
+
     def get_changelist(self, request, **kwargs):
         return HistoryChangeList
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if not obj.order_id or not obj.id_proof_file:
+            return
+        update_fields = {
+            'id_proof_type': obj.id_proof_type,
+            'id_proof_number': obj.id_proof_number,
+            'id_proof_file': obj.id_proof_file.name,
+        }
+        History.objects.filter(order_id=obj.order_id).exclude(pk=obj.pk).update(**update_fields)
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
@@ -182,7 +240,7 @@ class HistoryAdmin(admin.ModelAdmin):
                     start_date__lte=end
                 )
                 
-                return self.generate_report_pdf(queryset, start, end)
+                return generate_rental_report_pdf(queryset, start, end)
         
         response = super().changelist_view(request, extra_context)
         if hasattr(response, 'context_data') and response.context_data:
@@ -200,79 +258,6 @@ class HistoryAdmin(admin.ModelAdmin):
         return getattr(self, '_serial_numbers', {}).get(obj.pk, '')
 
     serial_number.short_description = 'ID'
-
-    def generate_report_pdf(self, queryset, start_date, end_date):
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import letter, A4
-        from reportlab.lib.units import inch
-        from reportlab.lib.styles import getSampleStyleSheet
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-        from reportlab.lib import colors
-        from io import BytesIO
-        from django.http import HttpResponse
-        
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4)
-        elements = []
-        styles = getSampleStyleSheet()
-        title = Paragraph(f"Rental History Report ({start_date} to {end_date})", styles['Heading1'])
-        elements.append(title)
-        elements.append(Spacer(1, 12))
-        total_orders = queryset.count()
-        total_revenue = sum(q.total_amount or 0 for q in queryset)
-        total_deposit = sum(q.deposit * q.quantity for q in queryset)
-        
-        summary_data = [
-            ['Total Orders', str(total_orders)],
-            ['Total Revenue', f"₹{total_revenue}"],
-            ['Total Deposit', f"₹{total_deposit}"],
-        ]
-        
-        summary_table = Table(summary_data, colWidths=[2*inch, 2*inch])
-        summary_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 14),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ]))
-        elements.append(summary_table)
-        elements.append(Spacer(1, 24))
-        data = [['Order ID', 'User', 'Item', 'Start Date', 'End Date', 'Status', 'Total Amount']]
-        
-        for history in queryset:
-            data.append([
-                history.order_id or 'N/A',
-                history.user.username,
-                history.rental_item.title,
-                str(history.start_date),
-                str(history.end_date),
-                history.status,
-                f"₹{history.total_amount or 0}",
-            ])
-        
-        table = Table(data, colWidths=[1*inch, 1.5*inch, 2*inch, 1*inch, 1*inch, 1*inch, 1*inch])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ]))
-        elements.append(table)
-        
-        doc.build(elements)
-        buffer.seek(0)
-        
-        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="rental_report_{start_date}_to_{end_date}.pdf"'
-        return response
 
     def get_rental_days(self, obj):
         return obj.rental_days
@@ -300,6 +285,21 @@ class HistoryAdmin(admin.ModelAdmin):
         return "—"
 
     download_receipt.short_description = "Receipt"
+
+    def view_id_proof(self, obj):
+        if obj.id_proof_file:
+            return format_html('<a class="button" href="{}" target="_blank">View ID Proof</a>', obj.id_proof_file.url)
+        try:
+            if obj.user.userdetail.id_proof_file:
+                return format_html(
+                    '<a class="button" href="{}" target="_blank">View Profile ID Proof</a>',
+                    obj.user.userdetail.id_proof_file.url,
+                )
+        except Exception:
+            pass
+        return "No file"
+
+    view_id_proof.short_description = "ID Proof"
 
     def send_whatsapp(self, obj):
         try:
