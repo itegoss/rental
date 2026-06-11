@@ -83,29 +83,17 @@ TEMPLATES = [
 
 ENV = os.getenv("ENV", "DEV")
 
-if ENV == "PROD":
-    DATABASES = {
+DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DATABASE_NAME'),
-            'USER': os.environ.get('DATABASE_USER'),
-            'PASSWORD': os.environ.get('DATABASE_PASSWORD'),
-            'HOST': os.environ.get('DATABASE_HOST'),
-            'PORT': os.environ.get('DATABASE_PORT'),
-        }
-    }
-
-else:
-   DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'kys',
-        'USER': 'postgres',
-        'PASSWORD': 'admin',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+            'NAME': os.getenv('DB_NAME'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST'),
+            'PORT': os.getenv('DB_PORT'),
 }
+}
+
 
 
 AUTH_PASSWORD_VALIDATORS = [
