@@ -79,7 +79,7 @@ def index(request):
 
 def logout(request):
     if request.user.is_authenticated:
-        Cart.objects.filter(user=request.user).delete()
+        Cart.objects.filter(user_id=request.user.id).delete()
 
     auth_logout(request)
     return redirect('signin')
@@ -492,7 +492,7 @@ def add_to_cart(request, item_id):
         messages.error(request, "Item is out of stock.")
         return redirect('items')
 
-    cart, _ = Cart.objects.get_or_create(user=request.user)
+    cart, _ = Cart.objects.get_or_create(user_id=request.user.id)
 
     cart_item, created = CartItem.objects.get_or_create(
         cart=cart,
@@ -510,8 +510,9 @@ def add_to_cart(request, item_id):
     messages.success(request, "Item added to cart.")
     return redirect('cart')
 
+@login_required
 def cart_view(request):
-    cart, _ = Cart.objects.get_or_create(user=request.user)
+    cart, _ = Cart.objects.get_or_create(user_id=request.user.id)
     cart_items = cart.items.select_related("rental_item")
 
     if request.method == "POST":
@@ -561,10 +562,11 @@ def cart_view(request):
 
     return render(request, "cart.html", {"cart_items": cart_items, "is_admin": request.user.is_superuser})
 
+@login_required
 def select_delivery(request, pk):
     item = get_object_or_404(Inventory, pk=pk)
     request.session['item_id'] = pk
-    cart = Cart.objects.filter(user=request.user).first()
+    cart = Cart.objects.filter(user_id=request.user.id).first()
     has_cart_items = bool(cart and cart.items.exists())
 
     start_date = request.session.get("start_date")
@@ -586,7 +588,7 @@ def select_delivery(request, pk):
 
         request.session['delivery_option'] = delivery_option
 
-        rental = None if has_cart_items else History.objects.filter(rental_item=item, user=request.user).last()
+        rental = None if has_cart_items else History.objects.filter(rental_item=item, user_id=request.user.id).last()
         if rental:
             if delivery_option and delivery_option.lower() == "delivery":
                 if delivery_charge_str:
@@ -622,14 +624,14 @@ def select_delivery(request, pk):
 
         return redirect('paymentmethod')
 
-    rental = None if has_cart_items else History.objects.filter(rental_item=item, user=request.user).last()
+    rental = None if has_cart_items else History.objects.filter(rental_item=item, user_id=request.user.id).last()
 
     cart_items = []
     total_rent = 0
     total_deposit = 0
 
     if rental and rental.order_id:
-        related = History.objects.filter(order_id=rental.order_id, user=request.user).select_related('rental_item')
+        related = History.objects.filter(order_id=rental.order_id, user_id=request.user.id).select_related('rental_item')
         for r in related:
             cart_items.append(r)
             total_rent += r.total_rent
@@ -662,10 +664,11 @@ def select_delivery(request, pk):
         'total_deposit': total_deposit,
     })
 from datetime import datetime
+@login_required
 @transaction.atomic
 def paymentmethod(request):
 
-    cart = Cart.objects.filter(user=request.user).first()
+    cart = Cart.objects.filter(user_id=request.user.id).first()
     renter_name = request.session.get("renter_name")
     patient_name = request.session.get("patient_name")
     phone = request.session.get("phone")
@@ -711,7 +714,7 @@ def paymentmethod(request):
                 return redirect('cart')
 
             rental = History.objects.create(
-                user=request.user,
+                user_id=request.user.id,
                 renter_name=renter_name,
                 patient_name=patient_name,
                 phone=phone,
@@ -734,7 +737,7 @@ def paymentmethod(request):
                 to_phone = rental.phone
                 if not to_phone:
                     try:
-                        ud = UserDetail.objects.filter(user=request.user).first()
+                        ud = UserDetail.objects.filter(user_id=request.user.id).first()
                         to_phone = ud.phone if ud else None
                     except Exception:
                         to_phone = None
@@ -1213,10 +1216,11 @@ def services(request):
     return render(request, 'services.html', {'services': all_services})
 
 from django.utils import timezone
+@login_required
 @transaction.atomic
 def userdetail(request):
     is_admin = request.user.is_superuser
-    cart = Cart.objects.filter(user=request.user).first()
+    cart = Cart.objects.filter(user_id=request.user.id).first()
     cart_items = cart.items.select_related("rental_item") if cart else []
     customers = []
 
@@ -1303,7 +1307,7 @@ def userdetail(request):
             user_detail = None
             if not is_admin:
                 user_detail, _ = UserDetail.objects.update_or_create(
-                    user=request.user,
+                    user_id=request.user.id,
                     defaults={
                         "phone": phone,
                         "id_proof_type": id_proof_type,
@@ -1318,7 +1322,7 @@ def userdetail(request):
 
             for ci in cart_items:
                 History.objects.create(
-                    user=request.user,
+                    user_id=request.user.id,
                     renter_name=(request.session.get("renter_name") or request.user.get_full_name() or request.user.username),
                     rental_item=ci.rental_item,
                     start_date=start_date,
@@ -1366,7 +1370,7 @@ def userdetail(request):
 def update_cart_item(request, item_id):
     if request.method == 'POST':
         action = request.POST.get('action')
-        cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
+        cart_item = get_object_or_404(CartItem, id=item_id, cart__user_id=request.user.id)
 
         if action == 'increment':
             available_quantity = cart_item.rental_item.available_quantity
@@ -1394,16 +1398,17 @@ def update_cart_item(request, item_id):
 
 def remove_cart_item(request, item_id):
     if request.method == 'POST':
-        cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
+        cart_item = get_object_or_404(CartItem, id=item_id, cart__user_id=request.user.id)
         cart_item.delete()
         return JsonResponse({'success': True})
 
 from collections import defaultdict
 
+@login_required
 def bookingsammry(request):
     rental_requests = History.objects.select_related('user', 'user__userdetail', 'rental_item').order_by('-created_at')
     if not request.user.is_staff and not request.user.is_superuser:
-        rental_requests = rental_requests.filter(user=request.user)
+        rental_requests = rental_requests.filter(user_id=request.user.id)
 
     grouped = defaultdict(list)
 
@@ -1458,7 +1463,7 @@ def bookingsammry(request):
 
 @login_required
 def mark_returned(request, rental_id, item_id):
-    rr = get_object_or_404(History, id=rental_id, rental_item_id=item_id, user=request.user)
+    rr = get_object_or_404(History, id=rental_id, rental_item_id=item_id, user_id=request.user.id)
     
     if not rr.is_return_requested:
         rr.is_return_requested = True
@@ -1473,10 +1478,11 @@ def mark_returned(request, rental_id, item_id):
 
     return redirect('bookingsammry')
 
+@login_required
 def view_rental(request, rental_id):
     rentals = History.objects.all()
     if not (request.user.is_staff or request.user.is_superuser):
-        rentals = rentals.filter(user=request.user)
+        rentals = rentals.filter(user_id=request.user.id)
 
     rental = get_object_or_404(rentals, id=rental_id)
     related_rentals = rentals.filter(order_id=rental.order_id).select_related("rental_item")
@@ -1544,7 +1550,7 @@ def extend_return_date(request, order_id):
         .select_related("rental_item")
     )
     if not (request.user.is_staff or request.user.is_superuser):
-        rentals = rentals.filter(user=request.user)
+        rentals = rentals.filter(user_id=request.user.id)
 
     if not rentals.exists():
         messages.error(request, "Order not found or already returned.")
@@ -1630,7 +1636,7 @@ def return_order(request, order_id):
         .select_related("rental_item")
     )
     if not (request.user.is_staff or request.user.is_superuser):
-        rentals = rentals.filter(user=request.user)
+        rentals = rentals.filter(user_id=request.user.id)
 
     if not rentals.exists():
         messages.info(request, "Return already requested or completed.")
@@ -1765,7 +1771,7 @@ def cancel_order(request, order_id):
     ).exclude(status='cancelled')
 
     if not (request.user.is_staff or request.user.is_superuser):
-        rentals = rentals.filter(user=request.user)
+        rentals = rentals.filter(user_id=request.user.id)
 
     if not rentals.exists():
         messages.error(request, "Order not found or cannot be cancelled.")
@@ -1836,7 +1842,7 @@ def mark_all_notifications_read(request):
 @transaction.atomic
 def return_cart_item(request, cart_item_id):
 
-    rr = get_object_or_404(History.objects.select_for_update(),id=cart_item_id,user=request.user)
+    rr = get_object_or_404(History.objects.select_for_update(),id=cart_item_id,user_id=request.user.id)
 
     if rr.is_return_requested:
         messages.info(request, "Return request already sent.")
@@ -1874,7 +1880,7 @@ def return_receipt(request, order_id):
         .select_related("rental_item")
     )
     if not (request.user.is_staff or request.user.is_superuser):
-        rentals = rentals.filter(user=request.user)
+        rentals = rentals.filter(user_id=request.user.id)
 
     if not rentals.exists():
         messages.error(request, "Return receipt not available.")
