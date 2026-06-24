@@ -53,6 +53,23 @@ def index(request):
             rental.is_reminder_sent = True
             rental.save(update_fields=['is_reminder_sent'])
 
+        if rental.end_date == today and not rental.is_today_reminder_sent:
+            send_today_reminder_email(rental.user, rental)
+            rental.is_today_reminder_sent = True
+            rental.save(update_fields=['is_today_reminder_sent'])
+            try:
+                send_notification(
+                    title="Rental Ending Today",
+                    message=(
+                        f"Today is the end date for order {rental.order_id}. "
+                        f"Renter: {rental.user.username}, Item: {rental.rental_item.title}."
+                    ),
+                    notification_type='info',
+                    link=f"/admin/app/history/{rental.id}/change/"
+                )
+            except Exception as e:
+                print(f"[notification today-end error] {e}")
+
         if rental.end_date < today and not rental.is_overdue_email_sent:
             send_overdue_email(rental.user, rental)
             rental.is_overdue_email_sent = True
@@ -958,6 +975,39 @@ def send_reminder_email(user, rental):
     print(f"[email suppressed] Reminder for {recipient_email} Subject: {subject}")
     rental.is_reminder_sent = True
     rental.save()
+
+
+def send_today_reminder_email(user, rental):
+    from django.core.mail import send_mail
+    from django.conf import settings
+    
+    subject = 'Reminder: Your Rental Ends TODAY - Sick Bed Services'
+    recipient_email = user.email
+
+    message = f"""
+    <html>
+    <body>
+        <p>Hi {user.username},</p>
+        <p>This is a reminder that today is the end date for your rental item <b>{rental.rental_item.title}</b>.</p>
+        <p>Please return it today to avoid extra charges.</p>
+        <br>
+        <p>Regards,<br>Sick Bed Services Team</p>
+    </body>
+    </html>
+    """
+    try:
+        send_mail(
+            subject,
+            '',
+            settings.DEFAULT_FROM_EMAIL,
+            [recipient_email],
+            html_message=message,
+            fail_silently=False
+        )
+        print(f"[SUCCESS] End date notification email sent to {recipient_email} for {rental.rental_item.title}")
+    except Exception as e:
+        print(f"[ERROR] Failed to send today's reminder email to {recipient_email}: {e}")
+
 
 def send_overdue_emails(user, rental):
     subject = 'Overdue Rental Notice - Sick Bed Services'

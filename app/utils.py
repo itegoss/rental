@@ -222,67 +222,153 @@ def generate_rental_report_pdf(queryset, start_date, end_date):
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import inch
-    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib import colors
+    from reportlab.lib.colors import HexColor
     from io import BytesIO
     from django.http import HttpResponse
     
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    # Use 36-point (0.5 inch) margins for maximum printable A4 width (523 points)
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=40, bottomMargin=40)
     elements = []
     styles = getSampleStyleSheet()
-    title = Paragraph(f"Rental History Report ({start_date} to {end_date})", styles['Heading1'])
-    elements.append(title)
-    elements.append(Spacer(1, 12))
     
+    # Custom Heading Style
+    title_style = ParagraphStyle(
+        'ReportTitle',
+        parent=styles['Heading1'],
+        fontName='Helvetica-Bold',
+        fontSize=16,
+        leading=20,
+        textColor=HexColor('#1a365d'),
+        alignment=1,  # Center-aligned
+        spaceAfter=15
+    )
+    
+    title = Paragraph(f"Rental History Report ({start_date} to {end_date})", title_style)
+    elements.append(title)
+    elements.append(Spacer(1, 10))
+    
+    # Calculate Totals
     total_orders = queryset.count()
-    total_revenue = sum(q.total_amount or 0 for q in queryset)
     total_deposit = sum(q.deposit * q.quantity for q in queryset)
+    total_rent = sum(q.total_rent for q in queryset)
+    total_donation = sum(q.donation_amount or 0 for q in queryset)
+    
+    # Summary Styles
+    summary_header_style = ParagraphStyle(
+        'SummaryHeader',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=10,
+        leading=12,
+        textColor=colors.whitesmoke,
+        alignment=1
+    )
+    summary_key_style = ParagraphStyle(
+        'SummaryKey',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=9,
+        leading=11,
+        textColor=HexColor('#2c3e50'),
+        alignment=0  # Left
+    )
+    summary_val_style = ParagraphStyle(
+        'SummaryVal',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=11,
+        textColor=HexColor('#2c3e50'),
+        alignment=1  # Center
+    )
     
     summary_data = [
-        ['Total Orders', str(total_orders)],
-        ['Total Revenue', f"₹{total_revenue}"],
-        ['Total Deposit', f"₹{total_deposit}"],
+        [Paragraph('Metric', summary_header_style), Paragraph('Value', summary_header_style)],
+        [Paragraph('Total Orders', summary_key_style), Paragraph(str(total_orders), summary_val_style)],
+        [Paragraph('Total Deposit', summary_key_style), Paragraph(f"Rs. {total_deposit:.2f}", summary_val_style)],
+        [Paragraph('Total Revenue (Rent)', summary_key_style), Paragraph(f"Rs. {total_rent:.2f}", summary_val_style)],
+        [Paragraph('Total Donation', summary_key_style), Paragraph(f"Rs. {total_donation:.2f}", summary_val_style)],
     ]
     
-    summary_table = Table(summary_data, colWidths=[2*inch, 2*inch])
+    summary_table = Table(summary_data, colWidths=[2.5*inch, 2.0*inch])
+    summary_table.hAlign = 'CENTER'
     summary_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1a365d')),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 14),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [HexColor('#ffffff'), HexColor('#f8fafc')]),
+        ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#cbd5e1')),
     ]))
     elements.append(summary_table)
-    elements.append(Spacer(1, 24))
+    elements.append(Spacer(1, 20))
     
-    data = [['Order ID', 'User', 'Item', 'Start Date', 'End Date', 'Status', 'Total Amount']]
+    # Main Table Styles
+    main_header_style = ParagraphStyle(
+        'MainHeader',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=9,
+        leading=11,
+        textColor=colors.whitesmoke,
+        alignment=1
+    )
+    main_cell_style = ParagraphStyle(
+        'MainCell',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=8,
+        leading=10,
+        textColor=HexColor('#2d3748'),
+        alignment=1
+    )
+    
+    data = [[
+        Paragraph('Order ID', main_header_style),
+        Paragraph('Renter Name', main_header_style),
+        Paragraph('Item', main_header_style),
+        Paragraph('Start Date', main_header_style),
+        Paragraph('End Date', main_header_style),
+        Paragraph('Rent', main_header_style),
+        Paragraph('Donation', main_header_style),
+        Paragraph('Deposit', main_header_style),
+        Paragraph('Total Amount', main_header_style)
+    ]]
     
     for history in queryset:
+        renter_name = history.renter_name or (history.user.get_full_name() or history.user.username)
         data.append([
-            history.order_id or 'N/A',
-            history.user.username,
-            history.rental_item.title,
-            str(history.start_date),
-            str(history.end_date),
-            history.status,
-            f"₹{history.total_amount or 0}",
+            Paragraph(history.order_id or 'N/A', main_cell_style),
+            Paragraph(renter_name, main_cell_style),
+            Paragraph(history.rental_item.title, main_cell_style),
+            Paragraph(str(history.start_date), main_cell_style),
+            Paragraph(str(history.end_date), main_cell_style),
+            Paragraph(f"Rs. {history.total_rent:.2f}", main_cell_style),
+            Paragraph(f"Rs. {history.donation_amount:.2f}", main_cell_style),
+            Paragraph(f"Rs. {(history.deposit * history.quantity):.2f}", main_cell_style),
+            Paragraph(f"Rs. {history.total_amount:.2f}", main_cell_style),
         ])
     
-    table = Table(data, colWidths=[1*inch, 1.5*inch, 2*inch, 1*inch, 1*inch, 1*inch, 1*inch])
+    # colWidths sum up to exactly 523 points, matching A4 printable width
+    table = Table(data, colWidths=[70, 90, 80, 52, 52, 45, 44, 45, 45])
+    table.hAlign = 'CENTER'
     table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1a365d')),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [HexColor('#ffffff'), HexColor('#f8fafc')]),
+        ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#cbd5e1')),
     ]))
     elements.append(table)
     

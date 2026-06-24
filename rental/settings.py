@@ -122,7 +122,7 @@ AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
 )
 
-LOGIN_URL = "login"
+LOGIN_URL = "signin"
 LOGOUT_URL = "logout"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
@@ -130,10 +130,10 @@ LOGOUT_REDIRECT_URL = "/"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "nanawarevidya33@gmail.com")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "bhayander@kutchyuvaksangh.org")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "vnzx iafb jmuc rpnv")
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "varsha@itegoss.in")
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "varsha@itegoss.in")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "bhayander@kutchyuvaksangh.org")
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "bhayander@kutchyuvaksangh.org")
 
 RAZORPAY_API_KEY = os.environ.get("RAZORPAY_API_KEY")
 RAZORPAY_API_SECRET = os.environ.get("RAZORPAY_API_SECRET")

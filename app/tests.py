@@ -90,3 +90,80 @@ class InventoryTests(TestCase):
         self.assertEqual(self.item.donor_contact, '9876543210')
 
 
+from app.models import History, Notification
+from django.core import mail
+from django.utils import timezone
+import datetime
+
+class RentalTodayReminderTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='renter', email='renter@example.com', password='password123')
+        self.item = Inventory.objects.create(
+            title="Oxygen Cylinder",
+            description="Medical oxygen cylinder",
+            price_per_day=100.0,
+            deposit=500.0,
+            total_quantity=5,
+            available_quantity=4,
+            booked_quantity=1,
+            available=True
+        )
+        self.today = timezone.now().date()
+        self.rental = History.objects.create(
+            user=self.user,
+            rental_item=self.item,
+            start_date=self.today - datetime.timedelta(days=7),
+            end_date=self.today,
+            quantity=1,
+            deposit=500.0,
+            payment_method='cod',
+            status='approved',
+            order_id='ORD202606001'
+        )
+
+    def test_today_reminder_sent_on_index_load(self):
+        # Verify initial state
+        self.assertFalse(self.rental.is_today_reminder_sent)
+        self.assertEqual(Notification.objects.filter(title="Rental Ending Today").count(), 0)
+        initial_mail_count = len(mail.outbox)
+
+        # Trigger index page request (which performs checks)
+        response = self.client.get(reverse('index'))
+        self.assertEqual(response.status_code, 200)
+
+        # Refresh from database
+        self.rental.refresh_from_db()
+        self.assertTrue(self.rental.is_today_reminder_sent)
+
+        # Check if email was sent to user
+        self.assertEqual(len(mail.outbox), initial_mail_count + 1)
+        sent_email = mail.outbox[-1]
+        self.assertEqual(sent_email.subject, 'Reminder: Your Rental Ends TODAY - Sick Bed Services')
+        self.assertIn('renter@example.com', sent_email.to)
+
+        # Check if Admin Notification was created
+        notifications = Notification.objects.filter(title="Rental Ending Today")
+        self.assertEqual(notifications.count(), 1)
+        self.assertIn('renter', notifications.first().message)
+        self.assertIn('Oxygen Cylinder', notifications.first().message)
+
+    def test_no_duplicate_reminders_on_subsequent_load(self):
+        # Trigger index request once to send reminder
+        response1 = self.client.get(reverse('index'))
+        self.assertEqual(response1.status_code, 200)
+        self.rental.refresh_from_db()
+        self.assertTrue(self.rental.is_today_reminder_sent)
+        
+        mail_count_after_first = len(mail.outbox)
+        notification_count_after_first = Notification.objects.filter(title="Rental Ending Today").count()
+
+        # Trigger index request again
+        response2 = self.client.get(reverse('index'))
+        self.assertEqual(response2.status_code, 200)
+
+        # Assert no additional emails or notifications were sent/created
+        self.assertEqual(len(mail.outbox), mail_count_after_first)
+        self.assertEqual(Notification.objects.filter(title="Rental Ending Today").count(), notification_count_after_first)
+
+
+
