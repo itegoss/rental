@@ -135,11 +135,15 @@ class RentalTodayReminderTests(TestCase):
         self.rental.refresh_from_db()
         self.assertTrue(self.rental.is_today_reminder_sent)
 
-        # Check if email was sent to user
-        self.assertEqual(len(mail.outbox), initial_mail_count + 1)
-        sent_email = mail.outbox[-1]
-        self.assertEqual(sent_email.subject, 'Reminder: Your Rental Ends TODAY - Sick Bed Services')
-        self.assertIn('renter@example.com', sent_email.to)
+        # Check if emails were sent (one to the renter, one to the admin)
+        self.assertEqual(len(mail.outbox), initial_mail_count + 2)
+        renter_emails = [m for m in mail.outbox[initial_mail_count:] if 'renter@example.com' in m.to]
+        self.assertEqual(len(renter_emails), 1)
+        self.assertEqual(renter_emails[0].subject, 'Reminder: Your Rental Ends TODAY - Sick Bed Services')
+        
+        admin_emails = [m for m in mail.outbox[initial_mail_count:] if getattr(settings, 'ADMIN_EMAIL', None) in m.to]
+        self.assertEqual(len(admin_emails), 1)
+        self.assertEqual(admin_emails[0].subject, 'Admin Notification: Rental Ending Today')
 
         # Check if Admin Notification was created
         notifications = Notification.objects.filter(title="Rental Ending Today")
