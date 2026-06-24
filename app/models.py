@@ -210,7 +210,7 @@ class History(models.Model):
     order_id = models.CharField(max_length=100, blank=True, null=True)
     is_reminder_sent = models.BooleanField(default=False)
     is_overdue_email_sent = models.BooleanField(default=False)
-    is_today_reminder_sent = models.BooleanField(default=False)
+    is_today_reminder_sent = models.BooleanField(default=False, null=True, blank=True)
     patient_name = models.CharField(max_length=200, null=True, blank=True)
     id_proof_type = models.CharField(max_length=20, blank=True, null=True)
     id_proof_number = models.CharField(max_length=30, blank=True, null=True)

@@ -748,7 +748,7 @@ def paymentmethod(request):
                 id_proof_file=id_proof_file,
                 delivery_option=delivery_option.lower() if delivery_option else None,
                 delivery_charge=delivery_charge,
-            is_today_reminder_sent=False,   # add this
+                is_today_reminder_sent=False,   # add this
             )
 
             try:
