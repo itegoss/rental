@@ -93,6 +93,7 @@ class InventoryTests(TestCase):
 from app.models import History, Notification
 from django.core import mail
 from django.utils import timezone
+from django.conf import settings
 import datetime
 
 class RentalTodayReminderTests(TestCase):
