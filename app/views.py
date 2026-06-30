@@ -1473,18 +1473,6 @@ def bookingsammry(request):
 
     for order_id, items in grouped.items():
         total_deposit = sum((item.deposit * item.quantity for item in items), Decimal("0"))
-        id_proof_url = ""
-        for item in items:
-            if item.id_proof_file:
-                id_proof_url = item.id_proof_file.url
-                break
-        if not id_proof_url:
-            try:
-                user_detail = items[0].user.userdetail
-                if user_detail.id_proof_file:
-                    id_proof_url = user_detail.id_proof_file.url
-            except Exception:
-                id_proof_url = ""
 
         booking_summaries.append({
             "order_id": order_id,
@@ -1492,7 +1480,6 @@ def bookingsammry(request):
             "items": items,
             "total_deposit": total_deposit,
             "customer": items[0].user if request.user.is_staff or request.user.is_superuser else None,
-            "id_proof_url": id_proof_url,
         })
 
     returned_order_ids = (

@@ -141,7 +141,7 @@
   .bookings-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 1180px;
+    min-width: 1260px;
     table-layout: auto;
   }
 
@@ -186,19 +186,14 @@
     width: 150px;
   }
 
-  .bookings-table th.col-id,
-  .bookings-table td.col-id {
-    width: 90px;
+  .bookings-table th.col-end-date,
+  .bookings-table td.col-end-date {
+    width: 150px;
   }
 
   .bookings-table th.col-renter,
   .bookings-table td.col-renter {
     width: 160px;
-  }
-
-  .bookings-table th.col-days,
-  .bookings-table td.col-days {
-    width: 75px;
   }
 
   .bookings-table th.col-status,
@@ -495,23 +490,6 @@
     background: #2563eb;
     transform: translateY(-1px);
     color: #fff;
-  }
-
-  .act-id-proof {
-    background: #10b981;
-    color: #fff;
-  }
-
-  .act-id-proof:hover {
-    background: #059669;
-    transform: translateY(-1px);
-    color: #fff;
-  }
-
-  .act-id-proof-missing {
-    background: #9ca3af;
-    color: #fff;
-    cursor: not-allowed;
   }
 
   .act-approve {
@@ -1241,16 +1219,13 @@
           <tr>
             <th class="col-order" data-sort="text">Order ID <i class="fas fa-sort sort-icon"></i></th>
             <th class="col-date" data-sort="date">Date <i class="fas fa-sort sort-icon"></i></th>
+            <th class="col-end-date" data-sort="date">End Date <i class="fas fa-sort sort-icon"></i></th>
             {% if request.user.is_superuser or request.user.is_staff %}
             <th class="col-customer" data-sort="text">Customer <i class="fas fa-sort sort-icon"></i></th>
             <th class="col-renter" data-sort="text">Renter Name <i class="fas fa-sort sort-icon"></i></th>
             {% endif %}
             <th class="col-item" data-sort="text">Item <i class="fas fa-sort sort-icon"></i></th>
             <th class="col-qty" data-sort="number">Quantity <i class="fas fa-sort sort-icon"></i></th>
-            {% if request.user.is_superuser or request.user.is_staff %}
-            <th class="col-id" data-sort="number">ID <i class="fas fa-sort sort-icon"></i></th>
-            {% endif %}
-            <th class="col-days" data-sort="number">Days <i class="fas fa-sort sort-icon"></i></th>
             <th class="col-status" data-sort="text">Status <i class="fas fa-sort sort-icon"></i></th>
             <th class="col-action no-sort">Action</th>
           </tr>
@@ -1261,6 +1236,7 @@
           <tr>
             <td class="col-order" data-value="{{ booking.order_id }}"><span class="order-link">{{ rr.display_order_id }}</span></td>
             <td class="col-date" data-value="{{ booking.date|date:'Y-m-d' }}">{{ booking.date|date:"M d, Y" }}</td>
+            <td class="col-end-date" data-value="{{ rr.billing_end_date|date:'Y-m-d' }}">{{ rr.billing_end_date|date:"M d, Y" }}</td>
             {% if request.user.is_superuser or request.user.is_staff %}
             <td class="col-customer"
               data-value="{% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}">
@@ -1272,10 +1248,6 @@
             {% endif %}
             <td class="col-item" data-value="{{ rr.display_item_title }}"><span class="item-name">{{ rr.display_item_title }}</span></td>
             <td class="col-qty" data-value="{{ rr.quantity }}">{{ rr.quantity }}</td>
-            {% if request.user.is_superuser or request.user.is_staff %}
-            <td class="col-id" data-value="{{ rr.id }}">{{ rr.id }}</td>
-            {% endif %}
-            <td class="col-days" data-value="{{ rr.rental_days }}">{{ rr.rental_days }}</td>
             <td class="col-status"
               data-value="{% if rr.is_returned %}Returned{% elif rr.is_return_requested %}Return Pending{% elif rr.status == 'pending' %}Booking Pending{% elif rr.status == 'rejected' %}Booking Rejected{% elif rr.status == 'cancelled' %}Cancelled{% elif rr.status == 'approved' %}Approved{% else %}Pending{% endif %}">
               {% if rr.is_returned %}
@@ -1329,14 +1301,6 @@
                   data-tooltip="View Receipt" aria-label="View Receipt"><i class="fas fa-eye"></i> </a>
                 {% endif %}
 
-                {% if booking.id_proof_url %}
-                <a href="{{ booking.id_proof_url }}" class="act-btn act-id-proof" target="_blank" rel="noopener"
-                  data-tooltip="View ID Proof" aria-label="View ID Proof"><i class="fas fa-id-card"></i> </a>
-                {% else %}
-                <span class="act-btn act-id-proof-missing" data-tooltip="No ID Proof Uploaded"
-                  aria-label="No ID Proof Uploaded"><i class="fas fa-id-card"></i> </span>
-                {% endif %}
-
                 {% else %}
                 <!-- Customer Actions -->
                 {% if not rr.is_returned %}
@@ -1364,7 +1328,7 @@
           {% endfor %}
           {% endfor %}
           <tr class="no-results-row" id="noResultsRow" style="display:none;">
-            <td colspan="{% if request.user.is_superuser or request.user.is_staff %}10{% else %}7{% endif %}">No
+            <td colspan="{% if request.user.is_superuser or request.user.is_staff %}9{% else %}7{% endif %}">No
               bookings match your search.</td>
           </tr>
         </tbody>
