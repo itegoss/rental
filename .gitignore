@@ -7,3 +7,4 @@ echo *.env>> .gitignore
 *.pyc
 __pycache__/
 /media/
+.env
