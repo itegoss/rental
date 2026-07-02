@@ -196,6 +196,7 @@ class UserDetail(models.Model):
 class History(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     renter_name = models.CharField(max_length=255, null=True, blank=True)
+    email = models.EmailField(max_length=254, null=True, blank=True)
     phone = models.CharField(max_length=15, null=True, blank=True)
     address = models.TextField(null=True, blank=True)
     rental_item = models.ForeignKey("Inventory", on_delete=models.CASCADE, related_name='rentalrequest_set')
@@ -233,6 +234,9 @@ class History(models.Model):
     donation_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     donation_comment = models.TextField(blank=True, null=True)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2,blank=True,null=True)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    amount_remaining = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    is_delivery_paid = models.BooleanField(default=False)
 
     status = models.CharField( max_length=20,
         choices=[
@@ -272,13 +276,57 @@ class History(models.Model):
         return max(refund, 0)
 
     def save(self, *args, **kwargs):
-        self.total_amount = (
-            self.total_rent +
-            (self.deposit * self.quantity) +
-            self.delivery_charge +
-            self.return_pickup_charge
-        )
+        from decimal import Decimal
+        rent_dec = Decimal(str(self.total_rent or '0'))
+        deposit_dec = Decimal(str(self.deposit or '0'))
+        delivery_dec = Decimal(str(self.delivery_charge or '0'))
+        pickup_dec = Decimal(str(self.return_pickup_charge or '0'))
+        
+        self.total_amount = rent_dec + (deposit_dec * self.quantity) + delivery_dec + pickup_dec
+        
+        # Auto-update is_delivery_paid based on whether amount_paid covers rent and deposit + delivery charge (on creation only)
+        if self.pk is None:
+            rent_deposit_total = rent_dec + (deposit_dec * self.quantity)
+            paid_dec = Decimal(str(self.amount_paid or '0'))
+            if paid_dec >= (rent_deposit_total + delivery_dec):
+                self.is_delivery_paid = True
+            else:
+                self.is_delivery_paid = False
+
+        # Calculate remaining amount
+        rent_deposit_total = rent_dec + (deposit_dec * self.quantity)
+        paid_dec = Decimal(str(self.amount_paid or '0'))
+        mathematical_delivery_paid = max(paid_dec - rent_deposit_total, Decimal("0"))
+        mathematical_delivery_paid = min(mathematical_delivery_paid, delivery_dec)
+
+        if self.is_delivery_paid:
+            unpaid_delivery = delivery_dec - mathematical_delivery_paid
+            self.amount_remaining = max(self.total_amount - paid_dec - unpaid_delivery, Decimal('0'))
+        else:
+            self.amount_remaining = max(self.total_amount - paid_dec, Decimal('0'))
+            
         super().save(*args, **kwargs)
+
+
+class BookingExtension(models.Model):
+    rental_request = models.ForeignKey(History, on_delete=models.CASCADE, related_name="extension_history")
+    extension_no = models.PositiveIntegerField()
+    extended_on = models.DateTimeField(auto_now_add=True)
+    previous_return_date = models.DateField()
+    new_return_date = models.DateField()
+    extra_days = models.PositiveIntegerField()
+    quantity = models.PositiveIntegerField(default=1)
+    rent_per_day = models.DecimalField(decimal_places=2, max_digits=10)
+    additional_rent = models.DecimalField(decimal_places=2, default=0, max_digits=10)
+    additional_deposit = models.DecimalField(decimal_places=2, default=0, max_digits=10)
+    extension_total = models.DecimalField(decimal_places=2, default=0, max_digits=10)
+
+    class Meta:
+        ordering = ["extension_no", "id"]
+        unique_together = (("rental_request", "extension_no"),)
+
+    def __str__(self):
+        return f"Ext #{self.extension_no} for Order {self.rental_request.order_id}"
 
 
 
@@ -457,7 +505,9 @@ def create_return_notification(sender, instance, created, **kwargs):
                 title="Return Approved",
                 message=f"Return approved for order {instance.order_id} by {instance.user.username}.",
                 notification_type='return',
-                link=f"/admin/app/history/{instance.id}/change/"
+                link=f"/admin/app/history/{instance.id}/change/",
+                order_id=instance.order_id,
+                rental=instance
             )
         except Exception as e:
             print(f"[return notification error] {e}")

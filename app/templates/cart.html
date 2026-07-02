@@ -50,6 +50,9 @@
 .btn-back { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:12px; color:var(--primary); font-weight:600; text-decoration:none; font-size:0.88rem; }
 .btn-back:hover { text-decoration:underline; }
 
+.paid-amount-input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 0.92rem; font-family: var(--font); outline: none; transition: border-color 0.2s,box-shadow 0.2s; }
+.paid-amount-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(236,36,39,0.1); }
+
 .empty-cart { background:#fff; border-radius:16px; padding:70px 30px; text-align:center; box-shadow:var(--shadow); }
 .empty-cart i { font-size:3rem; color:var(--border); margin-bottom:16px; }
 .empty-cart h3 { font-size:1.3rem; font-weight:700; margin-bottom:8px; }
@@ -140,6 +143,24 @@
             <div class="sum-row"><span>Total Deposit</span><strong>₹<span id="total_deposit">—</span></strong></div>
           </div>
           <div class="sum-total"><span>Grand Total</span><span>₹<span id="grand_total">—</span></span></div>
+
+          <div class="paid-section" style="margin-top: 12px; border-top: 1.5px dashed var(--border); padding-top: 12px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px;">
+              <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; white-space: nowrap;">Paid Amount</span>
+                <input type="number" id="paid_amount" name="paid_amount" placeholder="0" min="0" value="0" class="paid-amount-input" style="width: 80px; padding: 6px 10px; font-size: 0.88rem; margin: 0;">
+              </div>
+              <div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
+                <input type="checkbox" id="is_paid" name="is_paid" style="width: 15px; height: 15px; cursor: pointer; accent-color: var(--primary);">
+                <label for="is_paid" style="font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text); white-space: nowrap;">Mark as Paid</label>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--muted); font-weight: 600; border-top: 1px dotted var(--border); padding-top: 6px;">
+              <span>Paid: <strong style="color: var(--text);">₹<span id="display_paid">0.00</span></strong></span>
+              <span>Remaining: <strong style="color: var(--primary);">₹<span id="display_remaining">—</span></strong></span>
+            </div>
+          </div>
+
           <button type="submit" class="btn-rent-now"><i class="fas fa-bolt"></i> Proceed to Rent</button>
           <a href="{% url 'items' %}" class="btn-back"><i class="fas fa-arrow-left"></i> Continue Shopping</a>
           <p class="refund-note">Deposit is fully refundable if items are returned without damage.</p>
@@ -176,10 +197,34 @@ function updateCartTotals() {
     totalRent += price * qty * days;
     totalDeposit += deposit * qty;
   });
+  const grandTotal = totalRent + totalDeposit;
   document.getElementById('total_days').innerText = days || '—';
   document.getElementById('rent_amount').innerText = totalRent || '—';
   document.getElementById('total_deposit').innerText = totalDeposit || '—';
-  document.getElementById('grand_total').innerText = (totalRent + totalDeposit) || '—';
+  document.getElementById('grand_total').innerText = grandTotal || '—';
+
+  // Paid amount calculation
+  const paidAmountInput = document.getElementById('paid_amount');
+  const isPaidCheckbox = document.getElementById('is_paid');
+  const displayPaid = document.getElementById('display_paid');
+  const displayRemaining = document.getElementById('display_remaining');
+
+  if (paidAmountInput && isPaidCheckbox) {
+    let enteredPaid = parseFloat(paidAmountInput.value) || 0;
+    if (enteredPaid < 0) enteredPaid = 0;
+    if (enteredPaid > grandTotal) {
+      enteredPaid = grandTotal;
+      paidAmountInput.value = grandTotal;
+    }
+    
+    if (isPaidCheckbox.checked) {
+      displayPaid.innerText = enteredPaid.toFixed(2);
+      displayRemaining.innerText = (grandTotal - enteredPaid).toFixed(2);
+    } else {
+      displayPaid.innerText = "0.00";
+      displayRemaining.innerText = grandTotal.toFixed(2);
+    }
+  }
 }
 
 function updateStockState(card, message = '') {
@@ -272,6 +317,22 @@ document.addEventListener('DOMContentLoaded', () => {
       updateCartTotals();
     });
   {% endif %}
+
+  const isPaidCheckbox = document.getElementById('is_paid');
+  const paidAmountInput = document.getElementById('paid_amount');
+  if (isPaidCheckbox && paidAmountInput) {
+    isPaidCheckbox.addEventListener('change', () => {
+      const grandTotalText = document.getElementById('grand_total').innerText;
+      const grandTotal = parseFloat(grandTotalText) || 0;
+      if (isPaidCheckbox.checked) {
+        if (!paidAmountInput.value || parseFloat(paidAmountInput.value) === 0) {
+          paidAmountInput.value = grandTotal;
+        }
+      }
+      updateCartTotals();
+    });
+    paidAmountInput.addEventListener('input', updateCartTotals);
+  }
 
   updateCartTotals();
   updateAllStockStates();

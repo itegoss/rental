@@ -2,59 +2,282 @@
 {% block title %}Booking Receipt — Sick Bed Services{% endblock %}
 {% block content %}
 <style>
-/* ── SCREEN-ONLY ACTION AREA ── */
-.receipt-screen-wrap { max-width:820px; margin:32px auto; padding:0 20px; }
-.receipt-action-bar { background:#fff; border-radius:16px; box-shadow:var(--shadow); padding:20px 28px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; }
-.receipt-action-bar .ra-left h2 { font-size:1.1rem; font-weight:800; color:var(--text); margin-bottom:2px; }
-.receipt-action-bar .ra-left p { font-size:0.82rem; color:var(--muted); margin:0; }
-.ra-btns { display:flex; gap:10px; flex-wrap:wrap; }
-.ra-btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:999px; font-size:0.85rem; font-weight:700; font-family:var(--font); cursor:pointer; border:none; text-decoration:none; transition:all 0.2s; }
-.ra-btn-red   { background:var(--primary); color:#fff; box-shadow:0 3px 10px rgba(236,36,39,0.24); }
-.ra-btn-red:hover { background:var(--primary-dark); transform:translateY(-1px); color:#fff; }
-.ra-btn-dark  { background:#1a1a1a; color:#fff; }
-.ra-btn-dark:hover { background:#333; transform:translateY(-1px); color:#fff; }
-.ra-btn-grey  { background:#f3f4f6; color:var(--text); }
-.ra-btn-grey:hover { background:#e5e7eb; }
-.ra-btn-blue  { background:#3b82f6; color:#fff; }
-.ra-btn-blue:hover { background:#2563eb; transform:translateY(-1px); color:#fff; }
+  /* ── SCREEN-ONLY ACTION AREA ── */
+  .receipt-screen-wrap {
+    max-width: 820px;
+    margin: 32px auto;
+    padding: 0 20px;
+  }
 
-/* ── PRINTABLE RECEIPT ── */
-.receipt-container {
-  max-width:100%; margin:0 auto; padding:10px; background:#f9f9f9;
-  font-family:'Segoe UI',Tahoma,sans-serif; font-size:12px; line-height:1.2;
-  border:1px solid #c5d5c5;
-}
-.receipt-header { display:flex; align-items:center; margin-bottom:6px; }
-.logo-container { width:60px; }
-.logo-container img { width:100%; }
-.receipt-title { flex:1; text-align:center; }
-.receipt-title h2 { font-size:15px; margin:0; color:#1b8a4b; }
-.receipt-title p { font-size:9px; margin:1px 0; }
-.receipt-title h3 { font-size:16px; margin:2px 0; color:#1b8a4b; }
-.order-id { text-align:center; font-size:12px; padding:4px; margin:4px 0; background:#eef7f2; }
-.section-title { font-size:15px; color:#1b8a4b; border-bottom:1px solid #1b8a4b; margin:5px 0 3px; }
-.info-grid { display:flex; justify-content:space-between; }
-.info-column { width:48%; }
-.info-item p { font-size:11px; margin:1px 0; }
-.items-table { width:100%; border-collapse:collapse; margin:4px 0; }
-.items-table th,.items-table td { font-size:10px; padding:2px; border:1px solid #ccc; text-align:center; }
-.items-table th { background:#1b8a4b; color:white; }
-.delivery-summary { display:flex; justify-content:space-between; margin:4px 0; }
-.delivery-info p { font-size:11px; }
-.total-info { text-align:right; }
-.total-amount { font-size:13px; font-weight:bold; color:#1b8a4b; }
-.thank-you { text-align:center; font-size:11px; padding:4px; background:#e4f2e9; margin-top:4px; }
+  .receipt-action-bar {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 20px 28px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
 
-@media print {
-  @page { size:A5 landscape; margin:4mm; }
-  html,body { margin:0!important; padding:0!important; background:white!important; }
-  .receipt-screen-wrap,.receipt-action-bar,.footer-section,nav { display:none!important; }
-  #pdf-content,.receipt-container { width:100%!important; margin:0!important; padding:4px!important; box-shadow:none!important; background:white!important; }
-  #pdf-content,#pdf-content * { opacity:1!important; text-shadow:none!important; }
-  .receipt-title h2,.receipt-title h3,.section-title,.total-amount { color:#000!important; font-weight:700!important; }
-  .items-table th { color:#fff!important; border-color:#000!important; }
-  * { -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; page-break-inside:avoid!important; break-inside:avoid!important; }
-}
+  .receipt-action-bar .ra-left h2 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .receipt-action-bar .ra-left p {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .ra-btns {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .ra-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: var(--font);
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .ra-btn-red {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(236, 36, 39, 0.24);
+  }
+
+  .ra-btn-red:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  .ra-btn-dark {
+    background: #1a1a1a;
+    color: #fff;
+  }
+
+  .ra-btn-dark:hover {
+    background: #333;
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  .ra-btn-grey {
+    background: #f3f4f6;
+    color: var(--text);
+  }
+
+  .ra-btn-grey:hover {
+    background: #e5e7eb;
+  }
+
+  .ra-btn-blue {
+    background: #3b82f6;
+    color: #fff;
+  }
+
+  .ra-btn-blue:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  /* ── PRINTABLE RECEIPT ── */
+  .receipt-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 10px;
+    background: #f9f9f9;
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    font-size: 12px;
+    line-height: 1.2;
+    border: 1px solid #c5d5c5;
+  }
+
+  .receipt-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .logo-container {
+    width: 60px;
+  }
+
+  .logo-container img {
+    width: 100%;
+  }
+
+  .receipt-title {
+    flex: 1;
+    text-align: center;
+  }
+
+  .receipt-title h2 {
+    font-size: 15px;
+    margin: 0;
+    color: #1b8a4b;
+  }
+
+  .receipt-title p {
+    font-size: 9px;
+    margin: 1px 0;
+  }
+
+  .receipt-title h3 {
+    font-size: 16px;
+    margin: 2px 0;
+    color: #1b8a4b;
+  }
+
+  .order-id {
+    text-align: center;
+    font-size: 12px;
+    padding: 4px;
+    margin: 4px 0;
+    background: #eef7f2;
+  }
+
+  .section-title {
+    font-size: 15px;
+    color: #1b8a4b;
+    border-bottom: 1px solid #1b8a4b;
+    margin: 5px 0 3px;
+  }
+
+  .info-grid {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .info-column {
+    width: 32%;
+  }
+
+  .info-item p {
+    font-size: 11px;
+    margin: 1px 0;
+  }
+
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4px 0;
+  }
+
+  .items-table th,
+  .items-table td {
+    font-size: 10px;
+    padding: 2px;
+    border: 1px solid #ccc;
+    text-align: center;
+  }
+
+  .items-table th {
+    background: #1b8a4b;
+    color: white;
+  }
+
+  .delivery-summary {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 0;
+  }
+
+  .delivery-info p {
+    font-size: 11px;
+  }
+
+  .total-info {
+    text-align: left;
+  }
+
+  .total-amount {
+    font-size: 13px;
+    font-weight: bold;
+    color: #1b8a4b;
+  }
+
+  .thank-you {
+    text-align: center;
+    font-size: 11px;
+    padding: 4px;
+    background: #e4f2e9;
+    margin-top: 4px;
+  }
+
+  @media print {
+    @page {
+      size: A5 landscape;
+      margin: 4mm;
+    }
+
+    html,
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      background: white !important;
+    }
+
+    .receipt-screen-wrap,
+    .receipt-action-bar,
+    .footer-section,
+    nav {
+      display: none !important;
+    }
+
+    #pdf-content,
+    .receipt-container {
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 4px !important;
+      box-shadow: none !important;
+      background: white !important;
+    }
+
+    #pdf-content,
+    #pdf-content * {
+      opacity: 1 !important;
+      text-shadow: none !important;
+    }
+
+    .receipt-title h2,
+    .receipt-title h3,
+    .section-title,
+    .total-amount {
+      color: #000 !important;
+      font-weight: 700 !important;
+    }
+
+    .items-table th {
+      color: #fff !important;
+      border-color: #000 !important;
+    }
+
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+  }
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
@@ -70,9 +293,12 @@
       <button class="ra-btn ra-btn-red" onclick="downloadPDF()"><i class="fas fa-download"></i> Download PDF</button>
       <button class="ra-btn ra-btn-dark" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
       {% if not rental.is_returned %}
-        <button class="ra-btn ra-btn-blue" onclick="window.location.href='{% url 'extend_return_date' rental.order_id %}'"><i class="fas fa-calendar-plus"></i> Extend</button>
+      <button class="ra-btn ra-btn-blue"
+        onclick="window.location.href='{% url 'extend_return_date' rental.order_id %}'"><i
+          class="fas fa-calendar-plus"></i> Extend</button>
       {% endif %}
-      <button class="ra-btn ra-btn-grey" onclick="window.location.href='{% url 'bookingsammry' %}'"><i class="fas fa-arrow-left"></i> Back</button>
+      <button class="ra-btn ra-btn-grey" onclick="window.location.href='{% url 'bookingsammry' %}'"><i
+          class="fas fa-arrow-left"></i> Back</button>
     </div>
   </div>
 </div>
@@ -86,7 +312,7 @@
       </div>
       <div class="receipt-title">
         <h2>Kutch Yuvak Sangh, Bhayandar</h2>
-        <h3>RECEIPT</h3>
+        <!-- <h3>RECEIPT</h3> -->
       </div>
     </div>
 
@@ -95,40 +321,120 @@
     <h3 class="section-title">Patient &amp; Booking Details</h3>
     <div class="info-grid">
       <div class="info-column">
-        <div class="info-item"><p><strong>Renter Name :</strong> {{ rental.renter_name|default:"N/A" }}</p></div>
-        <div class="info-item"><p><strong>Address:</strong> {{ rental.address|default:"N/A" }}</p></div>
-        <div class="info-item"><p><strong>ID Proof:</strong> N/A</p></div>
-        <div class="info-item"><p><strong>Contact No:</strong> {{ rental.phone|default:"N/A" }}</p></div>
+        <div class="info-item">
+          <p><strong>Renter Name:</strong> {{ customer_name|default:"N/A" }}</p>
+        </div>
+        <div class="info-item">
+          <p><strong>Address:</strong> {{ customer_address|default:"N/A" }}</p>
+        </div>
+        <div class="info-item">
+          <p><strong>Contact No:</strong> {{ customer_phone|default:"N/A" }}</p>
+        </div>
+        <div class="info-item">
+          <p><strong>Patient Name:</strong> {{ patient_name|default:"N/A" }}</p>
+        </div>
       </div>
       <div class="info-column">
-        <div class="info-item"><strong>Date:</strong> {{ rental.start_date|date:"d M Y" }}</div>
-        <div class="info-item"><p><strong>Rent Period:</strong> {{ rental.start_date|date:"d M Y" }} to {{ rental.billing_end_date|date:"d M Y" }} ({{ rental.rental_days }} Days)</p></div>
-        <div class="info-item"><p><strong>Return Date:</strong> {{ rental.billing_end_date|date:"d M Y" }}</p></div>
-        <div class="info-item"><p><strong>Total Deposit:</strong> ₹{{ total_deposit }}{% if rental.deposit_donated %} <span style="color:green;font-weight:bold;">(Donated)</span>{% endif %}</p></div>
-        <div class="info-item"><p><strong>Total Rent Amount:</strong> ₹{{ total_rent }}</p></div>
+        <div class="info-item">
+          <p><strong>Booking Date:</strong> {{ original_booking_date|date:"d M Y" }}</p>
+        </div>
+        <div class="info-item">
+          <p><strong>Start Date:</strong> {{ original_start_date|date:"d M Y" }}</p>
+        </div>
+        <div class="info-item">
+          <p><strong>Return Date:</strong> {{ original_return_date|date:"d M Y" }}</p>
+        </div>
+        <div class="info-item">
+          <p><strong>Rent Days:</strong> {{ original_days }} Days</p>
+        </div>
+      </div>
+      <div class="info-column">
+        <div class="info-item">
+          <p><strong>Delivery Option:</strong> {{ rental.delivery_option|title }}</p>
+        </div>
+        <div class="info-item">
+          <p><strong>Deposit Total:</strong> ₹{{ total_deposit }}{% if rental.deposit_donated %} <span
+              style="color:green;font-weight:bold;">(Donated)</span>{% endif %}</p>
+        </div>
       </div>
     </div>
-
-    <div class="info-item"><p><strong>Patient Name:</strong> {{ rental.patient_name|default:"N/A" }}</p></div>
 
     <h3 class="section-title">Item Details</h3>
     <table class="items-table">
       <thead>
-        <tr><th>Sr. No</th><th>Item</th><th>Qty</th><th>Deposit</th><th>Rent / Day</th><th>Days</th><th>Total</th></tr>
+        <tr>
+          <th>Sr. No</th>
+          <th>Item</th>
+          <th>Qty</th>
+          <th>Deposit</th>
+          <th>Rent / Day</th>
+          <th>Days</th>
+          <th>Rent Amount</th>
+        </tr>
       </thead>
       <tbody>
         {% for it in item_totals %}
         <tr>
-          <td>{{ forloop.counter }}</td><td>{{ it.title }}</td><td>{{ it.quantity }}</td>
-          <td>₹{{ it.deposit }}</td><td>₹{{ it.price_per_day }}</td>
-          <td>{{ rental.rental_days }}</td><td>₹{{ it.total }}</td>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ it.title }}</td>
+          <td>{{ it.quantity }}</td>
+          <td>₹{{ it.deposit }}</td>
+          <td>₹{{ it.price_per_day }}</td>
+          <td>{{ it.days }}</td>
+          <td>₹{{ it.rent_amount }}</td>
         </tr>
         {% endfor %}
       </tbody>
       <tfoot>
-        <tr><th colspan="2" style="text-align:right;">Total Quantity</th><th>{{ total_quantity }}</th><th colspan="4"></th></tr>
+        <tr>
+          <th colspan="2" style="text-align:right;">Total</th>
+          <th>{{ total_quantity }}</th>
+          <th>₹{{ total_deposit }}</th>
+          <th colspan="2" style="text-align:right;">Total Amount</th>
+          <th>₹{{ total_rent }}</th>
+        </tr>
       </tfoot>
     </table>
+
+    {% if extension_history %}
+    <h3 class="section-title">Extension History</h3>
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Ext No</th>
+          <th>Extended On</th>
+          <th>Prev Return Date</th>
+          <th>New Return Date</th>
+          <th>Extra Days</th>
+          <th>Rent / Day</th>
+          <th>Add. Rent</th>
+          <th>Add. Deposit</th>
+          <th>Ext Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ext in extension_history %}
+        <tr>
+          <td>{{ ext.extension_no }}</td>
+          <td>{{ ext.extended_on|date:"d M Y H:i"|default:"N/A" }}</td>
+          <td>{{ ext.previous_return_date|date:"d M Y" }}</td>
+          <td>{{ ext.new_return_date|date:"d M Y" }}</td>
+          <td>{{ ext.extra_days }}</td>
+          <td>₹{{ ext.rent_per_day }}</td>
+          <td>₹{{ ext.additional_rent }}</td>
+          <td>₹{{ ext.additional_deposit }}</td>
+          <td>₹{{ ext.extension_total }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th colspan="8" style="text-align:right;">Total Extension Charges</th>
+          <th>₹{{ extension_total }}</th>
+        </tr>
+      </tfoot>
+    </table>
+    {% endif %}
 
     <div class="delivery-summary">
       <div class="delivery-info">
@@ -136,33 +442,73 @@
         <p>{{ rental.address|default:"Take Away – Nearest Hub" }}</p>
       </div>
       <div class="total-info">
-        <p><strong>Delivery Option:</strong> {{ rental.delivery_option|title }}</p>
-        {% if rental.delivery_option|lower == "delivery" %}<strong>Delivery Charge:</strong> ₹500{% else %}<strong>Delivery Charge:</strong> ₹0{% endif %}
-        <div class="info-item"><p><strong>Payment Mode:</strong> {% if rental.payment_method == "online" %}Online Payment{% else %}Cash{% endif %}</p></div>
-        <p class="total-amount"><strong>Total Amount:</strong> ₹{{ total_amount }}{% if rental.deposit_donated %}<br><small style="color:green;font-weight:bold;">(Deposit Donated - Thank you!)</small>{% endif %}</p>
+        {% if rental.delivery_option|lower == "delivery" %}
+        <strong>Delivery Charge:</strong> ₹500
+        <span style="color:{% if delivery_paid == delivery_charge %}green{% else %}red{% endif %};font-weight:bold;">(₹{{ delivery_paid }} Paid)</span>
+        {% else %}
+        <strong>Delivery Charge:</strong> ₹0
+        {% endif %}
+        <!-- <div class="info-item">
+          <p><strong>Payment Mode:</strong>
+            {% if rental.payment_method == "online" %}
+            Online Payment
+            {% else %}
+            Cash
+            {% endif %}
+          </p>
+        </div> -->
+
+        <!-- <p><strong>Rent Total:</strong> ₹{{ total_rent }}</p> -->
+        <p><strong>Booking Total:</strong> ₹{{ original_total_amount }}</p>
+
+        {% if extension_history %}
+        <!-- <p><strong>Total Extension Charges:</strong> ₹{{ extension_total }}</p> -->
+        <p class="total-amount">
+          <strong>Final Grand Total:</strong> ₹{{ final_total_amount }}
+          {% if rental.deposit_donated %}
+          <br><small style="color:green;font-weight:bold;">(Deposit Donated - Thank you!)</small>
+          {% endif %}
+        </p>
+        {% else %}
+        <p class="total-amount">
+          <!-- <strong>Total Amount:</strong> ₹{{ original_total_amount }} -->
+          {% if rental.deposit_donated %}
+          <br><small style="color:green;font-weight:bold;">(Deposit Donated - Thank you!)</small>
+          {% endif %}
+        </p>
+        {% endif %}
+
+        <div
+          style="border-top: 1.5px dashed var(--border); margin-top: -10px; padding-top: 1px; display: inline-block; width: 100%;">
+          <p style="font-size: 0.95rem; margin: 2px 0;"><strong>Amount Paid:</strong> <span
+              style="color:green;font-weight:bold;">₹{{ amount_paid }}</span></p>
+          <p style="font-size: 0.95rem; margin: 2px 0;"><strong>Amount Remaining:</strong> <span
+              style="color:var(--primary);font-weight:bold;">₹{{ amount_remaining }}</span></p>
+        </div>
       </div>
     </div>
-    <div style="font-size:11px;text-align:center;margin-top:4px;color:#555;">You hereby agree to all terms &amp; conditions mentioned on our booking portal</div>
+    <div style="font-size:11px;text-align:center;margin-top:4px;color:#555;">You hereby agree to all terms &amp;
+      conditions mentioned on our booking portal</div>
     <div class="thank-you">Thank you for booking with us.</div>
   </div>
 </div>
 
 <script>
-function downloadPDF() {
-  const element = document.getElementById("pdf-content");
-  const renterName = "{{ rental.renter_name|default:rental.user.username|escapejs }}";
-  const safeFileName = renterName
-    .trim()
-    .replace(/[\\/:*?"<>|]+/g, "_")
-    .replace(/\s+/g, "_")
-    .replace(/^_+|_+$/g, "") || "Receipt";
-  const opt = {
-    margin:3, filename:`${safeFileName}.pdf`,
-    image:{type:"jpeg",quality:1},
-    html2canvas:{scale:2,useCORS:true,scrollY:0,windowWidth:element.scrollWidth},
-    jsPDF:{unit:"mm",format:"a5",orientation:"landscape"}
-  };
-  html2pdf().set(opt).from(element).save();
-}
+  function downloadPDF() {
+    const element = document.getElementById("pdf-content");
+    const renterName = "{{ rental.renter_name|default:rental.user.username|escapejs }}";
+    const safeFileName = renterName
+      .trim()
+      .replace(/[\\/:*?"<>|]+/g, "_")
+      .replace(/\s+/g, "_")
+      .replace(/^_+|_+$/g, "") || "Receipt";
+    const opt = {
+      margin: 3, filename: `${safeFileName}.pdf`,
+      image: { type: "jpeg", quality: 1 },
+      html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: element.scrollWidth },
+      jsPDF: { unit: "mm", format: "a5", orientation: "landscape" }
+    };
+    html2pdf().set(opt).from(element).save();
+  }
 </script>
 {% endblock %}

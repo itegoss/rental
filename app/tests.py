@@ -55,6 +55,20 @@ class InventoryTests(TestCase):
         self.assertEqual(self.item.title, 'Wheelchair')
 
     def test_edit_inventory_item_admin_user(self):
+        from app.models import History
+        from django.utils import timezone
+        import datetime
+        History.objects.create(
+            user=self.normal_user,
+            rental_item=self.item,
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date() + datetime.timedelta(days=5),
+            quantity=2,
+            deposit=self.item.deposit,
+            payment_method='cod',
+            status='approved',
+            order_id='ORD111111'
+        )
         self.client.login(username='admin', password='password123')
         response = self.client.post(reverse('edit_inventory_item', args=[self.item.id]), {
             'title': 'New Title',
@@ -169,6 +183,193 @@ class RentalTodayReminderTests(TestCase):
         # Assert no additional emails or notifications were sent/created
         self.assertEqual(len(mail.outbox), mail_count_after_first)
         self.assertEqual(Notification.objects.filter(title="Rental Ending Today").count(), notification_count_after_first)
+
+
+from app.models import BookingExtension, Receipt
+from app.utils import build_booking_receipt_breakdown, generate_receipt
+from decimal import Decimal
+
+class ReceiptExtensionTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='tester', email='tester@example.com', password='password123')
+        self.item = Inventory.objects.create(
+            title="Hospital Bed",
+            description="Adjustable hospital bed",
+            price_per_day=50.0,
+            deposit=1000.0,
+            total_quantity=5,
+            available_quantity=5,
+            booked_quantity=0,
+            available=True
+        )
+        self.today = timezone.now().date()
+        self.rental = History.objects.create(
+            user=self.user,
+            rental_item=self.item,
+            start_date=self.today,
+            end_date=self.today + datetime.timedelta(days=9),
+            quantity=1,
+            deposit=1000.0,
+            payment_method='cod',
+            status='approved',
+            order_id='ORD999999'
+        )
+        
+    def test_build_booking_receipt_breakdown_no_extension(self):
+        related = History.objects.filter(order_id=self.rental.order_id)
+        breakdown = build_booking_receipt_breakdown(self.rental, related)
+        
+        self.assertEqual(breakdown["original_days"], 10)
+        self.assertEqual(breakdown["original_total_rent"], Decimal("500.00"))
+        self.assertEqual(breakdown["original_total_deposit"], Decimal("1000.00"))
+        self.assertEqual(breakdown["original_total_amount"], Decimal("1500.00"))
+        self.assertEqual(len(breakdown["extension_history"]), 0)
+        self.assertEqual(breakdown["extension_total"], Decimal("0"))
+        self.assertEqual(breakdown["final_total_amount"], Decimal("1500.00"))
+        self.assertEqual(breakdown["amount_paid"], Decimal("0"))
+        self.assertEqual(breakdown["amount_remaining"], Decimal("1500.00"))
+
+    def test_build_booking_receipt_breakdown_partial_payment(self):
+        self.rental.amount_paid = Decimal("500.00")
+        self.rental.save()
+        
+        related = History.objects.filter(order_id=self.rental.order_id)
+        breakdown = build_booking_receipt_breakdown(self.rental, related)
+        
+        self.assertEqual(breakdown["amount_paid"], Decimal("500.00"))
+        self.assertEqual(breakdown["amount_remaining"], Decimal("1000.00"))
+
+    def test_build_booking_receipt_breakdown_with_extensions(self):
+        BookingExtension.objects.create(
+            rental_request=self.rental,
+            extension_no=1,
+            previous_return_date=self.rental.end_date,
+            new_return_date=self.rental.end_date + datetime.timedelta(days=5),
+            extra_days=5,
+            quantity=1,
+            rent_per_day=self.item.price_per_day,
+            additional_rent=self.item.price_per_day * 5,
+            additional_deposit=0,
+            extension_total=self.item.price_per_day * 5
+        )
+        self.rental.extended_end_date = self.rental.end_date + datetime.timedelta(days=5)
+        self.rental.save()
+
+        related = History.objects.filter(order_id=self.rental.order_id)
+        breakdown = build_booking_receipt_breakdown(self.rental, related)
+        
+        self.assertEqual(breakdown["original_days"], 10)
+        self.assertEqual(len(breakdown["extension_history"]), 1)
+        self.assertEqual(breakdown["extension_history"][0]["extension_no"], 1)
+        self.assertEqual(breakdown["extension_history"][0]["extra_days"], 5)
+        self.assertEqual(breakdown["extension_history"][0]["extension_total"], Decimal("250.00"))
+        self.assertEqual(breakdown["extension_total"], Decimal("250.00"))
+        self.assertEqual(breakdown["final_total_amount"], Decimal("1750.00"))
+
+    def test_receipt_regeneration_on_extension(self):
+        receipt_file = generate_receipt(self.rental)
+        initial_receipt = Receipt.objects.create(rental_request=self.rental, receipt_type='booking')
+        initial_receipt.file.save('initial.pdf', receipt_file)
+        initial_receipt.save()
+
+        self.assertEqual(self.rental.receipts.filter(receipt_type='booking').count(), 1)
+        old_receipt_id = self.rental.receipts.filter(receipt_type='booking').first().id
+
+        self.client.login(username='tester', password='password123')
+        new_return_date = (self.rental.end_date + datetime.timedelta(days=5)).strftime('%Y-%m-%d')
+        response = self.client.post(
+            reverse('extend_return_date', args=[self.rental.order_id]),
+            {'extended_end_date': new_return_date}
+        )
+        self.assertEqual(response.status_code, 302)
+
+        receipts = self.rental.receipts.filter(receipt_type='booking')
+        self.assertEqual(receipts.count(), 1)
+        self.assertNotEqual(receipts.first().id, old_receipt_id)
+
+
+from app.utils import send_notification
+
+class NonSuperuserNotificationEmailTests(TestCase):
+    def setUp(self):
+        self.non_superuser = User.objects.create_user(username='varsha_client', email='varsha@client.com', password='password123')
+        self.item = Inventory.objects.create(
+            title="Walker",
+            description="Mobility walker",
+            price_per_day=5.0,
+            deposit=500.0,
+            total_quantity=2,
+            available_quantity=2,
+            booked_quantity=0,
+            available=True
+        )
+        self.today = timezone.now().date()
+        self.rental = History.objects.create(
+            user=self.non_superuser,
+            rental_item=self.item,
+            start_date=self.today,
+            end_date=self.today + datetime.timedelta(days=7),
+            quantity=1,
+            deposit=500.0,
+            payment_method='cod',
+            status='pending',
+            order_id='ORD202607004'
+        )
+
+    def test_non_superuser_booking_request_email(self):
+        initial_mail_count = len(mail.outbox)
+        send_notification(
+            title="New Booking Created",
+            message="Some booking message",
+            notification_type='booking',
+            order_id=self.rental.order_id,
+            rental=self.rental
+        )
+        # Check that email was sent to renter
+        renter_emails = [m for m in mail.outbox[initial_mail_count:] if 'varsha@client.com' in m.to]
+        self.assertEqual(len(renter_emails), 1)
+        email = renter_emails[0]
+        self.assertIn("Dear customer,", email.body)
+        self.assertIn("Your order id is : ORD202607004 for Walker your request successfully sent to admin.", email.body)
+        self.assertIn("For any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in", email.body)
+        self.assertIn("Thank you", email.body)
+
+    def test_non_superuser_return_request_email(self):
+        initial_mail_count = len(mail.outbox)
+        send_notification(
+            title="Return Request Submitted for ORD202607004",
+            message="Some return request message",
+            notification_type='return',
+            order_id=self.rental.order_id,
+            rental=self.rental
+        )
+        renter_emails = [m for m in mail.outbox[initial_mail_count:] if 'varsha@client.com' in m.to]
+        self.assertEqual(len(renter_emails), 1)
+        email = renter_emails[0]
+        self.assertIn("Dear customer,", email.body)
+        self.assertIn("Your order id is : ORD202607004 for Walker your return request successfully sent to admin.", email.body)
+        self.assertIn("For any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in", email.body)
+        self.assertIn("Thank you", email.body)
+
+    def test_extension_date_email(self):
+        initial_mail_count = len(mail.outbox)
+        send_notification(
+            title="Return Date Extended for ORD202607004",
+            message="Some extension message",
+            notification_type='return',
+            order_id=self.rental.order_id,
+            rental=self.rental
+        )
+        renter_emails = [m for m in mail.outbox[initial_mail_count:] if 'varsha@client.com' in m.to]
+        self.assertEqual(len(renter_emails), 1)
+        email = renter_emails[0]
+        self.assertIn("Dear customer,", email.body)
+        self.assertIn("Your order id is : ORD202607004 for Walker your return date is extended.", email.body)
+        self.assertIn("For any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in", email.body)
+        self.assertIn("Thank you", email.body)
+        self.assertEqual(email.cc, ['vidya@itegoss.in'])
+
+
 
 
 

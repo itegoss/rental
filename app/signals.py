@@ -99,7 +99,7 @@ def send_availability_emails(item):
                 send_mail(
                     subject,
                     '',
-                    settings.DEFAULT_FROM_EMAIL,
+                    getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
                     [request.email],
                     html_message=message
                 )

@@ -8,7 +8,7 @@ import uuid
 import random
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 from django.urls import reverse
 from django.utils import timezone
 from django.db import transaction
@@ -31,6 +31,7 @@ from urllib3 import request
 from .models import (
     Inventory,
     History,
+    BookingExtension,
     UserDetail,
     Payment,
     Services,
@@ -40,7 +41,7 @@ from .models import (
     Customer,
     NotifyRequest,
 )
-from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, receipt_filename, send_whatsapp_message, send_notification
+from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, receipt_filename, send_whatsapp_message, send_notification, build_booking_receipt_breakdown
 
 def index(request):
 
@@ -65,7 +66,9 @@ def index(request):
                         f"Renter: {rental.user.username}, Item: {rental.rental_item.title}."
                     ),
                     notification_type='info',
-                    link=f"/admin/app/history/{rental.id}/change/"
+                    link=f"/admin/app/history/{rental.id}/change/",
+                    order_id=rental.order_id,
+                    rental=rental
                 )
             except Exception as e:
                 print(f"[notification today-end error] {e}")
@@ -82,7 +85,9 @@ def index(request):
                         f"Renter: {rental.user.username}, due date: {rental.end_date}."
                     ),
                     notification_type='late_return',
-                    link=f"/admin/app/history/{rental.id}/change/"
+                    link=f"/admin/app/history/{rental.id}/change/",
+                    order_id=rental.order_id,
+                    rental=rental
                 )
             except Exception as e:
                 print(f"[notification late-return error] {e}")
@@ -390,6 +395,10 @@ def inventory(request):
     search_query = request.GET.get('q', '').strip()
     if search_query:
         items = items.filter(title__icontains=search_query)
+
+    for item in items:
+        item.update_availability()
+
     return render(request, 'inventory.html', {
         'items': items,
         'search_query': search_query,
@@ -404,8 +413,8 @@ def add_inventory_item(request):
         price_per_day = request.POST.get('price_per_day', 0)
         deposit = request.POST.get('deposit', 0)
         total_quantity = int(request.POST.get('total_quantity', 1) or 1)
-        available_quantity = int(request.POST.get('available_quantity', 1) or 1)
-        booked_quantity = int(request.POST.get('booked_quantity', 0) or 0)
+        available_quantity = total_quantity
+        booked_quantity = 0
         next_available_date = request.POST.get('next_available_date') or None
         available = request.POST.get('available') == 'on'
         item_qty = int(request.POST.get('item_qty', 1) or 1)
@@ -414,7 +423,7 @@ def add_inventory_item(request):
         donor_name = request.POST.get('donor_name', '').strip()
         donor_contact = request.POST.get('donor_contact', '').strip()
 
-        Inventory.objects.create(
+        item = Inventory.objects.create(
             title=title,
             description=description,
             price_per_day=price_per_day,
@@ -431,6 +440,7 @@ def add_inventory_item(request):
             donor_name=donor_name,
             donor_contact=donor_contact,
         )
+        item.update_availability()
         messages.success(request, "New rental item added successfully.")
         return redirect('inventory')
 
@@ -454,12 +464,7 @@ def edit_inventory_item(request, item_id):
         item.price_per_day = request.POST.get('price_per_day', 0)
         item.deposit = request.POST.get('deposit', 0)
         item.total_quantity = int(request.POST.get('total_quantity', 1) or 1)
-        item.available_quantity = int(request.POST.get('available_quantity', 0) or 0)
-        item.booked_quantity = int(request.POST.get('booked_quantity', 0) or 0)
         item.available = request.POST.get('available') == 'on'
-        
-        next_avail = request.POST.get('next_available_date')
-        item.next_available_date = next_avail if next_avail else None
         
         item.item_qty = int(request.POST.get('item_qty', 1) or 1)
         item.price = request.POST.get('price', 0)
@@ -471,6 +476,7 @@ def edit_inventory_item(request, item_id):
             item.image = request.FILES.get('image')
             
         item.save()
+        item.update_availability()
         messages.success(request, f"Item '{item.title}' updated successfully.")
         return redirect('inventory')
     
@@ -571,6 +577,8 @@ def cart_view(request):
 
         request.session["start_date"] = start_date
         request.session["end_date"] = end_date
+        request.session["paid_amount"] = request.POST.get("paid_amount", "0")
+        request.session["is_paid"] = request.POST.get("is_paid") == "on"
         if request.user.is_superuser and request.session.get("details_filled"):
             if cart_items:
                 return redirect("select_delivery", pk=cart_items.first().rental_item.id)
@@ -724,15 +732,34 @@ def paymentmethod(request):
             messages.error(request, "Your cart is empty.")
             return redirect('bookingsammry')
 
-        for ci in cart.items.select_related("rental_item"):
+        session_paid_amount_str = request.session.get("paid_amount", "0")
+        try:
+            session_paid_amount = Decimal(session_paid_amount_str or "0")
+        except Exception:
+            session_paid_amount = Decimal("0")
+        session_is_paid = request.session.get("is_paid", False)
+
+        renter_email = request.session.get("renter_email")
+        if not renter_email and not request.user.is_superuser:
+            user_detail = UserDetail.objects.filter(user_id=request.user.id).first()
+            if user_detail:
+                renter_email = user_detail.email
+        if not renter_email:
+            renter_email = request.user.email
+
+        for idx, ci in enumerate(cart.items.select_related("rental_item")):
             item = ci.rental_item
             if item.available_quantity < ci.quantity:
                 messages.error(request, f"{item.title} is out of stock.")
                 return redirect('cart')
 
+            rental_paid = session_paid_amount if idx == 0 and session_is_paid else Decimal("0")
+            rental_delivery_paid = session_is_paid if idx == 0 else False
+
             rental = History.objects.create(
                 user_id=request.user.id,
                 renter_name=renter_name,
+                email=renter_email,
                 patient_name=patient_name,
                 phone=phone,
                 address=address,
@@ -748,7 +775,9 @@ def paymentmethod(request):
                 id_proof_file=id_proof_file,
                 delivery_option=delivery_option.lower() if delivery_option else None,
                 delivery_charge=delivery_charge,
-                is_today_reminder_sent=False,   # add this
+                is_today_reminder_sent=False,
+                amount_paid=rental_paid,
+                is_delivery_paid=rental_delivery_paid,
             )
 
             try:
@@ -784,7 +813,9 @@ def paymentmethod(request):
                     f"{len(created_rentals)} item(s), total rental period {start_date} to {end_date}."
                 ),
                 notification_type='booking',
-                link=f"/admin/app/history/?order_id={order_id}"
+                link=f"/admin/app/history/?order_id={order_id}",
+                order_id=order_id,
+                rental=created_rentals[0]
             )
         except Exception as e:
             print(f"[notification booking error] {e}")
@@ -798,21 +829,12 @@ def paymentmethod(request):
         elif payment_method.lower() in ['cod', 'cash on delivery']:
             for rental in created_rentals:
                 rental.payment_method = 'cod'
-                rental.status = 'approved'
+                rental.status = 'pending'
                 rental.save(update_fields=['payment_method', 'status'])
 
-                item = rental.rental_item
-                try:
-                    item.update_availability()
-                except Exception:
-                    try:
-                        item.save()
-                    except Exception:
-                        pass
+                Payment.objects.create(rental_request=rental, payment_status='PENDING', order_id=generate_order_id())
 
-                Payment.objects.create( rental_request=rental,payment_status='SUCCESS',order_id=generate_order_id())
-
-            messages.success(request, "Order placed successfully with Cash on Delivery!")
+            messages.success(request, "Order placed successfully! Awaiting admin approval.")
 
             return redirect('success', rental_id=created_rentals[0].id)
 
@@ -843,37 +865,40 @@ def success(request, rental_id):
 
     related_rentals = History.objects.filter( user=rental.user,order_id=rental.order_id).select_related("rental_item")
 
-    payment.payment_id = razorpay_payment_id
-    payment.payment_status = "SUCCESS"
-    payment.save(update_fields=["payment_id", "payment_status"])
+    if rental.payment_method == "online":
+        payment.payment_id = razorpay_payment_id
+        payment.payment_status = "SUCCESS"
+        payment.save(update_fields=["payment_id", "payment_status"])
 
-    try:
-        send_notification(
-            title="Payment Successful",
-            message=(
-                f"Payment recorded successfully for order {rental.order_id} by {rental.user.username}. "
-                f"Amount: ₹{payment.amount}."
-            ),
-            notification_type='payment',
-            link=f"/admin/app/payment/{payment.id}/change/"
-        )
-    except Exception as e:
-        print(f"[notification payment error] {e}")
+        try:
+            send_notification(
+                title="Payment Successful",
+                message=(
+                    f"Payment recorded successfully for order {rental.order_id} by {rental.user.username}. "
+                    f"Amount: ₹{payment.amount}."
+                ),
+                notification_type='payment',
+                link=f"/admin/app/payment/{payment.id}/change/",
+                order_id=rental.order_id,
+                rental=rental
+            )
+        except Exception as e:
+            print(f"[notification payment error] {e}")
 
-    # ================== ADJUST STOCK NOW (ORDER CONFIRMED) ==================
+        # ================== ADJUST STOCK NOW (ORDER CONFIRMED) ==================
 
-    with transaction.atomic():
-        to_process = related_rentals.exclude(status="approved")
-        for rr in to_process:
-            item = rr.rental_item
-            rr.status = "approved"
-            rr.save(update_fields=["status"]) 
+        with transaction.atomic():
+            to_process = related_rentals.exclude(status="approved")
+            for rr in to_process:
+                item = rr.rental_item
+                rr.status = "approved"
+                rr.save(update_fields=["status"]) 
 
-            try:
-                item.update_availability()
-                item.save(update_fields=["available_quantity", "booked_quantity", "available", "next_available_date"])
-            except Exception:
-                item.save()
+                try:
+                    item.update_availability()
+                    item.save(update_fields=["available_quantity", "booked_quantity", "available", "next_available_date"])
+                except Exception:
+                    item.save()
 
     grouped_items = defaultdict(lambda: {
         "title": "",
@@ -930,26 +955,39 @@ def success(request, rental_id):
         new_receipt.file.save(receipt_filename(rental), content_file)
         new_receipt.save()
 
-    for k in ("renter_name", "patient_name", "phone", "address", "id_proof_type", "id_proof_number", "id_proof_file", "start_date", "end_date", "details_filled", "delivery_option", "delivery_charge", "rental_id", "item_id"):
+    for k in ("renter_name", "patient_name", "phone", "address", "id_proof_type", "id_proof_number", "id_proof_file", "start_date", "end_date", "details_filled", "delivery_option", "delivery_charge", "rental_id", "item_id", "paid_amount", "is_paid", "renter_email"):
         request.session.pop(k, None)
 
+    breakdown = build_booking_receipt_breakdown(rental, related_rentals)
+
     return render(request, "success.html", {
-    "rental": rental,
-    "payment": payment,
-    "order_id": rental.order_id,
-    "item_totals": item_totals,
-    "total_quantity": total_quantity,
-    "total_deposit": total_deposit,
-    "total_rent": total_rent,
-    "total_amount": total_amount,
-    "delivery_charge": delivery_charge,
-    "delivery_option": delivery_option,
-    "signature": razorpay_signature, 
-    "user_detail": user_detail,
-    "customer_name": customer_name,
-    "customer_phone": customer_phone,
-    "customer_address": customer_address,
-    "patient_name": customer_patient_name,
+        "rental": rental,
+        "payment": payment,
+        "order_id": rental.order_id,
+        "item_totals": breakdown["original_item_totals"],
+        "total_quantity": breakdown["total_quantity"],
+        "total_deposit": breakdown["original_total_deposit"],
+        "total_rent": breakdown["original_total_rent"],
+        "total_amount": breakdown["final_total_amount"],
+        "delivery_charge": delivery_charge,
+        "delivery_option": delivery_option,
+        "signature": razorpay_signature, 
+        "user_detail": user_detail,
+        "customer_name": customer_name,
+        "customer_phone": customer_phone,
+        "customer_address": customer_address,
+        "patient_name": customer_patient_name,
+        "original_booking_date": breakdown["original_booking_date"],
+        "original_start_date": breakdown["original_start_date"],
+        "original_return_date": breakdown["original_return_date"],
+        "original_days": breakdown["original_days"],
+        "original_total_amount": breakdown["original_total_amount"],
+        "extension_history": breakdown["extension_history"],
+        "extension_total": breakdown["extension_total"],
+        "final_total_amount": breakdown["final_total_amount"],
+        "amount_paid": breakdown["amount_paid"],
+        "amount_remaining": breakdown["amount_remaining"],
+        "delivery_paid": breakdown["delivery_paid"],
     })
 
 
@@ -1000,7 +1038,7 @@ def send_today_reminder_email(user, rental):
         send_mail(
             subject,
             '',
-            settings.DEFAULT_FROM_EMAIL,
+            getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
             [recipient_email],
             html_message=message,
             fail_silently=False
@@ -1066,7 +1104,7 @@ def send_notify_emails(item, user_email, user_mobile):
         send_mail(
             user_subject,
             '',
-            settings.DEFAULT_FROM_EMAIL,
+            getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
             [user_email],
             html_message=user_message
         )
@@ -1078,7 +1116,7 @@ def send_notify_emails(item, user_email, user_mobile):
         send_mail(
             admin_subject,
             '',
-            settings.DEFAULT_FROM_EMAIL,
+            getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
             [settings.ADMIN_EMAIL],
             html_message=admin_message
         )
@@ -1178,6 +1216,8 @@ def approve_order(request, order_id):
         raise Http404("Order not found")
     
     orders.update(status="approved")
+    for item in Inventory.objects.filter(rentalrequest_set__order_id=order_id).distinct():
+        item.update_availability()
     
     first_order = orders.first()
     if not first_order.receipts.exists():
@@ -1191,7 +1231,9 @@ def approve_order(request, order_id):
             title=f"Order Approved: {order_id}",
             message=f"Order {order_id} has been approved by admin {request.user.username}.",
             notification_type='booking',
-            link=f"/admin/app/history/?order_id={order_id}"
+            link=f"/admin/app/history/?order_id={order_id}",
+            order_id=order_id,
+            rental=first_order
         )
     except Exception as e:
         print(f"[notification error] {e}")
@@ -1227,7 +1269,9 @@ def approve_return_order(request, order_id):
             title=f"Return Approved for {order_id}",
             message=f"Admin {request.user.username} approved the return for order {order_id}.",
             notification_type='return',
-            link=f"/admin/app/history/?order_id={order_id}"
+            link=f"/admin/app/history/?order_id={order_id}",
+            order_id=order_id,
+            rental=rentals[0]
         )
     except Exception as e:
         print(f"[notification error] {e}")
@@ -1302,6 +1346,7 @@ def userdetail(request):
 
         if is_admin and not request.session.get("details_filled"):
             request.session["renter_name"] = request.POST.get("name") or request.user.username
+            request.session["renter_email"] = request.POST.get("email", "").strip()
             request.session["patient_name"] = request.POST.get("patient_name")
             request.session["phone"] = request.POST.get("phone")
             request.session["address"] = request.POST.get("address")
@@ -1336,15 +1381,14 @@ def userdetail(request):
                 )
                 return redirect("cart")
 
-        order_id = generate_sequential_order_id()
         phone = request.POST.get("phone", "").strip()
         address = request.POST.get("address", "").strip()
         pincode = request.POST.get("pincode", "").strip()
         email = request.POST.get("email", "").strip()
         patient_name = request.POST.get("patient_name", "").strip()
 
-        start_date = datetime.strptime(request.session.get("start_date"), "%Y-%m-%d").date()
-        end_date = datetime.strptime(request.session.get("end_date"), "%Y-%m-%d").date()
+        start_date_str = request.POST.get("start_date") or request.session.get("start_date")
+        end_date_str = request.POST.get("end_date") or request.session.get("end_date")
         first_cart_item = cart_items.first()
         rental_item_id = first_cart_item.rental_item.id
         saved_address = request.session.get("address") or address
@@ -1354,7 +1398,6 @@ def userdetail(request):
             history_address = f"{history_address}, {saved_pincode}"
 
         with transaction.atomic():
-
             user_detail = None
             if not is_admin:
                 user_detail, _ = UserDetail.objects.update_or_create(
@@ -1370,30 +1413,26 @@ def userdetail(request):
                         "patient_name": patient_name,
                     }
                 )
-
-            for ci in cart_items:
-                History.objects.create(
-                    user_id=request.user.id,
-                    renter_name=(request.session.get("renter_name") or request.user.get_full_name() or request.user.username),
-                    rental_item=ci.rental_item,
-                    start_date=start_date,
-                    end_date=end_date,
-                    quantity=ci.quantity,
-                    deposit=ci.rental_item.deposit,
-                    payment_method="online",
-                    order_id=order_id,
-                    patient_name=(request.session.get("patient_name") or patient_name),
-                    phone=(request.session.get("phone") or phone),
-                    address=history_address,
-                    id_proof_type=id_proof_type,
-                    id_proof_number=id_proof_number,
-                    id_proof_file=user_detail.id_proof_file.name if user_detail and user_detail.id_proof_file else None,
+                saved_file_name = user_detail.id_proof_file.name if user_detail and user_detail.id_proof_file else None
+            else:
+                saved_file_name = default_storage.save(
+                    f"id_proofs/{id_proof_file.name}",
+                    id_proof_file,
                 )
-            try:
-                if cart:
-                    cart.delete()
-            except Exception:
-                pass
+
+            # Store details in session for the next steps
+            request.session["renter_name"] = request.POST.get("name") or request.user.get_full_name() or request.user.username
+            request.session["renter_email"] = email or request.user.email
+            request.session["patient_name"] = patient_name
+            request.session["phone"] = phone
+            request.session["address"] = history_address
+            request.session["pincode"] = pincode
+            request.session["start_date"] = start_date_str
+            request.session["end_date"] = end_date_str
+            request.session["id_proof_type"] = id_proof_type
+            request.session["id_proof_number"] = id_proof_number
+            request.session["id_proof_file"] = saved_file_name
+            request.session["details_filled"] = True
 
         return redirect("select_delivery", pk=rental_item_id)
 
@@ -1525,55 +1564,51 @@ def view_rental(request, rental_id):
     rental = get_object_or_404(rentals, id=rental_id)
     related_rentals = rentals.filter(order_id=rental.order_id).select_related("rental_item")
 
-    item_totals = []
-    total_rent = 0
-    total_deposit = 0
-    total_quantity = 0
+    breakdown = build_booking_receipt_breakdown(rental, related_rentals)
+    payment = Payment.objects.filter(rental_request=rental).order_by("-payment_date").first()
 
-    for rr in related_rentals:
-        rent = rr.total_rent
-        deposit = rr.deposit * rr.quantity
-
-        item_totals.append({
-            "title": rr.rental_item.title,
-            "quantity": rr.quantity,
-            "price_per_day": rr.rental_item.price_per_day,
-            "days": rr.rental_days,
-            "rent": rent,
-            "deposit": deposit,
-            "total": rent,
-        })
-
-        total_rent += rent
-        total_deposit += deposit
-        total_quantity += rr.quantity
-
-    start_date = rental.start_date
-    end_date = rental.billing_end_date
-    total_days = (end_date - start_date).days + 1
+    user_detail = UserDetail.objects.filter(user=rental.user).first()
     delivery_option = rental.delivery_option
     delivery_charge = rental.delivery_charge if delivery_option == "delivery" else 0
-    total_amount = total_rent + total_deposit + delivery_charge
-    user_detail = UserDetail.objects.filter(user=rental.user).first()
+
+    customer_name = rental.renter_name or (user_detail.patient_name if user_detail else (rental.user.get_full_name() or rental.user.username))
+    customer_phone = rental.phone or (user_detail.phone if user_detail else None)
+    customer_address = rental.address or (user_detail.address_line1 if user_detail else None)
+    customer_patient_name = rental.patient_name or (user_detail.patient_name if user_detail else None)
 
     context = {
         "order_id": rental.order_id,
-        "date": rental.created_at.date(),
+        "date": breakdown["original_booking_date"],
         "rental": rental,
-        "patient_name": rental.patient_name,
+        "payment": payment,
+        "patient_name": customer_patient_name,
         "user_detail": user_detail,
-        "rent_start_date": start_date,
-        "rent_end_date": end_date,
-        "total_days": total_days,
-        "return_date": end_date,
-        "item_totals": item_totals,
-        "total_quantity": total_quantity,
-        "total_rent": total_rent,
-        "total_deposit": total_deposit,
+        "customer_name": customer_name,
+        "customer_phone": customer_phone,
+        "customer_address": customer_address,
+        "rent_start_date": breakdown["original_start_date"],
+        "rent_end_date": breakdown["original_return_date"],
+        "total_days": breakdown["original_days"],
+        "return_date": breakdown["original_return_date"],
+        "item_totals": breakdown["original_item_totals"],
+        "total_quantity": breakdown["total_quantity"],
+        "total_rent": breakdown["original_total_rent"],
+        "total_deposit": breakdown["original_total_deposit"],
         "delivery_charge": delivery_charge,
         "delivery_option": delivery_option,
-        "total_amount": total_amount,
+        "total_amount": breakdown["final_total_amount"],
         "payment_mode": "Online Payment",
+        "original_booking_date": breakdown["original_booking_date"],
+        "original_start_date": breakdown["original_start_date"],
+        "original_return_date": breakdown["original_return_date"],
+        "original_days": breakdown["original_days"],
+        "original_total_amount": breakdown["original_total_amount"],
+        "extension_history": breakdown["extension_history"],
+        "extension_total": breakdown["extension_total"],
+        "final_total_amount": breakdown["final_total_amount"],
+        "amount_paid": breakdown["amount_paid"],
+        "amount_remaining": breakdown["amount_remaining"],
+        "delivery_paid": breakdown["delivery_paid"],
     }
 
     return render(request, "success.html", context)
@@ -1594,7 +1629,8 @@ def extend_return_date(request, order_id):
         messages.error(request, "Order not found or already returned.")
         return redirect("bookingsammry")
 
-    current_end_date = rentals.first().billing_end_date
+    rental_rows = list(rentals)
+    current_end_date = rental_rows[0].billing_end_date
     min_extend_date = current_end_date + timedelta(days=1)
 
     if request.method == "POST":
@@ -1613,9 +1649,41 @@ def extend_return_date(request, order_id):
             messages.error(request, f"Please select a date after {current_end_date.strftime('%Y-%m-%d')}.")
             return redirect("extend_return_date", order_id=order_id)
 
-        for rr in rentals:
+        last_extension_no = (
+            BookingExtension.objects
+            .filter(rental_request__in=rental_rows)
+            .order_by("-extension_no")
+            .values_list("extension_no", flat=True)
+            .first()
+        ) or 0
+        extension_no = last_extension_no + 1
+        extra_days = (new_date - current_end_date).days
+
+        for rr in rental_rows:
+            additional_deposit = Decimal("0")
+            additional_rent = rr.rental_item.price_per_day * rr.quantity * extra_days
+            BookingExtension.objects.create(
+                rental_request=rr,
+                extension_no=extension_no,
+                previous_return_date=current_end_date,
+                new_return_date=new_date,
+                extra_days=extra_days,
+                quantity=rr.quantity,
+                rent_per_day=rr.rental_item.price_per_day,
+                additional_rent=additional_rent,
+                additional_deposit=additional_deposit,
+                extension_total=additional_rent + additional_deposit,
+            )
             rr.extended_end_date = new_date
             rr.save()
+
+        # Regenerate receipt PDF for the rental request
+        first_rental = rental_rows[0]
+        first_rental.receipts.filter(receipt_type='booking').delete()
+        content_file = generate_receipt(first_rental)
+        new_receipt = Receipt.objects.create(rental_request=first_rental, receipt_type='booking')
+        new_receipt.file.save(receipt_filename(first_rental), content_file)
+        new_receipt.save()
 
         try:
             send_notification(
@@ -1624,8 +1692,10 @@ def extend_return_date(request, order_id):
                     f"User {request.user.username} extended return date for order {order_id} "
                     f"to {new_date.strftime('%Y-%m-%d')}."
                 ),
-                notification_type='info',
-                link=f"/admin/app/history/?order_id={order_id}"
+                notification_type='return',
+                link=f"/admin/app/history/?order_id={order_id}",
+                order_id=order_id,
+                rental=first_rental
             )
         except Exception as e:
             print(f"[notification extend return error] {e}")
@@ -1634,7 +1704,7 @@ def extend_return_date(request, order_id):
         return redirect("bookingsammry")
 
     item_totals = []
-    for rr in rentals:
+    for rr in rental_rows:
         item_totals.append({
             "title": rr.rental_item.title,
             "quantity": rr.quantity,
@@ -1651,8 +1721,8 @@ def extend_return_date(request, order_id):
         "item_totals": item_totals,
         "total_rent": sum(item["total"] for item in item_totals),
         "total_deposit": sum(item["deposit"] for item in item_totals),
-        "delivery_charge": rentals.first().delivery_charge,
-        "order": rentals.first(),
+        "delivery_charge": rental_rows[0].delivery_charge,
+        "order": rental_rows[0],
     }
     return render(request, "extend_return.html", context)
 
@@ -1749,7 +1819,9 @@ def return_order(request, order_id):
                     f"{item_details}"
                 ),
                 notification_type='return',
-                link=f"/admin/app/history/?order_id={order_id}"
+                link=f"/admin/app/history/?order_id={order_id}",
+                order_id=order_id,
+                rental=rental_rows[0]
             )
         except Exception as e:
             print(f"[notification direct return error] {e}")
@@ -1789,7 +1861,9 @@ def return_order(request, order_id):
                 f"{item_details}"
             ),
             notification_type='return',
-            link=f"/admin/app/history/?order_id={order_id}"
+            link=f"/admin/app/history/?order_id={order_id}",
+            order_id=order_id,
+            rental=rental_rows[0]
         )
     except Exception as e:
         print(f"[notification return request error] {e}")
@@ -1835,7 +1909,9 @@ def cancel_order(request, order_id):
                 f"{rentals.count()} item(s) affected."
             ),
             notification_type='cancelled',
-            link=f"/admin/app/history/?order_id={order_id}"
+            link=f"/admin/app/history/?order_id={order_id}",
+            order_id=order_id,
+            rental=rentals.first()
         )
     except Exception as e:
         print(f"[notification cancel error] {e}")
@@ -1898,7 +1974,9 @@ def return_cart_item(request, cart_item_id):
                 f"(Order {rr.order_id})."
             ),
             notification_type='return',
-            link=f"/admin/app/history/{rr.id}/change/"
+            link=f"/admin/app/history/{rr.id}/change/",
+            order_id=rr.order_id,
+            rental=rr
         )
     except Exception as e:
         print(f"[notification cart return error] {e}")
@@ -1927,35 +2005,22 @@ def return_receipt(request, order_id):
     rental = rentals.first()
     user_detail = UserDetail.objects.filter(user=rental.user).first()
 
-    grouped_items = defaultdict(lambda: {
-        "title": "",
-        "quantity": 0,
-        "deposit": 0,
-        "price_per_day": 0,
-        "days": 0,
-        "total_rent": 0,
-    })
+    breakdown = build_booking_receipt_breakdown(rental, rentals)
 
-    for rr in rentals:
-        key = rr.rental_item.id
-
-        grouped_items[key]["title"] = rr.rental_item.title
-        grouped_items[key]["quantity"] += rr.quantity
-        grouped_items[key]["deposit"] += rr.deposit * rr.quantity
-        grouped_items[key]["price_per_day"] = rr.rental_item.price_per_day
-        grouped_items[key]["days"] = rr.rental_days             
-        grouped_items[key]["total_rent"] += rr.total_rent      
-
-    item_totals = list(grouped_items.values())
-    total_quantity = sum(i["quantity"] for i in item_totals)
-    total_deposit = sum(i["deposit"] for i in item_totals)
-    total_rent = sum(rr.total_rent for rr in rentals)
     donation_amount = sum((rr.donation_amount for rr in rentals), Decimal("0"))
     donation_comment = next((rr.donation_comment for rr in rentals if rr.donation_comment), "")
+    
+    total_deposit = breakdown["original_total_deposit"]
+    additional_deposit = sum((ext["additional_deposit"] for ext in breakdown["extension_history"]), Decimal("0"))
+    final_deposit = total_deposit + additional_deposit
+    
     delivery_charge = rental.delivery_charge
     return_pickup_charge = rental.return_pickup_charge
-    refund_amount = max(total_deposit - donation_amount - delivery_charge - return_pickup_charge, Decimal("0"))
-    total_amount = total_rent + delivery_charge + return_pickup_charge + donation_amount
+    
+    refund_amount = max(final_deposit - donation_amount - delivery_charge - return_pickup_charge, Decimal("0"))
+    
+    total_rent_with_extensions = breakdown["original_total_rent"] + breakdown["extension_total"]
+    total_amount = total_rent_with_extensions + delivery_charge + return_pickup_charge + donation_amount
 
     context = {
         "order": rental,          
@@ -1964,10 +2029,10 @@ def return_receipt(request, order_id):
         "return_date": rental.actual_return_date,
         "user_detail": user_detail,
         "patient_name": rental.patient_name,
-        "item_totals": item_totals,
-        "total_quantity": total_quantity,
-        "total_rent": total_rent,
-        "total_deposit": total_deposit,
+        "item_totals": breakdown["original_item_totals"],
+        "total_quantity": breakdown["total_quantity"],
+        "total_rent": breakdown["original_total_rent"],
+        "total_deposit": final_deposit,
         "donation_amount": donation_amount,
         "donation_comment": donation_comment,
         "total_amount": total_amount,
@@ -1975,6 +2040,14 @@ def return_receipt(request, order_id):
         "delivery_option": rental.delivery_option,
         "delivery_charge": rental.delivery_charge,
         "return_pickup_charge": rental.return_pickup_charge,
+        
+        # Extension history fields
+        "original_booking_date": breakdown["original_booking_date"],
+        "original_start_date": breakdown["original_start_date"],
+        "original_return_date": breakdown["original_return_date"],
+        "original_days": breakdown["original_days"],
+        "extension_history": breakdown["extension_history"],
+        "extension_total": breakdown["extension_total"],
     }
 
     return render(request, "return_receipt.html", context)

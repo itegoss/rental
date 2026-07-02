@@ -49,7 +49,9 @@ def approve_return(modeladmin, request, queryset):
                         f"Item: {rr.rental_item.title}, quantity {rr.quantity}."
                     ),
                     notification_type='return',
-                    link=f"/admin/app/history/{rr.id}/change/"
+                    link=f"/admin/app/history/{rr.id}/change/",
+                    order_id=rr.order_id,
+                    rental=rr
                 )
             except Exception as e:
                 print(f"[admin notification error] {e}")
@@ -153,9 +155,9 @@ class HistoryChangeList(ChangeList):
 class HistoryAdmin(admin.ModelAdmin):
 
     list_display = (
-        'serial_number','user','rental_item','renter_name', 'phone','address', 'patient_name','start_date','end_date',
+        'serial_number','user','rental_item','renter_name', 'email', 'phone','address', 'patient_name','start_date','end_date',
         'extended_end_date','actual_return_date','get_rental_days',
-        'get_per_day_rent','status','total_amount','is_reminder_sent',
+        'get_per_day_rent','status','total_amount','amount_paid','amount_remaining','is_delivery_paid','is_reminder_sent',
         'is_overdue_email_sent','order_id','deposit','download_receipt',
         'view_id_proof',
         'send_whatsapp','patient_name','delivery_option','delivery_charge',
@@ -166,20 +168,38 @@ class HistoryAdmin(admin.ModelAdmin):
     list_filter = ('status','payment_method','start_date','end_date','extended_end_date')
     date_hierarchy = 'start_date'
 
-    search_fields = ('user__username','rental_item__title','patient_name','order_id')
+    search_fields = ('user__username','rental_item__title','patient_name','order_id','email')
 
     actions = [approve_return]
 
     fields = (
-        'id','user','rental_item','renter_name','phone','address', 'patient_name','start_date','end_date',
+        'id','user','rental_item','renter_name','email','phone','address', 'patient_name','start_date','end_date',
         'extended_end_date','actual_return_date','quantity','payment_method',
-        'deposit','delivery_option','delivery_charge','status',
-        'id_proof_type','id_proof_number','id_proof_file','view_id_proof',
+        'deposit','delivery_option','delivery_charge','is_delivery_paid','status',
+        'amount_paid','amount_remaining','id_proof_type','id_proof_number','id_proof_file','view_id_proof',
         'is_return_requested','is_returned','deposit_donated',
         'donation_amount','donation_comment','order_id',
     )
 
-    readonly_fields = ('id','order_id','total_amount','view_id_proof')
+    readonly_fields = ('id','order_id','total_amount','view_id_proof','amount_remaining')
+
+    def save_model(self, request, obj, form, change):
+        obj._from_admin = True
+        super().save_model(request, obj, form, change)
+
+        # Regenerate receipt PDF to match any edits made by the admin
+        try:
+            from .models import Receipt
+            from django.core.files.base import ContentFile
+            from .utils import receipt_filename
+            
+            # Find the existing booking receipt
+            existing = obj.receipts.filter(receipt_type="booking").order_by('-created_at').first()
+            if existing:
+                content_file = generate_receipt(obj)
+                existing.file.save(receipt_filename(obj), content_file, save=True)
+        except Exception as e:
+            print(f"[admin save_model receipt regen error] {e}")
 
     change_list_template = 'admin/history_changelist.html'
 

@@ -6,8 +6,10 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from io import BytesIO
 import re
-from .models import Notification, UserDetail, History
+from .models import Notification, UserDetail, History, BookingExtension, Payment
 import requests
+from decimal import Decimal
+from django.utils import timezone
 
 def receipt_filename(order):
     renter_name = (
@@ -32,44 +34,371 @@ def send_overdue_email(user, rental):
     send_mail(
         subject,
         message,
-        settings.DEFAULT_FROM_EMAIL,
+        getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
         [user.email],
         fail_silently=False
     )
 
+def build_booking_receipt_breakdown(rental, related_rentals):
+    rental_rows = list(related_rentals)
+    original_item_totals = []
+    original_total_rent = Decimal("0")
+    original_total_deposit = Decimal("0")
+    total_quantity = 0
+
+    for rr in rental_rows:
+        original_days = (rr.end_date - rr.start_date).days + 1 if rr.start_date and rr.end_date else 0
+        rent_per_day_total = rr.rental_item.price_per_day * rr.quantity
+        rent_amount = rent_per_day_total * original_days
+        deposit_total = rr.deposit * rr.quantity
+
+        original_item_totals.append({
+            "title": rr.rental_item.title,
+            "quantity": rr.quantity,
+            "deposit": deposit_total,
+            "price_per_day": rr.rental_item.price_per_day,
+            "days": original_days,
+            "rent_amount": rent_amount,
+            "total": rent_amount + deposit_total,
+        })
+
+        total_quantity += rr.quantity
+        original_total_rent += rent_amount
+        original_total_deposit += deposit_total
+
+    delivery_charge = rental.delivery_charge if rental.delivery_option == "delivery" else Decimal("0")
+    extension_rows = BookingExtension.objects.filter(
+        rental_request__in=rental_rows
+    ).select_related("rental_request", "rental_request__rental_item")
+
+    grouped_extensions = {}
+    for ext in extension_rows:
+        item_total_per_day = ext.rent_per_day * ext.quantity
+        if ext.extension_no not in grouped_extensions:
+            grouped_extensions[ext.extension_no] = {
+                "extension_no": ext.extension_no,
+                "extended_on": ext.extended_on,
+                "previous_return_date": ext.previous_return_date,
+                "new_return_date": ext.new_return_date,
+                "extra_days": ext.extra_days,
+                "rent_per_day": Decimal("0"),
+                "additional_rent": Decimal("0"),
+                "additional_deposit": Decimal("0"),
+                "extension_total": Decimal("0"),
+                "is_inferred": False,
+            }
+        grouped_extensions[ext.extension_no]["rent_per_day"] += item_total_per_day
+        grouped_extensions[ext.extension_no]["additional_rent"] += ext.additional_rent
+        grouped_extensions[ext.extension_no]["additional_deposit"] += ext.additional_deposit
+        grouped_extensions[ext.extension_no]["extension_total"] += ext.extension_total
+
+    if not grouped_extensions and rental.extended_end_date and rental.extended_end_date > rental.end_date:
+        extra_days = (rental.extended_end_date - rental.end_date).days
+        rent_per_day = sum((rr.rental_item.price_per_day * rr.quantity for rr in rental_rows), Decimal("0"))
+        additional_rent = rent_per_day * extra_days
+        grouped_extensions[1] = {
+            "extension_no": 1,
+            "extended_on": None,
+            "previous_return_date": rental.end_date,
+            "new_return_date": rental.extended_end_date,
+            "extra_days": extra_days,
+            "rent_per_day": rent_per_day,
+            "additional_rent": additional_rent,
+            "additional_deposit": Decimal("0"),
+            "extension_total": additional_rent,
+            "is_inferred": True,
+        }
+
+    extension_history = [grouped_extensions[key] for key in sorted(grouped_extensions)]
+    extension_total = sum((ext["extension_total"] for ext in extension_history), Decimal("0"))
+    original_total_amount = original_total_rent + original_total_deposit + delivery_charge
+    final_total_amount = original_total_amount + extension_total
+    amount_paid = sum((rr.amount_paid for rr in rental_rows), Decimal("0"))
+
+    # Calculate how much of the delivery charge is paid
+    rent_deposit_total = original_total_rent + original_total_deposit
+    mathematical_delivery_paid = max(amount_paid - rent_deposit_total, Decimal("0"))
+    mathematical_delivery_paid = min(mathematical_delivery_paid, delivery_charge)
+
+    if rental.is_delivery_paid:
+        delivery_paid = delivery_charge
+        unpaid_delivery = delivery_charge - mathematical_delivery_paid
+        amount_remaining = max(final_total_amount - amount_paid - unpaid_delivery, Decimal("0"))
+    else:
+        delivery_paid = mathematical_delivery_paid
+        amount_remaining = max(final_total_amount - amount_paid, Decimal("0"))
+
+    return {
+        "original_item_totals": original_item_totals,
+        "original_booking_date": rental.created_at.date() if rental.created_at else timezone.now().date(),
+        "original_start_date": rental.start_date,
+        "original_return_date": rental.end_date,
+        "original_days": (rental.end_date - rental.start_date).days + 1,
+        "original_total_rent": original_total_rent,
+        "original_total_deposit": original_total_deposit,
+        "original_total_amount": original_total_amount,
+        "extension_history": extension_history,
+        "extension_total": extension_total,
+        "final_total_amount": final_total_amount,
+        "amount_paid": amount_paid,
+        "amount_remaining": amount_remaining,
+        "delivery_paid": delivery_paid,
+        "total_quantity": total_quantity,
+    }
+
 def generate_receipt(order):
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.colors import HexColor
+    
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-    y = height - 50
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(180, y, "Rental Receipt")
-    y -= 40
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=36, rightMargin=36, topMargin=40, bottomMargin=40)
+    elements = []
+    styles = getSampleStyleSheet()
 
-    p.setFont("Helvetica", 12)
-    p.drawString(50, y, f"Order ID: {order.order_id}"); y -= 20
-    p.drawString(50, y, f"User: {order.user.username}"); y -= 20
-    p.drawString(50, y, f"Item: {order.rental_item.title}"); y -= 20
-    p.drawString(50, y, f"Rental Period: {order.start_date} to {order.end_date}"); y -= 20
-    p.drawString(50, y, f"Total Amount: ₹{order.total_amount}"); y -= 20
-    if hasattr(order, 'deposit_donated') and order.deposit_donated:
-        p.drawString(50, y, "Deposit Donated: Yes"); y -= 20
-        p.drawString(50, y, f"Donated Amount: {getattr(order, 'donation_amount', 0)}"); y -= 20
-        if getattr(order, 'donation_comment', None):
-            p.drawString(50, y, f"Donation Comment: {order.donation_comment[:80]}"); y -= 20
-    p.drawString(50, y, f"Payment Method: {order.payment_method}"); y -= 30
+    # Custom styles
+    title_style = ParagraphStyle(
+        'ReceiptTitle',
+        parent=styles['Heading1'],
+        fontName='Helvetica-Bold',
+        fontSize=18,
+        leading=22,
+        textColor=HexColor('#1b8a4b'),
+        alignment=1,
+        spaceAfter=10
+    )
+    section_title_style = ParagraphStyle(
+        'SectionTitle',
+        parent=styles['Heading2'],
+        fontName='Helvetica-Bold',
+        fontSize=11,
+        leading=14,
+        textColor=HexColor('#1b8a4b'),
+        spaceBefore=10,
+        spaceAfter=5
+    )
+    normal_style = ParagraphStyle(
+        'NormalText',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=12,
+        textColor=HexColor('#2c3e50')
+    )
+    bold_style = ParagraphStyle(
+        'BoldText',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=9,
+        leading=12,
+        textColor=HexColor('#2c3e50')
+    )
+    header_cell_style = ParagraphStyle(
+        'HeaderCell',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=8,
+        leading=10,
+        textColor=colors.whitesmoke,
+        alignment=1
+    )
+    center_cell_style = ParagraphStyle(
+        'CenterCell',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=8,
+        leading=10,
+        alignment=1
+    )
+    item_title_style = ParagraphStyle(
+        'ItemTitle',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=8,
+        leading=10
+    )
 
-    try:
-        d = UserDetail.objects.get(user=order.user)
-        p.drawString(50, y, f"Phone: {d.phone or '-'}"); y -= 20
-        p.drawString(50, y, f"Address: {d.address_line1 or '-'}"); y -= 20
-    except UserDetail.DoesNotExist:
-        pass
+    # 1. Header Title
+    elements.append(Paragraph("Kutch Yuvak Sangh, Bhayandar", title_style))
+    elements.append(Paragraph("RENTAL BOOKING RECEIPT", ParagraphStyle('SubTitle', parent=title_style, fontSize=12, textColor=HexColor('#333333'), spaceAfter=15)))
+    elements.append(Spacer(1, 10))
 
-    p.showPage()
-    p.save()
+    # Fetch breakdown details
+    related_rentals = History.objects.filter(order_id=order.order_id).select_related("rental_item")
+    breakdown = build_booking_receipt_breakdown(order, related_rentals)
+
+    # 2. Patient & Booking Details
+    elements.append(Paragraph("Patient & Booking Details", section_title_style))
+    user_detail = UserDetail.objects.filter(user=order.user).first()
+    renter_name = order.renter_name or (user_detail.patient_name if user_detail else (order.user.get_full_name() or order.user.username))
+    patient_name = order.patient_name or (user_detail.patient_name if user_detail else "N/A")
+    address = order.address or (user_detail.address_line1 if user_detail else "N/A")
+    phone = order.phone or (user_detail.phone if user_detail else "N/A")
+
+    details_data = [
+        [Paragraph(f"<b>Order ID:</b> {order.order_id}", normal_style), Paragraph(f"<b>Booking Date:</b> {breakdown['original_booking_date'].strftime('%d %b %Y')}", normal_style)],
+        [Paragraph(f"<b>Renter Name:</b> {renter_name}", normal_style), Paragraph(f"<b>Contact No:</b> {phone}", normal_style)],
+        [Paragraph(f"<b>Patient Name:</b> {patient_name}", normal_style), Paragraph(f"<b>Address:</b> {address}", normal_style)]
+    ]
+    details_table = Table(details_data, colWidths=[261, 262])
+    details_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(details_table)
+    elements.append(Spacer(1, 10))
+
+    # 3. Original Booking details info
+    elements.append(Paragraph("Original Booking Info", section_title_style))
+    orig_info_data = [
+        [
+            Paragraph(f"<b>Original Start Date:</b> {breakdown['original_start_date'].strftime('%d %b %Y')}", normal_style),
+            Paragraph(f"<b>Original Return Date:</b> {breakdown['original_return_date'].strftime('%d %b %Y')}", normal_style),
+            Paragraph(f"<b>Original Rent Days:</b> {breakdown['original_days']} Days", normal_style)
+        ],
+        [
+            Paragraph(f"<b>Delivery Option:</b> {order.delivery_option.title() if order.delivery_option else 'Pickup'}", normal_style),
+            Paragraph(f"<b>Original Deposit Total:</b> Rs. {breakdown['original_total_deposit']:.2f}", normal_style),
+            Paragraph("", normal_style)
+        ]
+    ]
+    orig_info_table = Table(orig_info_data, colWidths=[174, 174, 175])
+    orig_info_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(orig_info_table)
+    elements.append(Spacer(1, 5))
+
+    # 4. Item details table
+    item_header = [
+        Paragraph("Sr No", header_cell_style),
+        Paragraph("Item", header_cell_style),
+        Paragraph("Qty", header_cell_style),
+        Paragraph("Deposit", header_cell_style),
+        Paragraph("Rent / Day", header_cell_style),
+        Paragraph("Days", header_cell_style),
+        Paragraph("Total", header_cell_style)
+    ]
+    item_rows = [item_header]
+    for idx, it in enumerate(breakdown['original_item_totals'], 1):
+        item_rows.append([
+            Paragraph(str(idx), center_cell_style),
+            Paragraph(it['title'], item_title_style),
+            Paragraph(str(it['quantity']), center_cell_style),
+            Paragraph(f"Rs. {it['deposit']:.2f}", center_cell_style),
+            Paragraph(f"Rs. {it['price_per_day']:.2f}", center_cell_style),
+            Paragraph(str(it['days']), center_cell_style),
+            Paragraph(f"Rs. {it['rent_amount']:.2f}", center_cell_style),
+        ])
+    
+    item_table = Table(item_rows, colWidths=[40, 160, 40, 70, 70, 50, 93])
+    item_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1b8a4b')),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [HexColor('#ffffff'), HexColor('#f9f9f9')]),
+        ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#ccc')),
+    ]))
+    elements.append(item_table)
+    elements.append(Spacer(1, 10))
+
+    # 5. Extension History (if any)
+    if breakdown['extension_history']:
+        elements.append(Paragraph("Extension History", section_title_style))
+        ext_header = [
+            Paragraph("Ext No", header_cell_style),
+            Paragraph("Extended On", header_cell_style),
+            Paragraph("Prev Return Date", header_cell_style),
+            Paragraph("New Return Date", header_cell_style),
+            Paragraph("Extra Days", header_cell_style),
+            Paragraph("Rent / Day", header_cell_style),
+            Paragraph("Add. Rent", header_cell_style),
+            Paragraph("Add. Deposit", header_cell_style),
+            Paragraph("Ext Total", header_cell_style)
+        ]
+        ext_rows = [ext_header]
+        for ext in breakdown['extension_history']:
+            ext_date_str = ext['extended_on'].strftime('%d %b %Y %H:%M') if ext['extended_on'] else 'N/A'
+            ext_rows.append([
+                Paragraph(str(ext['extension_no']), center_cell_style),
+                Paragraph(ext_date_str, center_cell_style),
+                Paragraph(ext['previous_return_date'].strftime('%d %b %Y'), center_cell_style),
+                Paragraph(ext['new_return_date'].strftime('%d %b %Y'), center_cell_style),
+                Paragraph(str(ext['extra_days']), center_cell_style),
+                Paragraph(f"Rs. {ext['rent_per_day']:.2f}", center_cell_style),
+                Paragraph(f"Rs. {ext['additional_rent']:.2f}", center_cell_style),
+                Paragraph(f"Rs. {ext['additional_deposit']:.2f}", center_cell_style),
+                Paragraph(f"Rs. {ext['extension_total']:.2f}", center_cell_style)
+            ])
+        ext_table = Table(ext_rows, colWidths=[40, 85, 75, 75, 50, 50, 50, 50, 48])
+        ext_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), HexColor('#1b8a4b')),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [HexColor('#ffffff'), HexColor('#f9f9f9')]),
+            ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#ccc')),
+        ]))
+        elements.append(ext_table)
+        elements.append(Spacer(1, 10))
+
+    # 6. Final Summary / Totals
+    elements.append(Paragraph("Final Invoice Details", section_title_style))
+    delivery_charge = order.delivery_charge if order.delivery_option == "delivery" else Decimal("0")
+    
+    delivery_paid = breakdown.get("delivery_paid", Decimal("0"))
+    del_paid_status = f" (Rs. {delivery_paid:.2f} Paid)"
+    del_charge_text = f"Rs. {delivery_charge:.2f}{del_paid_status if order.delivery_option == 'delivery' else ''}"
+
+    summary_rows = [
+        [Paragraph("Original Rent Total:", normal_style), Paragraph(f"Rs. {breakdown['original_total_rent']:.2f}", normal_style)],
+        [Paragraph("Delivery Charge:", normal_style), Paragraph(del_charge_text, normal_style)],
+        [Paragraph("Original Booking Total Amount:", bold_style), Paragraph(f"Rs. {breakdown['original_total_amount']:.2f}", bold_style)],
+    ]
+    if breakdown['extension_history']:
+        summary_rows.extend([
+            [Paragraph("Total Extension Charges:", normal_style), Paragraph(f"Rs. {breakdown['extension_total']:.2f}", normal_style)],
+            [Paragraph("Final Grand Total Amount:", ParagraphStyle('LargeBold', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b'))), 
+             Paragraph(f"Rs. {breakdown['final_total_amount']:.2f}", ParagraphStyle('LargeBold', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b')))]
+        ])
+    else:
+        summary_rows.append(
+            [Paragraph("Total Amount Paid:", ParagraphStyle('LargeBold', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b'))), 
+             Paragraph(f"Rs. {breakdown['original_total_amount']:.2f}", ParagraphStyle('LargeBold', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b')))]
+        )
+
+    # Add Amount Paid & Amount Remaining
+    summary_rows.extend([
+        [Paragraph("<b>Amount Paid:</b>", normal_style), Paragraph(f"<b>Rs. {breakdown['amount_paid']:.2f}</b>", ParagraphStyle('PaidAmt', parent=bold_style, textColor=HexColor('#1b8a4b')))],
+        [Paragraph("<b>Amount Remaining:</b>", normal_style), Paragraph(f"<b>Rs. {breakdown['amount_remaining']:.2f}</b>", ParagraphStyle('RemainAmt', parent=bold_style, textColor=HexColor('#ec2427')))],
+    ])
+
+    summary_table = Table(summary_rows, colWidths=[220, 100])
+    summary_table.hAlign = 'RIGHT'
+    summary_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('LINEBELOW', (0, -1), (-1, -1), 1, HexColor('#1b8a4b')),
+    ]))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 15))
+
+    # Terms agreement & Thank you
+    elements.append(Paragraph("You hereby agree to all terms & conditions mentioned on our booking portal", 
+                              ParagraphStyle('Terms', parent=normal_style, fontSize=8, alignment=1, textColor=HexColor('#7f8c8d'))))
+    elements.append(Spacer(1, 5))
+    elements.append(Paragraph("Thank you for booking with us.", 
+                              ParagraphStyle('ThankYou', parent=bold_style, fontSize=10, alignment=1, textColor=HexColor('#1b8a4b'))))
+
+    doc.build(elements)
     buffer.seek(0)
-
     return ContentFile(buffer.getvalue(), receipt_filename(order))
 
 def send_telegram_message(message):
@@ -97,7 +426,39 @@ def send_telegram_message(message):
         print(f"[telegram] error: {e}")
     return False
 
-def send_notification(title, message, notification_type='info', link=None):
+def send_notification(title, message, notification_type='info', link=None, order_id=None, rental=None):
+    raw_message = message
+
+    # Determine order_id dynamically from link, order_id, or rental request
+    if not order_id and link and "order_id=" in link:
+        import urllib.parse
+        try:
+            parsed = urllib.parse.urlparse(link)
+            q = urllib.parse.parse_qs(parsed.query)
+            if "order_id" in q:
+                order_id = q["order_id"][0]
+        except Exception:
+            pass
+
+    # If we have a rental object, use its order_id
+    if rental and not order_id:
+        order_id = getattr(rental, 'order_id', None)
+
+    # Fetch and append item details if order_id is available
+    if order_id:
+        try:
+            related_rentals = History.objects.filter(order_id=order_id).select_related('rental_item')
+            if related_rentals.exists():
+                details_list = []
+                for rr in related_rentals:
+                    details_list.append(
+                        f"- {rr.rental_item.title} (Qty: {rr.quantity}) | Rent: ₹{rr.total_rent} (₹{rr.rental_item.price_per_day}/day) | Deposit: ₹{rr.deposit * rr.quantity} (₹{rr.deposit} each)"
+                    )
+                item_details_str = "\n".join(details_list)
+                message = f"{message}\n\nItem Details:\n{item_details_str}"
+        except Exception as e:
+            print(f"[send_notification append items error] {e}")
+
     try:
         Notification.objects.create(
             title=title,
@@ -108,19 +469,129 @@ def send_notification(title, message, notification_type='info', link=None):
     except Exception as e:
         print(f"[notification db error] {e}")
 
-    admin_email = getattr(settings, 'ADMIN_EMAIL', None)
+    # Determine renter's email first to prevent duplicate standalone admin notifications
+    renter_email = None
+    if rental:
+        renter_email = getattr(rental, 'email', None) or (rental.user.email if hasattr(rental, 'user') else None)
+    elif order_id:
+        try:
+            first_rr = History.objects.filter(order_id=order_id).first()
+            if first_rr:
+                renter_email = getattr(first_rr, 'email', None) or (first_rr.user.email if hasattr(first_rr, 'user') else None)
+        except Exception:
+            pass
+
+    admin_email = getattr(settings, 'ADMIN_EMAIL', 'bhayander@kutchyuvaksangh.org') or 'bhayander@kutchyuvaksangh.org'
+    # Standalone admin email notification is sent if:
+    # 1. Renter copy will not be sent (because renter_email is not present)
+    # 2. OR if it is a system/admin notification type (not in 'booking', 'payment', 'return')
+    should_send_admin_standalone = False
     if admin_email:
+        if not renter_email:
+            should_send_admin_standalone = True
+        elif notification_type not in ('booking', 'payment', 'return'):
+            should_send_admin_standalone = True
+
+    if should_send_admin_standalone:
         try:
             send_mail(
                 subject=f"Admin Notification: {title}",
                 message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
+                from_email=getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
                 recipient_list=[admin_email],
                 fail_silently=False,
             )
-            print(f"[email notification] sent to {admin_email}")
+            print(f"[email notification] sent to admin {admin_email}")
         except Exception as e:
             print(f"[email notification error] {e}")
+
+    if renter_email and notification_type in ('booking', 'payment', 'return'):
+        # Determine customer name
+        customer_name = "Customer"
+        target_rental = rental
+        if not target_rental and order_id:
+            try:
+                target_rental = History.objects.filter(order_id=order_id).first()
+            except Exception:
+                pass
+        
+        # Build the detailed receipt section in email if target_rental is available
+        action_message = raw_message
+        if target_rental:
+            try:
+                customer_name = getattr(target_rental, 'renter_name', None) or (target_rental.user.get_full_name() or target_rental.user.username if hasattr(target_rental, 'user') else "Customer")
+                is_non_superuser = hasattr(target_rental, 'user') and target_rental.user and not target_rental.user.is_superuser
+                if is_non_superuser:
+                    customer_name = "customer"
+                related_rentals = History.objects.filter(order_id=target_rental.order_id).select_related('rental_item')
+                
+                # Format custom action prefix message based on title and initiator
+                items_names = ", ".join(rr.rental_item.title for rr in related_rentals)
+                title_lower = title.lower()
+                message_lower = message.lower()
+                is_by_admin = ("by kys" in message_lower or "user kys" in message_lower or "admin kys" in message_lower)
+
+                if "return request submitted" in title_lower or "request to return" in title_lower:
+                    if is_by_admin:
+                        action_message = f"Your order id is : {target_rental.order_id} for {items_names} is return successfully."
+                    else:
+                        if is_non_superuser:
+                            action_message = f"Your order id is : {target_rental.order_id} for {items_names} your return request successfully sent to admin."
+                        else:
+                            action_message = f"Your order id is : {target_rental.order_id} for {items_names} is request to return."
+                elif "return approved" in title_lower or "order returned" in title_lower:
+                    action_message = f"Your order id is : {target_rental.order_id} for {items_names} is return successfully."
+                elif "return date extended" in title_lower or "extended" in title_lower:
+                    action_message = f"Your order id is : {target_rental.order_id} for {items_names} your return date is extended."
+                elif "order approved" in title_lower or "approved" in title_lower:
+                    action_message = f"Your order id is : {target_rental.order_id} for {items_names} is approve."
+                elif "new booking" in title_lower or "booking created" in title_lower or "payment successful" in title_lower:
+                    if is_by_admin or target_rental.status == "approved" or "payment successful" in title_lower:
+                        action_message = f"Your order id is : {target_rental.order_id} for {items_names} is approve."
+                    else:
+                        if is_non_superuser:
+                            action_message = f"Your order id is : {target_rental.order_id} for {items_names} your request successfully sent to admin."
+                        else:
+                            action_message = f"Your order id is : {target_rental.order_id} for {items_names} is request for approve."
+            except Exception as e:
+                print(f"[send_notification customer details formatting error] {e}")
+
+        # Format custom customer message body
+        custom_body = (
+            f"Dear {customer_name},\n\n"
+            f"{action_message}\n\n"
+            "For any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in\n\n"
+            "Thank you"
+        )
+
+        try:
+            from django.core.mail import EmailMessage
+            
+            # Send to renter, CC to admin (unless they are the same address)
+            cc_list = [admin_email] if admin_email and admin_email != renter_email else []
+            
+            email_msg = EmailMessage(
+                subject="Sickbed service notifications",
+                body=custom_body,
+                from_email=getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
+                to=[renter_email],
+                cc=cc_list,
+            )
+            
+            # Generate and attach the receipt PDF
+            if target_rental:
+                try:
+                    pdf_file = generate_receipt(target_rental)
+                    pdf_content = pdf_file.read()
+                    pdf_name = receipt_filename(target_rental)
+                    email_msg.attach(pdf_name, pdf_content, "application/pdf")
+                except Exception as ex:
+                    print(f"[send_notification pdf attachment error] {ex}")
+                    
+            email_msg.send(fail_silently=False)
+            print(f"[email notification] sent renter copy and cc admin for {renter_email}")
+        except Exception as e:
+            print(f"[email notification renter error] {e}")
 
     try:
         send_telegram_message(f"<b>{title}</b>\n{message}")
