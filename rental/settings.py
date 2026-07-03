@@ -21,10 +21,6 @@ ALLOWED_HOSTS = [
     "sickbed.itegoss.in","*"
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://rental-856395380155.us-central1.run.app",
-    "https://sickbed.itegoss.in",
-]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -151,6 +147,7 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "https://sickbed.itegoss.in",
 ]
 
 SESSION_COOKIE_SAMESITE = "Lax"
