@@ -24,8 +24,9 @@ def receipt_filename(order):
 
 def send_overdue_email(user, rental):
     subject = "Rental Overdue Notice"
+    renter_name = rental.renter_name or (user.get_full_name() or user.username)
     message = (
-        f"Dear {user.get_full_name() or user.username},\n\n"
+        f"Dear {renter_name},\n\n"
         f"Your rental order {rental.order_id} was due on {rental.end_date} "
         "and is now overdue.\n\n"
         "QuickNest Team"
@@ -521,8 +522,6 @@ def send_notification(title, message, notification_type='info', link=None, order
             try:
                 customer_name = getattr(target_rental, 'renter_name', None) or (target_rental.user.get_full_name() or target_rental.user.username if hasattr(target_rental, 'user') else "Customer")
                 is_non_superuser = hasattr(target_rental, 'user') and target_rental.user and not target_rental.user.is_superuser
-                if is_non_superuser:
-                    customer_name = "customer"
                 related_rentals = History.objects.filter(order_id=target_rental.order_id).select_related('rental_item')
                 
                 # Format custom action prefix message based on title and initiator
