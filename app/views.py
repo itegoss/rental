@@ -827,14 +827,24 @@ def paymentmethod(request):
             return redirect('payment', rental_id=created_rentals[0].id)
 
         elif payment_method.lower() in ['cod', 'cash on delivery']:
+            is_superuser = request.user.is_superuser
             for rental in created_rentals:
                 rental.payment_method = 'cod'
-                rental.status = 'pending'
+                rental.status = 'approved' if is_superuser else 'pending'
                 rental.save(update_fields=['payment_method', 'status'])
 
                 Payment.objects.create(rental_request=rental, payment_status='PENDING', order_id=generate_order_id())
 
-            messages.success(request, "Order placed successfully! Awaiting admin approval.")
+                if is_superuser:
+                    try:
+                        rental.rental_item.update_availability()
+                    except Exception:
+                        pass
+
+            if is_superuser:
+                messages.success(request, "Order placed and approved successfully!")
+            else:
+                messages.success(request, "Order placed successfully! Awaiting admin approval.")
 
             return redirect('success', rental_id=created_rentals[0].id)
 
@@ -958,37 +968,7 @@ def success(request, rental_id):
     for k in ("renter_name", "patient_name", "phone", "address", "id_proof_type", "id_proof_number", "id_proof_file", "start_date", "end_date", "details_filled", "delivery_option", "delivery_charge", "rental_id", "item_id", "paid_amount", "is_paid", "renter_email"):
         request.session.pop(k, None)
 
-    breakdown = build_booking_receipt_breakdown(rental, related_rentals)
-
-    return render(request, "success.html", {
-        "rental": rental,
-        "payment": payment,
-        "order_id": rental.order_id,
-        "item_totals": breakdown["original_item_totals"],
-        "total_quantity": breakdown["total_quantity"],
-        "total_deposit": breakdown["original_total_deposit"],
-        "total_rent": breakdown["original_total_rent"],
-        "total_amount": breakdown["final_total_amount"],
-        "delivery_charge": delivery_charge,
-        "delivery_option": delivery_option,
-        "signature": razorpay_signature, 
-        "user_detail": user_detail,
-        "customer_name": customer_name,
-        "customer_phone": customer_phone,
-        "customer_address": customer_address,
-        "patient_name": customer_patient_name,
-        "original_booking_date": breakdown["original_booking_date"],
-        "original_start_date": breakdown["original_start_date"],
-        "original_return_date": breakdown["original_return_date"],
-        "original_days": breakdown["original_days"],
-        "original_total_amount": breakdown["original_total_amount"],
-        "extension_history": breakdown["extension_history"],
-        "extension_total": breakdown["extension_total"],
-        "final_total_amount": breakdown["final_total_amount"],
-        "amount_paid": breakdown["amount_paid"],
-        "amount_remaining": breakdown["amount_remaining"],
-        "delivery_paid": breakdown["delivery_paid"],
-    })
+    return redirect('bookingsammry')
 
 
 def about(request):
@@ -998,11 +978,12 @@ def about(request):
 def send_reminder_email(user, rental):
     subject = 'Reminder: Your Rental Ends Tomorrow - Sick Bed Services'
     recipient_email = user.email
+    renter_name = rental.renter_name or (user.get_full_name() or user.username)
 
     message = f"""
     <html>
     <body>
-        <p>Hi {user.username},</p>
+        <p>Dear {renter_name},</p>
         <p>This is a reminder that your rental item <b>{rental.rental_item.title}</b> 
         is ending on <b>{rental.end_date}</b>.</p>
         <p>Please make sure to return it on time.</p>
@@ -1022,11 +1003,12 @@ def send_today_reminder_email(user, rental):
     
     subject = 'Reminder: Your Rental Ends TODAY - Sick Bed Services'
     recipient_email = user.email
+    renter_name = rental.renter_name or (user.get_full_name() or user.username)
 
     message = f"""
     <html>
     <body>
-        <p>Hi {user.username},</p>
+        <p>Dear {renter_name},</p>
         <p>This is a reminder that today is the end date for your rental item <b>{rental.rental_item.title}</b>.</p>
         <p>Please return it today to avoid extra charges.</p>
         <br>

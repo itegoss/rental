@@ -9,83 +9,11 @@ from django.db.models import Max, Sum, Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 import re
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from django.utils import timezone
-from datetime import timedelta
-import re
-from django.db import models
-from django.contrib.auth.models import User
-
 
 def validate_id_proof_file_size(value):
     max_size = 5 * 1024 * 1024
     if value.size > max_size:
         raise ValidationError("ID proof file must be below 5 MB.")
-
-#
-#     title = models.CharField(max_length=255, unique=True)
-#     description = models.TextField()
-#     price_per_day = models.DecimalField(max_digits=10, decimal_places=2)
-#     image = models.ImageField(upload_to='rental_items/', blank=True, null=True)
-
-#     deposit = models.DecimalField(
-#         max_digits=10,
-#         decimal_places=2,
-#         default=0.00
-#     )
-
-#     total_quantity = models.PositiveIntegerField(default=1)
-#     available_quantity = models.PositiveIntegerField(default=0)
-#     booked_quantity = models.PositiveIntegerField(default=0)
-#     available = models.BooleanField(default=True)
-#     next_available_date = models.DateField(null=True, blank=True)
-
-#     def __str__(self):
-#         return self.title
-
-#     def stock_status(self):
-#         if self.available_quantity == 0:
-#             return "Out of stock"
-#         elif self.available_quantity == 1:
-#             return "Only 1 Left"
-#         else:
-#             return f"{self.available_quantity} Available"
-
-#     def update_availability(self):
-#         """Recompute `available_quantity` and `booked_quantity` from approved History.
-
-#         - `booked_quantity` is the sum of quantities for approved, not-returned rentals.
-#         - `available_quantity` = max(total_quantity - booked_quantity, 0)
-#         - `available` is True when available_quantity > 0
-#         - `next_available_date` is cleared when items are available
-#         """
-#         from django.db.models import Sum
-#         from django.utils import timezone
-#         try:
-#             booked = self.rentalrequest_set.filter(status='approved', is_returned=False).aggregate(total=Sum('quantity'))['total'] or 0
-#             self.booked_quantity = booked
-#             new_available = max((self.total_quantity or 0) - booked, 0)
-#             self.available_quantity = new_available
-#             self.available = new_available > 0
-#             if new_available > 0:
-#                 self.next_available_date = None
-#             else:
-#                 self.next_available_date = (timezone.now().date() + timedelta(days=7))
-#         except Exception:
-#             pass
-#         try:
-#             self.save(update_fields=[
-#                 'booked_quantity',
-#                 'available_quantity',
-#                 'available',
-#                 'next_available_date'
-#             ])
-#         except Exception:
-#             try:
-#                 self.save()
-#             except Exception:
-#                 pass
 
 class Inventory(models.Model):
     title = models.CharField(max_length=255, unique=True)
@@ -166,8 +94,7 @@ class Inventory(models.Model):
                 self.save()
             except Exception:
                 pass
-            
-                      
+                       
 class UserDetail(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     phone = models.CharField(max_length=15, blank=True, null=True)
@@ -191,7 +118,6 @@ class UserDetail(models.Model):
 
     def __str__(self):
         return self.user.username
-
 
 class History(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -307,7 +233,6 @@ class History(models.Model):
             
         super().save(*args, **kwargs)
 
-
 class BookingExtension(models.Model):
     rental_request = models.ForeignKey(History, on_delete=models.CASCADE, related_name="extension_history")
     extension_no = models.PositiveIntegerField()
@@ -327,8 +252,6 @@ class BookingExtension(models.Model):
 
     def __str__(self):
         return f"Ext #{self.extension_no} for Order {self.rental_request.order_id}"
-
-
 
 class Receipt(models.Model):
     RECEIPT_TYPE_CHOICES = (
@@ -356,7 +279,6 @@ class Receipt(models.Model):
     def __str__(self):
         return f"{self.receipt_type} - {self.rental_request.order_id}"
 
-
 class NotifyRequest(models.Model):
     email = models.EmailField(blank=True, null=True)
     mobile = models.CharField(max_length=15, blank=True, null=True)
@@ -366,7 +288,6 @@ class NotifyRequest(models.Model):
 
     def __str__(self):
         return f"Notify {self.email or self.mobile} for {self.item.title}"
-
 
 class Notification(models.Model):
     NOTIFICATION_TYPE_CHOICES = [
@@ -403,7 +324,6 @@ class Notification(models.Model):
             'user': 'secondary',
             'info': 'secondary',
         }.get(self.type, 'secondary')
-
 
 class Payment(models.Model):
     rental_request = models.ForeignKey('app.History',on_delete=models.CASCADE,related_name="payments")
@@ -493,8 +413,6 @@ class Customer(models.Model):
     def __str__(self):
         return f"{self.name} ({self.phone or 'no-phone'})"
 
-
-
 @receiver(post_save, sender=History)
 def create_return_notification(sender, instance, created, **kwargs):
     """Create notification when a return is approved."""
@@ -520,8 +438,3 @@ def create_return_notification(sender, instance, created, **kwargs):
                 instance.rental_item.save(update_fields=['available'])
             except Exception:
                 print(f"[inventory update error] {e}")
-
-
-
-
-

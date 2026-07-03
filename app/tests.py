@@ -329,7 +329,7 @@ class NonSuperuserNotificationEmailTests(TestCase):
         renter_emails = [m for m in mail.outbox[initial_mail_count:] if 'varsha@client.com' in m.to]
         self.assertEqual(len(renter_emails), 1)
         email = renter_emails[0]
-        self.assertIn("Dear customer,", email.body)
+        self.assertIn("Dear varsha_client,", email.body)
         self.assertIn("Your order id is : ORD202607004 for Walker your request successfully sent to admin.", email.body)
         self.assertIn("For any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in", email.body)
         self.assertIn("Thank you", email.body)
@@ -346,12 +346,13 @@ class NonSuperuserNotificationEmailTests(TestCase):
         renter_emails = [m for m in mail.outbox[initial_mail_count:] if 'varsha@client.com' in m.to]
         self.assertEqual(len(renter_emails), 1)
         email = renter_emails[0]
-        self.assertIn("Dear customer,", email.body)
+        self.assertIn("Dear varsha_client,", email.body)
         self.assertIn("Your order id is : ORD202607004 for Walker your return request successfully sent to admin.", email.body)
         self.assertIn("For any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in", email.body)
         self.assertIn("Thank you", email.body)
 
     def test_extension_date_email(self):
+        from django.conf import settings
         initial_mail_count = len(mail.outbox)
         send_notification(
             title="Return Date Extended for ORD202607004",
@@ -363,11 +364,101 @@ class NonSuperuserNotificationEmailTests(TestCase):
         renter_emails = [m for m in mail.outbox[initial_mail_count:] if 'varsha@client.com' in m.to]
         self.assertEqual(len(renter_emails), 1)
         email = renter_emails[0]
-        self.assertIn("Dear customer,", email.body)
+        self.assertIn("Dear varsha_client,", email.body)
         self.assertIn("Your order id is : ORD202607004 for Walker your return date is extended.", email.body)
         self.assertIn("For any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in", email.body)
         self.assertIn("Thank you", email.body)
-        self.assertEqual(email.cc, ['vidya@itegoss.in'])
+        self.assertEqual(email.cc, [settings.ADMIN_EMAIL])
+
+
+class SuperuserOrderApprovalTests(TestCase):
+    def setUp(self):
+        from app.models import Cart, CartItem
+        # Create user and superuser
+        self.normal_user = User.objects.create_user(username='normal_user', email='normal@example.com', password='password123')
+        self.superuser = User.objects.create_superuser(username='superuser', email='super@example.com', password='password123')
+        
+        # Create an item
+        self.item = Inventory.objects.create(
+            title="Oxygen Concentrator",
+            description="High flow concentrator",
+            price_per_day=150.0,
+            deposit=1000.0,
+            total_quantity=5,
+            available_quantity=5,
+            booked_quantity=0,
+            available=True
+        )
+
+    def test_superuser_cod_auto_approved(self):
+        from app.models import Cart, CartItem, History
+        self.client.login(username='superuser', password='password123')
+        
+        # Set session details
+        session = self.client.session
+        session['renter_name'] = "Super User"
+        session['patient_name'] = "Patient X"
+        session['phone'] = "1234567890"
+        session['address'] = "Superuser Address"
+        session['id_proof_type'] = "Aadhar"
+        session['id_proof_number'] = "123412341234"
+        session['id_proof_file'] = "some_file.png"
+        session['start_date'] = "2026-07-10"
+        session['end_date'] = "2026-07-15"
+        session.save()
+        
+        # Set cart
+        cart = Cart.objects.create(user=self.superuser)
+        CartItem.objects.create(cart=cart, rental_item=self.item, quantity=2)
+        
+        response = self.client.post(reverse('paymentmethod'), {'payment_method': 'cod'})
+        self.assertEqual(response.status_code, 302) # Redirect to success
+        
+        # Check History object
+        rentals = History.objects.filter(user=self.superuser)
+        self.assertEqual(rentals.count(), 1)
+        rental = rentals.first()
+        self.assertEqual(rental.status, 'approved')
+        
+        # Check Inventory quantities
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.booked_quantity, 2)
+        self.assertEqual(self.item.available_quantity, 3)
+
+    def test_normal_user_cod_remains_pending(self):
+        from app.models import Cart, CartItem, History
+        self.client.login(username='normal_user', password='password123')
+        
+        # Set session details
+        session = self.client.session
+        session['renter_name'] = "Normal User"
+        session['patient_name'] = "Patient Y"
+        session['phone'] = "0987654321"
+        session['address'] = "Normal Address"
+        session['id_proof_type'] = "Aadhar"
+        session['id_proof_number'] = "432143214321"
+        session['id_proof_file'] = "another_file.png"
+        session['start_date'] = "2026-07-10"
+        session['end_date'] = "2026-07-15"
+        session.save()
+        
+        # Set cart
+        cart = Cart.objects.create(user=self.normal_user)
+        CartItem.objects.create(cart=cart, rental_item=self.item, quantity=1)
+        
+        response = self.client.post(reverse('paymentmethod'), {'payment_method': 'cod'})
+        self.assertEqual(response.status_code, 302) # Redirect to success
+        
+        # Check History object
+        rentals = History.objects.filter(user=self.normal_user)
+        self.assertEqual(rentals.count(), 1)
+        rental = rentals.first()
+        self.assertEqual(rental.status, 'pending')
+        
+        # Check Inventory quantities (should NOT have changed for pending order)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.booked_quantity, 0)
+        self.assertEqual(self.item.available_quantity, 5)
 
 
 
