@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Django==5.2.7
 gunicorn==23.0.0
 whitenoise==6.11.0
@@ -7,8 +8,18 @@ dj-database-url==3.0.1
 django-environ==0.14.0
 python-dotenv
 
+=======
+﻿asgiref==3.9.1
+certifi==2025.7.14
+cffi==1.17.1
+charset-normalizer==3.4.2
+>>>>>>> a3397dc (image solving)
 cloudinary==1.45.0
+cryptography==45.0.5
+defusedxml==0.7.1
+Django==5.2.4
 django-cloudinary-storage==0.3.0
+<<<<<<< HEAD
 
 Pillow
 requests==2.32.5
@@ -21,3 +32,27 @@ reportlab==4.4.4
 xhtml2pdf==0.2.17
 
 twilio==9.8.4
+=======
+git-filter-repo==2.47.0
+idna==3.10
+oauthlib==3.3.1
+pdfkit==1.0.0
+pillow==11.3.0
+psycopg2-binary==2.9.12
+pycparser==2.22
+PyJWT==2.10.1
+python-dotenv==1.1.1
+python3-openid==3.2.0
+razorpay==1.4.2
+reportlab==4.4.3
+requests==2.32.4
+requests-oauthlib==2.0.0
+six==1.17.0
+social-auth-app-django==5.5.1
+social-auth-core==4.7.0
+sqlparse==0.5.3
+typing_extensions==4.15.0
+tzdata==2025.2
+urllib3==2.5.0
+whitenoise==6.12.0
+>>>>>>> a3397dc (image solving)
