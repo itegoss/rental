@@ -39,6 +39,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.gzip.GZipMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -64,6 +65,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "social_django.context_processors.backends",
+                "app.context_processors.notification_context",
                 "app.context_processors.rental_receipt_visibility",
             ],
         },
@@ -96,7 +98,8 @@ else:
                 'USER': os.getenv('DB_USER'),
                 'PASSWORD': os.getenv('DB_PASSWORD'),
                 'HOST': os.getenv('DB_HOST'),
-                'PORT': os.getenv('DB_PORT'),
+                'PORT': os.getenv('DB_PORT', '6543'),
+                'CONN_MAX_AGE': 600,
     }
     }
 

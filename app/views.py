@@ -12,6 +12,7 @@ from django.http import HttpResponse, JsonResponse, Http404
 from django.urls import reverse
 from django.utils import timezone
 from django.db import transaction
+from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout as auth_logout
@@ -44,54 +45,9 @@ from .models import (
 from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, receipt_filename, send_whatsapp_message, send_notification, build_booking_receipt_breakdown
 
 def index(request):
-
-    today = timezone.now().date()
-    rentals = History.objects.filter(status='approved')
-
-    for rental in rentals:
-        if rental.end_date - timedelta(days=1) == today and not rental.is_reminder_sent:
-            send_reminder_email(rental.user, rental)
-            rental.is_reminder_sent = True
-            rental.save(update_fields=['is_reminder_sent'])
-
-        if rental.end_date == today and not rental.is_today_reminder_sent:
-            send_today_reminder_email(rental.user, rental)
-            rental.is_today_reminder_sent = True
-            rental.save(update_fields=['is_today_reminder_sent'])
-            try:
-                send_notification(
-                    title="Rental Ending Today",
-                    message=(
-                        f"Today is the end date for order {rental.order_id}. "
-                        f"Renter: {rental.user.username}, Item: {rental.rental_item.title}."
-                    ),
-                    notification_type='info',
-                    link=f"/admin/app/history/{rental.id}/change/",
-                    order_id=rental.order_id,
-                    rental=rental
-                )
-            except Exception as e:
-                print(f"[notification today-end error] {e}")
-
-        if rental.end_date < today and not rental.is_overdue_email_sent:
-            send_overdue_email(rental.user, rental)
-            rental.is_overdue_email_sent = True
-            rental.save(update_fields=['is_overdue_email_sent'])
-            try:
-                send_notification(
-                    title="Late Return Detected",
-                    message=(
-                        f"Late return detected for order {rental.order_id}. "
-                        f"Renter: {rental.user.username}, due date: {rental.end_date}."
-                    ),
-                    notification_type='late_return',
-                    link=f"/admin/app/history/{rental.id}/change/",
-                    order_id=rental.order_id,
-                    rental=rental
-                )
-            except Exception as e:
-                print(f"[notification late-return error] {e}")
-
+    # Reminder and overdue notification logic has been moved out of the homepage
+    # request path so regular page loads stay fast. Use the management command
+    # `python manage.py send_reminders` or a scheduled job instead.
     featured_items = Inventory.objects.all().order_by('-available', 'title')[:4]
 
     return render(request, 'index.html', {
@@ -383,8 +339,13 @@ def items(request):
     search_query = request.GET.get('q', '').strip()
     if search_query:
         items = items.filter(title__icontains=search_query)
+
+    paginator = Paginator(items, 16)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
     return render(request, 'items.html', {
-        'items': items,
+        'items': page_obj,
+        'page_obj': page_obj,
         'search_query': search_query,
     })
 
@@ -396,11 +357,14 @@ def inventory(request):
     if search_query:
         items = items.filter(title__icontains=search_query)
 
-    for item in items:
-        item.update_availability()
+    paginator = Paginator(items, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
 
+    # Availability is maintained by booking signals when rentals are created/updated.
+    # Avoid recomputing availability here on every page load to keep the inventory page fast.
     return render(request, 'inventory.html', {
-        'items': items,
+        'items': page_obj,
+        'page_obj': page_obj,
         'search_query': search_query,
     })
 
@@ -1482,9 +1446,12 @@ def bookingsammry(request):
     if not request.user.is_staff and not request.user.is_superuser:
         rental_requests = rental_requests.filter(user_id=request.user.id)
 
+    paginator = Paginator(rental_requests, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
     grouped = defaultdict(list)
 
-    for rr in rental_requests:
+    for rr in page_obj:
         key = rr.order_id or f"SINGLE-{rr.id}"
         rr.display_order_id = key
         rr.display_item_title = rr.rental_item.title
@@ -1516,6 +1483,7 @@ def bookingsammry(request):
         {
              "booking_summaries": booking_summaries,
             "returned_order_ids": returned_order_ids,
+            "page_obj": page_obj,
         },
     )
 

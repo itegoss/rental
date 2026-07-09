@@ -506,6 +506,24 @@
         </tbody>
       </table>
     </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-bar" style="margin-top:24px; justify-content:center;">
+      {% if page_obj.has_previous %}
+      <a class="page-btn" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Previous</a>
+      {% else %}
+      <button class="page-btn" disabled>Previous</button>
+      {% endif %}
+
+      <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+      {% if page_obj.has_next %}
+      <a class="page-btn" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Next</a>
+      {% else %}
+      <button class="page-btn" disabled>Next</button>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 </div>
 
