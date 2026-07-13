@@ -664,7 +664,6 @@ def paymentmethod(request):
     address = request.session.get("address")
     id_proof_type = request.session.get("id_proof_type")
     id_proof_number = request.session.get("id_proof_number")
-    id_proof_file = request.session.get("id_proof_file")
     start_date = request.session.get("start_date")
     end_date = request.session.get("end_date")
 
@@ -736,7 +735,6 @@ def paymentmethod(request):
                 order_id=order_id,
                 id_proof_type=id_proof_type,
                 id_proof_number=id_proof_number,
-                id_proof_file=id_proof_file,
                 delivery_option=delivery_option.lower() if delivery_option else None,
                 delivery_charge=delivery_charge,
                 is_today_reminder_sent=False,
@@ -929,7 +927,7 @@ def success(request, rental_id):
         new_receipt.file.save(receipt_filename(rental), content_file)
         new_receipt.save()
 
-    for k in ("renter_name", "patient_name", "phone", "address", "id_proof_type", "id_proof_number", "id_proof_file", "start_date", "end_date", "details_filled", "delivery_option", "delivery_charge", "rental_id", "item_id", "paid_amount", "is_paid", "renter_email"):
+    for k in ("renter_name", "patient_name", "phone", "address", "id_proof_type", "id_proof_number", "start_date", "end_date", "details_filled", "delivery_option", "delivery_charge", "rental_id", "item_id", "paid_amount", "is_paid", "renter_email"):
         request.session.pop(k, None)
 
     return redirect('bookingsammry')
@@ -1274,21 +1272,6 @@ def userdetail(request):
     if request.method == "POST":
         id_proof_type = request.POST.get("id_proof_type", "").strip()
         id_proof_number = request.POST.get("id_proof_number", "").strip()
-        id_proof_file = request.FILES.get("id_proof_file")
-
-        allowed_extensions = {".png", ".jpg", ".jpeg", ".pdf"}
-        if not id_proof_file:
-            messages.error(request, "Please upload your ID proof.")
-            return redirect("userdetail")
-
-        file_extension = os.path.splitext(id_proof_file.name)[1].lower()
-        if file_extension not in allowed_extensions:
-            messages.error(request, "ID proof must be a PNG, JPG, JPEG, or PDF file.")
-            return redirect("userdetail")
-
-        if id_proof_file.size > 5 * 1024 * 1024:
-            messages.error(request, "ID proof file must be below 5 MB.")
-            return redirect("userdetail")
 
         if is_admin and not request.session.get("details_filled"):
             request.session["renter_name"] = request.POST.get("name") or request.user.username
@@ -1301,10 +1284,6 @@ def userdetail(request):
             request.session["end_date"] = request.POST.get("end_date")
             request.session["id_proof_type"] = id_proof_type
             request.session["id_proof_number"] = id_proof_number
-            request.session["id_proof_file"] = default_storage.save(
-                f"id_proofs/{id_proof_file.name}",
-                id_proof_file,
-            )
             request.session["details_filled"] = True
 
             if cart_items:
@@ -1352,18 +1331,11 @@ def userdetail(request):
                         "phone": phone,
                         "id_proof_type": id_proof_type,
                         "id_proof_number": id_proof_number,
-                        "id_proof_file": id_proof_file,
                         "address_line1": address,
                         "pincode": pincode,
                         "email": email or None,
                         "patient_name": patient_name,
                     }
-                )
-                saved_file_name = user_detail.id_proof_file.name if user_detail and user_detail.id_proof_file else None
-            else:
-                saved_file_name = default_storage.save(
-                    f"id_proofs/{id_proof_file.name}",
-                    id_proof_file,
                 )
 
             # Store details in session for the next steps
@@ -1377,7 +1349,6 @@ def userdetail(request):
             request.session["end_date"] = end_date_str
             request.session["id_proof_type"] = id_proof_type
             request.session["id_proof_number"] = id_proof_number
-            request.session["id_proof_file"] = saved_file_name
             request.session["details_filled"] = True
 
         return redirect("select_delivery", pk=rental_item_id)
@@ -1470,19 +1441,11 @@ def bookingsammry(request):
             "customer": items[0].user if request.user.is_staff or request.user.is_superuser else None,
         })
 
-    returned_order_ids = (
-        rental_requests
-        .filter(is_returned=True)
-        .values_list('order_id', flat=True)
-        .distinct()
-    )
-
     return render(
         request,
         "bookingsammry.html",
         {
              "booking_summaries": booking_summaries,
-            "returned_order_ids": returned_order_ids,
             "page_obj": page_obj,
         },
     )
@@ -1681,6 +1644,7 @@ def extend_return_date(request, order_id):
 
 def return_order(request, order_id):
     donate_deposit = request.GET.get("donate_deposit") == "true"
+    return_delivery = request.GET.get("return_delivery") == "true"
     donation_amount = Decimal("0")
     donation_comment = request.GET.get("donation_comment", "").strip()
 
@@ -1742,6 +1706,10 @@ def return_order(request, order_id):
             rr.deposit_donated = donate_deposit
             rr.donation_amount = donation_amount if index == 0 else Decimal("0")
             rr.donation_comment = donation_comment if index == 0 else ""
+            if return_delivery:
+                rr.return_pickup_charge = Decimal("500")
+            else:
+                rr.return_pickup_charge = Decimal("0")
             update_fields = [
                 "is_return_requested",
                 "is_returned",
@@ -1750,6 +1718,7 @@ def return_order(request, order_id):
                 "deposit_donated",
                 "donation_amount",
                 "donation_comment",
+                "return_pickup_charge",
             ]
             rr.save(update_fields=update_fields)
             try:
@@ -1785,22 +1754,18 @@ def return_order(request, order_id):
         rr.deposit_donated = donate_deposit
         rr.donation_amount = donation_amount if index == 0 else Decimal("0")
         rr.donation_comment = donation_comment if index == 0 else ""
-        if donate_deposit:
-            rr.save(update_fields=[
-                "is_return_requested",
-                "status",
-                "deposit_donated",
-                "donation_amount",
-                "donation_comment",
-            ])
+        if return_delivery:
+            rr.return_pickup_charge = Decimal("500")
         else:
-            rr.save(update_fields=[
-                "is_return_requested",
-                "status",
-                "deposit_donated",
-                "donation_amount",
-                "donation_comment",
-            ])
+            rr.return_pickup_charge = Decimal("0")
+        rr.save(update_fields=[
+            "is_return_requested",
+            "status",
+            "deposit_donated",
+            "donation_amount",
+            "donation_comment",
+            "return_pickup_charge",
+        ])
 
     try:
         send_notification(

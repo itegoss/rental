@@ -402,7 +402,6 @@ class SuperuserOrderApprovalTests(TestCase):
         session['address'] = "Superuser Address"
         session['id_proof_type'] = "Aadhar"
         session['id_proof_number'] = "123412341234"
-        session['id_proof_file'] = "some_file.png"
         session['start_date'] = "2026-07-10"
         session['end_date'] = "2026-07-15"
         session.save()
@@ -437,7 +436,6 @@ class SuperuserOrderApprovalTests(TestCase):
         session['address'] = "Normal Address"
         session['id_proof_type'] = "Aadhar"
         session['id_proof_number'] = "432143214321"
-        session['id_proof_file'] = "another_file.png"
         session['start_date'] = "2026-07-10"
         session['end_date'] = "2026-07-15"
         session.save()

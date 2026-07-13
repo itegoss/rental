@@ -1260,6 +1260,9 @@
     <div class="d-icon"><i class="fas fa-hand-holding-heart"></i></div>
     <h2>Donate Your Deposit?</h2>
     <p>Be generous , help us to support for the good cause.</p>
+    <button type="button" id="returnDeliveryBtn" class="act-btn" style="width: 100%; margin-bottom: 20px; border: 2.5px solid #cbd5e1; background: transparent; color: #475569; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; border-radius: 999px; padding: 12px 24px; transition: all 0.22s; outline: none; cursor: pointer; font-family: var(--font);" onclick="toggleReturnDelivery(event)">
+      <i class="fas fa-truck"></i> Do you want return delivery? (₹500)
+    </button>
     <div class="d-donate-fields" id="donateFields">
       <div class="d-current-deposit">Current Deposit: <span>₹<span id="currentDepositAmount">0</span></span></div>
       <div class="d-field">
@@ -1421,11 +1424,42 @@
     document.getElementById('currentDepositAmount').textContent = depositTotal.toFixed(2);
     document.getElementById('depositModal').classList.add('open');
   }
+  let returnDeliveryRequested = false;
+  function toggleReturnDelivery(event) {
+    if (event) event.preventDefault();
+    returnDeliveryRequested = !returnDeliveryRequested;
+    const btn = document.getElementById('returnDeliveryBtn');
+    if (btn) {
+      if (returnDeliveryRequested) {
+        btn.style.borderColor = 'var(--primary)';
+        btn.style.backgroundColor = 'var(--primary)';
+        btn.style.color = '#fff';
+        btn.style.boxShadow = '0 4px 12px rgba(236,36,39,0.2)';
+      } else {
+        btn.style.borderColor = '#cbd5e1';
+        btn.style.backgroundColor = 'transparent';
+        btn.style.color = '#475569';
+        btn.style.boxShadow = 'none';
+      }
+    }
+  }
+
   function closeDepositModal() {
     document.getElementById('depositModal').classList.remove('open');
     depositReturnHref = null;
     donationStepOpen = false;
+    
+    // Reset return delivery selection
+    returnDeliveryRequested = false;
+    const btn = document.getElementById('returnDeliveryBtn');
+    if (btn) {
+      btn.style.borderColor = '#cbd5e1';
+      btn.style.backgroundColor = 'transparent';
+      btn.style.color = '#475569';
+      btn.style.boxShadow = 'none';
+    }
   }
+
   function submitDepositChoice(donate) {
     if (!depositReturnHref) { closeDepositModal(); return; }
     if (donate && !donationStepOpen) {
@@ -1435,6 +1469,9 @@
     }
     const sep = depositReturnHref.includes('?') ? '&' : '?';
     let url = depositReturnHref + sep + 'donate_deposit=' + (donate ? 'true' : 'false');
+    if (returnDeliveryRequested) {
+      url += '&return_delivery=true';
+    }
     if (donate) {
       const amount = document.getElementById('donationAmount').value;
       const comment = document.getElementById('donationComment').value;

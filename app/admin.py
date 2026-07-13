@@ -159,7 +159,6 @@ class HistoryAdmin(admin.ModelAdmin):
         'extended_end_date','actual_return_date','get_rental_days',
         'get_per_day_rent','status','total_amount','amount_paid','amount_remaining','is_delivery_paid','is_reminder_sent',
         'is_overdue_email_sent','order_id','deposit','download_receipt',
-        'view_id_proof',
         'send_whatsapp','patient_name','delivery_option','delivery_charge',
         'is_return_requested','is_returned','send_reminder_whatsapp',
     )
@@ -176,16 +175,24 @@ class HistoryAdmin(admin.ModelAdmin):
         'id','user','rental_item','renter_name','email','phone','address', 'patient_name','start_date','end_date',
         'extended_end_date','actual_return_date','quantity','payment_method',
         'deposit','delivery_option','delivery_charge','is_delivery_paid','status',
-        'amount_paid','amount_remaining','id_proof_type','id_proof_number','id_proof_file','view_id_proof',
+        'amount_paid','amount_remaining','id_proof_type','id_proof_number',
         'is_return_requested','is_returned','deposit_donated',
         'donation_amount','donation_comment','order_id',
     )
 
-    readonly_fields = ('id','order_id','total_amount','view_id_proof','amount_remaining')
+    readonly_fields = ('id','order_id','total_amount','amount_remaining')
 
     def save_model(self, request, obj, form, change):
         obj._from_admin = True
         super().save_model(request, obj, form, change)
+
+        # Sync ID proof fields to all items in the same order
+        if obj.order_id:
+            update_fields = {
+                'id_proof_type': obj.id_proof_type,
+                'id_proof_number': obj.id_proof_number,
+            }
+            History.objects.filter(order_id=obj.order_id).exclude(pk=obj.pk).update(**update_fields)
 
         # Regenerate receipt PDF to match any edits made by the admin
         try:
@@ -232,16 +239,7 @@ class HistoryAdmin(admin.ModelAdmin):
     def get_changelist(self, request, **kwargs):
         return HistoryChangeList
 
-    def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-        if not obj.order_id or not obj.id_proof_file:
-            return
-        update_fields = {
-            'id_proof_type': obj.id_proof_type,
-            'id_proof_number': obj.id_proof_number,
-            'id_proof_file': obj.id_proof_file.name,
-        }
-        History.objects.filter(order_id=obj.order_id).exclude(pk=obj.pk).update(**update_fields)
+
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
@@ -306,20 +304,7 @@ class HistoryAdmin(admin.ModelAdmin):
 
     download_receipt.short_description = "Receipt"
 
-    def view_id_proof(self, obj):
-        if obj.id_proof_file:
-            return format_html('<a class="button" href="{}" target="_blank">View ID Proof</a>', obj.id_proof_file.url)
-        try:
-            if obj.user.userdetail.id_proof_file:
-                return format_html(
-                    '<a class="button" href="{}" target="_blank">View Profile ID Proof</a>',
-                    obj.user.userdetail.id_proof_file.url,
-                )
-        except Exception:
-            pass
-        return "No file"
 
-    view_id_proof.short_description = "ID Proof"
 
     def send_whatsapp(self, obj):
         try:
@@ -404,7 +389,7 @@ class PaymentAdmin(admin.ModelAdmin):
 
 @admin.register(UserDetail)
 class UserDetailAdmin(admin.ModelAdmin):
-    list_display = ('user', 'phone', 'id_proof_type', 'id_proof_number', 'city', 'state', 'pincode', 'view_id_proof')
+    list_display = ('user', 'phone', 'id_proof_type', 'id_proof_number', 'city', 'state', 'pincode')
     search_fields = ('user__username', 'phone', 'id_proof_type', 'city', 'state')
     list_filter = ('state',)
     fields = (
@@ -416,17 +401,9 @@ class UserDetailAdmin(admin.ModelAdmin):
         'pincode',
         'id_proof_type',
         'id_proof_number',
-        'id_proof_file',
         'email',
         'patient_name',
     )
-
-    def view_id_proof(self, obj):
-        if obj.id_proof_file:
-            return format_html('<a href="{}" target="_blank">View</a>', obj.id_proof_file.url)
-        return "â€”"
-
-    view_id_proof.short_description = "ID Proof File"
 
 
 @admin.register(Services)

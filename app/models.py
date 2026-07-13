@@ -10,10 +10,12 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import re
 
+
 def validate_id_proof_file_size(value):
     max_size = 5 * 1024 * 1024
     if value.size > max_size:
         raise ValidationError("ID proof file must be below 5 MB.")
+
 
 class Inventory(models.Model):
     title = models.CharField(max_length=255, unique=True)
@@ -105,15 +107,7 @@ class UserDetail(models.Model):
     pincode = models.CharField(max_length=10, blank=True, null=True)
     id_proof_type = models.CharField(max_length=20)
     id_proof_number = models.CharField(max_length=30)
-    id_proof_file = models.FileField(
-        upload_to='id_proofs/',
-        blank=True,
-        null=True,
-        validators=[
-            FileExtensionValidator(allowed_extensions=['png', 'jpg', 'jpeg', 'pdf']),
-            validate_id_proof_file_size,
-        ],
-    )
+
     patient_name = models.CharField(max_length=200, null=True, blank=True)
 
     def __str__(self):
@@ -130,26 +124,18 @@ class History(models.Model):
     end_date = models.DateField()
     extended_end_date = models.DateField(null=True, blank=True)
     actual_return_date = models.DateField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     quantity = models.PositiveIntegerField(default=1)
     is_returned = models.BooleanField(default=False)
     is_return_requested = models.BooleanField(default=False)
-    order_id = models.CharField(max_length=100, blank=True, null=True)
+    order_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     is_reminder_sent = models.BooleanField(default=False)
     is_overdue_email_sent = models.BooleanField(default=False)
     is_today_reminder_sent = models.BooleanField(default=False, null=True, blank=True)
     patient_name = models.CharField(max_length=200, null=True, blank=True)
     id_proof_type = models.CharField(max_length=20, blank=True, null=True)
     id_proof_number = models.CharField(max_length=30, blank=True, null=True)
-    id_proof_file = models.FileField(
-        upload_to='id_proofs/',
-        blank=True,
-        null=True,
-        validators=[
-            FileExtensionValidator(allowed_extensions=['png', 'jpg', 'jpeg', 'pdf']),
-            validate_id_proof_file_size,
-        ],
-    )
+
     delivery_option = models.CharField(max_length=20, choices=[("delivery", "Delivery"), ("pickup", "Pickup")],
         blank=True, null=True)
     delivery_charge = models.DecimalField( max_digits=10, decimal_places=2, default=0)
@@ -171,7 +157,8 @@ class History(models.Model):
             ('rejected', 'Rejected'),
             ('cancelled', 'Cancelled'),
         ],
-        default='pending'
+        default='pending',
+        db_index=True
     )
 
     def __str__(self):
@@ -283,7 +270,7 @@ class NotifyRequest(models.Model):
     email = models.EmailField(blank=True, null=True)
     mobile = models.CharField(max_length=15, blank=True, null=True)
     item = models.ForeignKey(Inventory, on_delete=models.CASCADE, related_name='notify_requests')
-    is_notified = models.BooleanField(default=False)
+    is_notified = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -304,8 +291,8 @@ class Notification(models.Model):
     title = models.CharField(max_length=180)
     message = models.TextField()
     link = models.CharField(max_length=255, blank=True, null=True)
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         ordering = ['-created_at']

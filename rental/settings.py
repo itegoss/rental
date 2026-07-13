@@ -98,11 +98,9 @@ else:
                 'USER': os.getenv('DB_USER'),
                 'PASSWORD': os.getenv('DB_PASSWORD'),
                 'HOST': os.getenv('DB_HOST'),
-                'PORT': os.getenv('DB_PORT', '6543'),
-                'CONN_MAX_AGE': 600,
+                'PORT': os.getenv('DB_PORT'),
     }
     }
-
 
 
 AUTH_PASSWORD_VALIDATORS = [
