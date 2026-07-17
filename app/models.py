@@ -195,7 +195,8 @@ class History(models.Model):
         delivery_dec = Decimal(str(self.delivery_charge or '0'))
         pickup_dec = Decimal(str(self.return_pickup_charge or '0'))
         
-        self.total_amount = rent_dec + (deposit_dec * self.quantity) + delivery_dec + pickup_dec
+        if not getattr(self, '_total_amount_manually_changed', False) or self.total_amount is None:
+            self.total_amount = rent_dec + (deposit_dec * self.quantity) + delivery_dec + pickup_dec
         
         # Auto-update is_delivery_paid based on whether amount_paid covers rent and deposit + delivery charge (on creation only)
         if self.pk is None:
@@ -207,16 +208,17 @@ class History(models.Model):
                 self.is_delivery_paid = False
 
         # Calculate remaining amount
-        rent_deposit_total = rent_dec + (deposit_dec * self.quantity)
-        paid_dec = Decimal(str(self.amount_paid or '0'))
-        mathematical_delivery_paid = max(paid_dec - rent_deposit_total, Decimal("0"))
-        mathematical_delivery_paid = min(mathematical_delivery_paid, delivery_dec)
+        if not getattr(self, '_amount_remaining_manually_changed', False):
+            rent_deposit_total = rent_dec + (deposit_dec * self.quantity)
+            paid_dec = Decimal(str(self.amount_paid or '0'))
+            mathematical_delivery_paid = max(paid_dec - rent_deposit_total, Decimal("0"))
+            mathematical_delivery_paid = min(mathematical_delivery_paid, delivery_dec)
 
-        if self.is_delivery_paid:
-            unpaid_delivery = delivery_dec - mathematical_delivery_paid
-            self.amount_remaining = max(self.total_amount - paid_dec - unpaid_delivery, Decimal('0'))
-        else:
-            self.amount_remaining = max(self.total_amount - paid_dec, Decimal('0'))
+            if self.is_delivery_paid:
+                unpaid_delivery = delivery_dec - mathematical_delivery_paid
+                self.amount_remaining = max(self.total_amount - paid_dec - unpaid_delivery, Decimal('0'))
+            else:
+                self.amount_remaining = max(self.total_amount - paid_dec, Decimal('0'))
             
         super().save(*args, **kwargs)
 

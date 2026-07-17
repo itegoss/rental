@@ -10,11 +10,10 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "insecure-secret-key")
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 
 SECURE_SSL_REDIRECT = False
-SECURE_PROXY_SSL_HEADER = None
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = None if DEBUG else ('HTTP_X_FORWARDED_PROTO', 'https')
 
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
 
 ALLOWED_HOSTS = [
     "rental-856395380155.us-central1.run.app",
@@ -22,9 +21,7 @@ ALLOWED_HOSTS = [
 ]
 
 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = not DEBUG
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -101,6 +98,8 @@ else:
                 'PORT': os.getenv('DB_PORT'),
     }
     }
+
+
 
 
 AUTH_PASSWORD_VALIDATORS = [

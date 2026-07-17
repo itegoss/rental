@@ -175,15 +175,19 @@ class HistoryAdmin(admin.ModelAdmin):
         'id','user','rental_item','renter_name','email','phone','address', 'patient_name','start_date','end_date',
         'extended_end_date','actual_return_date','quantity','payment_method',
         'deposit','delivery_option','delivery_charge','is_delivery_paid','status',
-        'amount_paid','amount_remaining','id_proof_type','id_proof_number',
+        'total_amount','amount_paid','amount_remaining','id_proof_type','id_proof_number',
         'is_return_requested','is_returned','deposit_donated',
         'donation_amount','donation_comment','order_id',
     )
 
-    readonly_fields = ('id','order_id','total_amount','amount_remaining')
+    readonly_fields = ('id','order_id')
 
     def save_model(self, request, obj, form, change):
         obj._from_admin = True
+        if 'amount_remaining' in form.changed_data:
+            obj._amount_remaining_manually_changed = True
+        if 'total_amount' in form.changed_data:
+            obj._total_amount_manually_changed = True
         super().save_model(request, obj, form, change)
 
         # Sync ID proof fields to all items in the same order

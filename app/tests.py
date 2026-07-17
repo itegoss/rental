@@ -459,6 +459,54 @@ class SuperuserOrderApprovalTests(TestCase):
         self.assertEqual(self.item.available_quantity, 5)
 
 
+class HistoryAdminTests(TestCase):
+    def setUp(self):
+        self.normal_user = User.objects.create_user(username='normal_test_user', password='password123')
+        self.item = Inventory.objects.create(
+            title="Wheelchair Test",
+            description="Comfortable wheelchair",
+            price_per_day=50.0,
+            deposit=100.0,
+            total_quantity=5,
+            available_quantity=5,
+            booked_quantity=0,
+            price=2000.0,
+            available=True
+        )
+        from app.models import History
+        from django.utils import timezone
+        self.rental = History.objects.create(
+            user=self.normal_user,
+            rental_item=self.item,
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date(),
+            quantity=1,
+            deposit=self.item.deposit,
+            payment_method='cod',
+            status='approved',
+            order_id='ORD99999'
+        )
+
+    def test_amount_remaining_auto_calculation(self):
+        # By default, amount_remaining should be calculated on save
+        self.rental.amount_paid = 100.00
+        self.rental.save()
+        self.rental.refresh_from_db()
+        # total_amount is 50 (rent) + 100 (deposit) = 150.
+        # paid is 100. remaining should be 50.
+        self.assertEqual(self.rental.amount_remaining, 50.00)
+
+    def test_amount_remaining_manual_override(self):
+        # If manually modified flag is set, keep the manual override
+        self.rental.amount_paid = 100.00
+        self.rental._amount_remaining_manually_changed = True
+        self.rental.amount_remaining = 30.00
+        self.rental.save()
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.amount_remaining, 30.00)
+
+
+
 
 
 
