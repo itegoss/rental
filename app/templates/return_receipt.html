@@ -451,9 +451,17 @@
         {% if donation_comment %}<p><strong>Donation Comment:</strong> {{ donation_comment }}</p>{% endif %}
         {% endif %}
         <p><strong>Total Amount:</strong> ₹{{ total_amount }}</p>
+        <p><strong>Amount Paid:</strong> ₹{{ amount_paid }}</p>
+        {% if amount_remaining > 0 %}
+        <div style="border-top: 1.5px dashed var(--border); margin-top: 5px; padding-top: 5px; display: inline-block; width: 100%;">
+          <p class="total-amount" style="color:#dc2626; font-size: 1.1rem; margin: 2px 0;"><strong>Remaining Amount:</strong> ₹{{ amount_remaining }}</p>
+          <p style="color:#555; font-size: 0.9rem; margin: 2px 0;"><strong>Refund Amount:</strong> ₹0.00</p>
+        </div>
+        {% else %}
         <div style="border-top: 1.5px dashed var(--border); margin-top: 5px; padding-top: 5px; display: inline-block; width: 100%;">
           <p class="total-amount" style="color:green; font-size: 1.1rem; margin: 2px 0;"><strong>Refund Amount:</strong> ₹{{ refund_amount }}</p>
         </div>
+        {% endif %}
       </div>
     </div>
     <div style="font-size:11px;text-align:center;margin-top:4px;color:#555;">You hereby agree to all terms &amp;

@@ -1932,10 +1932,19 @@ def return_receipt(request, order_id):
     delivery_charge = rental.delivery_charge
     return_pickup_charge = rental.return_pickup_charge
     
-    refund_amount = max(final_deposit - donation_amount - delivery_charge - return_pickup_charge, Decimal("0"))
-    
     total_rent_with_extensions = breakdown["original_total_rent"] + breakdown["extension_total"]
     total_amount = total_rent_with_extensions + delivery_charge + return_pickup_charge + donation_amount
+    amount_paid = breakdown["amount_paid"]
+
+    net_balance = amount_paid - total_amount
+    if rental.deposit_donated:
+        refund_amount = Decimal("0")
+    elif net_balance > 0:
+        refund_amount = min(net_balance, final_deposit)
+    else:
+        refund_amount = Decimal("0")
+
+    amount_remaining = max(total_amount - amount_paid, Decimal("0"))
 
     context = {
         "order": rental,          
@@ -1951,6 +1960,8 @@ def return_receipt(request, order_id):
         "donation_amount": donation_amount,
         "donation_comment": donation_comment,
         "total_amount": total_amount,
+        "amount_paid": amount_paid,
+        "amount_remaining": amount_remaining,
         "refund_amount": refund_amount,
         "delivery_option": rental.delivery_option,
         "delivery_charge": rental.delivery_charge,

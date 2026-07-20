@@ -181,12 +181,25 @@ class History(models.Model):
     @property
     def refund_amount(self):
         """
-        Refund = Deposit - delivery charge - return pickup charge
-        If deposit was donated, refund is 0
+        Refund = Amount Paid - Total Charges (capped at Deposit)
+        If deposit was donated or net_balance <= 0, refund is 0
         """
-        deposit_total = self.deposit * self.quantity
-        refund = deposit_total - self.donation_amount - self.delivery_charge - self.return_pickup_charge
-        return max(refund, 0)
+        from decimal import Decimal
+        if self.deposit_donated:
+            return Decimal("0")
+        rent_dec = Decimal(str(self.total_rent or '0'))
+        deposit_dec = Decimal(str(self.deposit or '0')) * self.quantity
+        delivery_dec = Decimal(str(self.delivery_charge or '0'))
+        pickup_dec = Decimal(str(self.return_pickup_charge or '0'))
+        donation_dec = Decimal(str(self.donation_amount or '0'))
+        
+        total_charges = rent_dec + delivery_dec + pickup_dec + donation_dec
+        paid_dec = Decimal(str(self.amount_paid or '0'))
+        
+        net_balance = paid_dec - total_charges
+        if net_balance > 0:
+            return min(net_balance, deposit_dec)
+        return Decimal("0")
 
     def save(self, *args, **kwargs):
         from decimal import Decimal

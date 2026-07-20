@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>{% block title %}Sick Bed Services{% endblock %}</title>
@@ -8,7 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    crossorigin="anonymous">
   {% load static notification_tags %}
   <link rel="shortcut icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
   <style>
@@ -568,7 +570,8 @@
   <nav>
     <div class="nav-inner">
       <div class="logo">
-        <a href="{% url 'index' %}"> <img src="{% static 'images/logo1.png' %}" alt="Sick Bed Services Logo" width="60" height="60"></a>
+        <a href="{% url 'index' %}"> <img src="{% static 'images/logo1.png' %}" alt="Sick Bed Services Logo" width="60"
+            height="60"></a>
       </div>
 
       <div class="nav-right">
@@ -619,7 +622,8 @@
             </a>
             {% endfor %}
             {% else %}
-            <div class="notif-empty"><i class="fas fa-bell-slash" style="font-size:1.5rem; margin-bottom:8px; display:block;"></i>No new notifications</div>
+            <div class="notif-empty"><i class="fas fa-bell-slash"
+                style="font-size:1.5rem; margin-bottom:8px; display:block;"></i>No new notifications</div>
             {% endif %}
           </div>
         </div>
@@ -682,8 +686,10 @@
         </div>
         <div class="footer-col">
           <h4>Contact Us</h4>
-          <div class="footer-contact-row"> <a href="tel:9867348169" style="color: white;"><i class="fas fa-phone"></i>9867348169</a></div>
-          <div class="footer-contact-row"><a href="tel:9820247550" style="color: white;"><i class="fas fa-phone"></i> 9820247550</a></div>
+          <div class="footer-contact-row"> <a href="tel:9867348169" style="color: white;"><i
+                class="fas fa-phone"></i>9867348169</a></div>
+          <div class="footer-contact-row"><a href="tel:9820247550" style="color: white;"><i class="fas fa-phone"></i>
+              9820247550</a></div>
           <div class="footer-contact-row">
             <a href="mailto:bhayander@kutchyuvaksangh.org" style="color:white; text-decoration:none;">
               <i class="fas fa-envelope"></i> bhayander@kutchyuvaksangh.org
@@ -715,13 +721,14 @@
           </div>
 
           <div class="footer-contact-row">
-            <a href="https://sites.google.com/kutchyuvaksangh.org/kysbhayander/home" target="_blank" style="color:white; text-decoration:none;">
+            <a href="https://sites.google.com/kutchyuvaksangh.org/kysbhayander/home" target="_blank"
+              style="color:white; text-decoration:none;">
               <i class="fab fa-google"></i> Google
             </a>
           </div>
         </div>
       </div>
-      <div class="footer-bottom">© 2026 Kutch Yuvak Sangh. All Rights Reserved.</div>
+      <div class="footer-bottom">© 2026 Kutch Yuvak Sangh. All Rights Reserved | Powered and Managed by <a href="https://www.itegoss.in/" target="_blank" style="color: rgba(255, 255, 255, 0.6);"> Itegoss Technology.</a></p></div>
     </div>
   </footer>
 
@@ -788,4 +795,5 @@
     });
   </script>
 </body>
+
 </html>

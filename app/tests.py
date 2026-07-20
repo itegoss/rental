@@ -506,6 +506,88 @@ class HistoryAdminTests(TestCase):
         self.assertEqual(self.rental.amount_remaining, 30.00)
 
 
+class ReturnReceiptCalculationTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='password123')
+        self.item = Inventory.objects.create(
+            title="Bed",
+            description="Hospital bed",
+            price_per_day=20.0,
+            deposit=3000.0,
+            total_quantity=2,
+            available_quantity=2,
+            price=15000.0,
+            available=True
+        )
+
+    def test_refund_amount_deducts_rent_from_paid_amount(self):
+        from decimal import Decimal
+        import datetime
+        from django.utils import timezone
+        from app.models import History
+        
+        # Scenario: Deposit = 3500, Rent = 4070, Paid Amount = 4160
+        start = timezone.now().date()
+        end = start + datetime.timedelta(days=151) # 152 days
+        rental = History.objects.create(
+            user=self.user,
+            rental_item=self.item,
+            start_date=start,
+            end_date=end,
+            quantity=1,
+            deposit=Decimal("3500.00"),
+            amount_paid=Decimal("4160.00"),
+            payment_method='cod',
+            status='approved',
+            is_returned=True,
+            order_id='ORD202607999'
+        )
+        
+        self.client.login(username='testuser', password='password123')
+        response = self.client.get(reverse('return_receipt', args=['ORD202607999']))
+        self.assertEqual(response.status_code, 200)
+        
+        # total_amount (rent for 152 days @ 20/day) = 3040
+        # If amount_paid = 4160, total charges = 3040. Refund = 4160 - 3040 = 1120.
+        self.assertEqual(response.context['amount_paid'], Decimal("4160.00"))
+        self.assertEqual(response.context['total_amount'], Decimal("3040.00"))
+        self.assertEqual(response.context['refund_amount'], Decimal("1120.00"))
+        self.assertEqual(response.context['amount_remaining'], Decimal("0.00"))
+
+    def test_return_receipt_remaining_amount_when_rent_exceeds_paid(self):
+        from decimal import Decimal
+        import datetime
+        from django.utils import timezone
+        from app.models import History
+        
+        # Scenario: Rent = 4070, Paid Amount = 3500 (deposit only paid).
+        start = timezone.now().date()
+        end = start + datetime.timedelta(days=151)
+        rental = History.objects.create(
+            user=self.user,
+            rental_item=self.item,
+            start_date=start,
+            end_date=end,
+            quantity=1,
+            deposit=Decimal("3500.00"),
+            amount_paid=Decimal("2000.00"),
+            payment_method='cod',
+            status='approved',
+            is_returned=True,
+            order_id='ORD202607998'
+        )
+        
+        self.client.login(username='testuser', password='password123')
+        response = self.client.get(reverse('return_receipt', args=['ORD202607998']))
+        self.assertEqual(response.status_code, 200)
+        
+        # total_amount = 3040. amount_paid = 2000.
+        # Remaining = 3040 - 2000 = 1040. Refund = 0.
+        self.assertEqual(response.context['refund_amount'], Decimal("0.00"))
+        self.assertEqual(response.context['amount_remaining'], Decimal("1040.00"))
+
+
+
 
 
 
