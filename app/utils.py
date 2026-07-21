@@ -51,28 +51,7 @@ def build_booking_receipt_breakdown(rental, related_rentals):
         original_days = (rr.end_date - rr.start_date).days + 1 if rr.start_date and rr.end_date else 0
         rent_per_day_total = rr.rental_item.price_per_day * rr.quantity
         deposit_total = rr.deposit * rr.quantity
-        delivery_charge_item = rr.delivery_charge
-        return_pickup_charge_item = getattr(rr, 'return_pickup_charge', Decimal("0"))
-
-        # Calculate what the total_amount would be if it were not overridden
-        billing_end = rr.extended_end_date or rr.end_date
-        billing_days = (billing_end - rr.start_date).days + 1 if rr.start_date and billing_end else 0
-        calculated_total_amount = (rent_per_day_total * billing_days) + deposit_total + delivery_charge_item + return_pickup_charge_item
-
-        is_overridden = False
-        if rr.total_amount is not None:
-            if abs(rr.total_amount - calculated_total_amount) > Decimal("0.01"):
-                is_overridden = True
-
-        if is_overridden:
-            total_rent_derived = rr.total_amount - deposit_total - delivery_charge_item - return_pickup_charge_item
-            total_rent_derived = max(total_rent_derived, Decimal("0"))
-            if billing_days > 0:
-                rent_amount = (total_rent_derived * Decimal(str(original_days))) / Decimal(str(billing_days))
-            else:
-                rent_amount = total_rent_derived
-        else:
-            rent_amount = rent_per_day_total * original_days
+        rent_amount = rent_per_day_total * original_days
 
         original_item_totals.append({
             "title": rr.rental_item.title,
