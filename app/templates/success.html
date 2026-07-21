@@ -509,8 +509,10 @@
               <td class="text-right">
                 {% if rental.delivery_option|lower == "delivery" %}
                 ₹{{ delivery_charge }}
-                {% if delivery_paid %}
-                <span style="color:{% if delivery_paid == delivery_charge %}green{% else %}red{% endif %};font-weight:bold;">(₹{{ delivery_paid }} Paid)</span>
+                {% if rental.is_delivery_paid or delivery_paid == delivery_charge %}
+                <span style="color:green;font-weight:bold;">(Paid)</span>
+                {% elif delivery_paid %}
+                <span style="color:green;font-weight:bold;">(₹{{ delivery_paid }} Paid)</span>
                 {% endif %}
                 {% else %}
                 ₹0

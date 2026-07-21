@@ -366,7 +366,12 @@ def generate_receipt(order):
     right_normal_style = ParagraphStyle('RightNormal', parent=normal_style, alignment=2)
     
     delivery_paid = breakdown.get("delivery_paid", Decimal("0"))
-    del_paid_status = f" (Rs. {delivery_paid:.2f} Paid)" if delivery_paid else ""
+    if getattr(order, 'is_delivery_paid', False) or (delivery_charge > 0 and delivery_paid >= delivery_charge):
+        del_paid_status = " (Paid)"
+    elif delivery_paid > 0:
+        del_paid_status = f" (Rs. {delivery_paid:.2f} Paid)"
+    else:
+        del_paid_status = ""
     del_charge_text = f"Rs. {delivery_charge:.2f}{del_paid_status if order.delivery_option == 'delivery' else ''}"
 
     summary_rows = [
