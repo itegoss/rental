@@ -88,6 +88,17 @@
     background: #e5e7eb;
   }
 
+  .ra-btn-green {
+    background: #10b981;
+    color: #fff;
+  }
+
+  .ra-btn-green:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
   /* ── PRINTABLE RECEIPT ── */
   .receipt-container {
     max-width: 100%;
@@ -157,7 +168,34 @@
   }
 
   .info-column {
-    width: 32%;
+    width: 48%;
+  }
+
+  .details-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2px 0 4px;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .details-table td {
+    padding: 2px 4px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+  }
+
+  .details-table td.lbl {
+    font-weight: bold;
+    color: #000;
+    white-space: nowrap;
+    width: 1%;
+    padding-right: 6px;
+  }
+
+  .details-table td.val {
+    color: #333;
+    padding-right: 20px;
   }
 
   .info-item p {
@@ -196,6 +234,40 @@
 
   .total-info {
     text-align: left;
+    min-width: 280px;
+  }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+  }
+
+  .summary-table td {
+    padding: 3px 8px;
+    font-size: 11px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+  }
+
+  .summary-table td.text-right {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .summary-table tr.highlight-row td {
+    font-size: 12px;
+    font-weight: bold;
+    color: #1b8a4b;
+    border-top: 1.5px solid #1b8a4b;
+    border-bottom: 1.5px solid #1b8a4b;
+    background-color: #eef7f2;
+  }
+
+  .summary-table tr.balance-row td {
+    font-size: 12px;
+    font-weight: bold;
+    border-top: 1.5px dashed #ccc;
   }
 
   .total-amount {
@@ -271,18 +343,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
-<!-- Screen action bar -->
+<!-- Top Screen Header -->
 <div class="receipt-screen-wrap">
   <div class="receipt-action-bar">
     <div class="ra-left">
       <h2><i class="fas fa-undo" style="color:var(--primary);margin-right:8px;"></i>Return Receipt</h2>
       <p>Order #{{ rental.order_id }}</p>
-    </div>
-    <div class="ra-btns">
-      <button class="ra-btn ra-btn-red" onclick="downloadPDF()"><i class="fas fa-download"></i> Download PDF</button>
-      <button class="ra-btn ra-btn-dark" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
-      <button class="ra-btn ra-btn-grey" onclick="window.location.href='{% url 'bookingsammry' %}'"><i
-          class="fas fa-arrow-left"></i> Back</button>
     </div>
   </div>
 </div>
@@ -303,58 +369,56 @@
     <div class="order-id"><strong>Order ID:</strong> {{ rental.order_id }}</div>
 
     <h3 class="section-title">Patient &amp; Booking Details</h3>
-    <div class="info-grid">
-      <div class="info-column">
-        <div class="info-item">
-          <p><strong>Renter Name:</strong>
+    <table class="details-table">
+      <tbody>
+        <tr>
+          <td class="lbl">Renter Name:</td>
+          <td class="val">
             {% if rental.renter_name %}{{ rental.renter_name }}
             {% elif rental.user.get_full_name %}{{ rental.user.get_full_name }}
-            {% else %}{{ rental.user.username }}{% endif %}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Address:</strong>
+            {% else %}{{ rental.user.username }}{% endif %}
+          </td>
+          <td class="lbl">Booking Date:</td>
+          <td class="val">{{ rental.start_date|date:"d M Y" }}</td>
+        </tr>
+        <tr>
+          <td class="lbl">Address:</td>
+          <td class="val">
             {% if rental.address %}{{ rental.address }}
             {% elif rental.user.userdetail.address_line1 %}{{ rental.user.userdetail.address_line1 }}
-            {% else %}N/A{% endif %}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Contact No:</strong>
+            {% else %}N/A{% endif %}
+          </td>
+          <td class="lbl">Return Date:</td>
+          <td class="val">{{ effective_return_date|default:rental.billing_end_date|date:"d M Y" }}</td>
+        </tr>
+        <tr>
+          <td class="lbl">Contact No:</td>
+          <td class="val">
             {% if rental.phone %}{{ rental.phone }}
             {% elif rental.user.userdetail.phone %}{{ rental.user.userdetail.phone }}
-            {% else %}N/A{% endif %}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Patient Name:</strong>
+            {% else %}N/A{% endif %}
+          </td>
+          <td class="lbl">Rent Days:</td>
+          <td class="val">{{ total_rent_days|default:rental.rental_days }} Days</td>
+        </tr>
+        <tr>
+          <td class="lbl">Patient Name:</td>
+          <td class="val">
             {% if patient_name %}{{ patient_name }}
             {% elif rental.patient_name %}{{ rental.patient_name }}
             {% elif rental.user.userdetail.patient_name %}{{ rental.user.userdetail.patient_name }}
-            {% else %}N/A{% endif %}</p>
-        </div>
-      </div>
-      <div class="info-column">
-        <div class="info-item">
-          <p><strong>Booking Date:</strong> {{ rental.start_date|date:"d M Y" }}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Start Date:</strong> {{ rental.start_date|date:"d M Y" }}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Return Date:</strong> {{ rental.billing_end_date|date:"d M Y" }}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Rent Days:</strong> {{ rental.rental_days }} Days</p>
-        </div>
-      </div>
-      <div class="info-column">
-        <div class="info-item">
-          <p><strong>Actual Return Date:</strong> {{ rental.actual_return_date|date:"d M Y" }}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Deposit Total:</strong> ₹{{ total_deposit }}{% if rental.deposit_donated %} <span
-              style="color:green;font-weight:bold;">(Donated)</span>{% endif %}</p>
-        </div>
-      </div>
-    </div>
+            {% else %}N/A{% endif %}
+          </td>
+          {% if rental.actual_return_date %}
+          <td class="lbl">Actual Return Date:</td>
+          <td class="val">{{ rental.actual_return_date|date:"d M Y" }}</td>
+          {% else %}
+          <td class="lbl"></td>
+          <td class="val"></td>
+          {% endif %}
+        </tr>
+      </tbody>
+    </table>
 
     <h3 class="section-title">Item Details</h3>
     <table class="items-table">
@@ -439,34 +503,88 @@
         <p>{{ rental.address|default:"Take Away – Nearest Hub" }}</p>
       </div>
       <div class="total-info">
-        <p><strong>Delivery Option:</strong> {{ rental.delivery_option|title }}</p>
-        {% if rental.delivery_option|lower == "delivery" %}
-        <p><strong>Delivery Charge:</strong> ₹{{ delivery_charge }}</p>
-        {% endif %}
-        {% if return_pickup_charge %}
-        <p><strong>Return Pickup Charge:</strong> ₹{{ return_pickup_charge }}</p>
-        {% endif %}
-        {% if donation_amount %}
-        <p><strong>Donated Amount:</strong> ₹{{ donation_amount }}</p>
-        {% if donation_comment %}<p><strong>Donation Comment:</strong> {{ donation_comment }}</p>{% endif %}
-        {% endif %}
-        <p><strong>Total Amount:</strong> ₹{{ total_amount }}</p>
-        <p><strong>Amount Paid:</strong> ₹{{ amount_paid }}</p>
-        {% if amount_remaining > 0 %}
-        <div style="border-top: 1.5px dashed var(--border); margin-top: 5px; padding-top: 5px; display: inline-block; width: 100%;">
-          <p class="total-amount" style="color:#dc2626; font-size: 1.1rem; margin: 2px 0;"><strong>Remaining Amount:</strong> ₹{{ amount_remaining }}</p>
-          <p style="color:#555; font-size: 0.9rem; margin: 2px 0;"><strong>Refund Amount:</strong> ₹0.00</p>
-        </div>
-        {% else %}
-        <div style="border-top: 1.5px dashed var(--border); margin-top: 5px; padding-top: 5px; display: inline-block; width: 100%;">
-          <p class="total-amount" style="color:green; font-size: 1.1rem; margin: 2px 0;"><strong>Refund Amount:</strong> ₹{{ refund_amount }}</p>
-        </div>
-        {% endif %}
+        <table class="summary-table">
+          <tbody>
+            <tr>
+              <td><strong>Rent Amount:</strong></td>
+              <td class="text-right">₹{{ total_rent }}</td>
+            </tr>
+            {% if extension_history %}
+            <tr>
+              <td><strong>Extension Rent:</strong></td>
+              <td class="text-right">₹{{ extension_total }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+              <td><strong>Delivery Charges:</strong></td>
+              <td class="text-right">
+                {% if rental.delivery_option|lower == "delivery" or delivery_charge > 0 %}
+                ₹{{ delivery_charge }}
+                {% else %}
+                ₹0
+                {% endif %}
+              </td>
+            </tr>
+            {% if return_pickup_charge and return_pickup_charge > 0 %}
+            <tr>
+              <td><strong>Return Delivery Charges:</strong></td>
+              <td class="text-right">₹{{ return_pickup_charge }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+              <td><strong>Deposit Total:</strong></td>
+              <td class="text-right">₹{{ total_deposit }}</td>
+            </tr>
+            {% if donation_amount and donation_amount > 0 %}
+            <tr>
+              <td><strong>Donation Amount:</strong></td>
+              <td class="text-right" style="color:green;font-weight:bold;">₹{{ donation_amount }}</td>
+            </tr>
+            {% elif rental.deposit_donated %}
+            <tr>
+              <td><strong>Donation Amount:</strong></td>
+              <td class="text-right" style="color:green;font-weight:bold;">₹{{ total_deposit }} (Donated)</td>
+            </tr>
+            {% endif %}
+            <tr class="highlight-row">
+              <td><strong>Total Amount:</strong></td>
+              <td class="text-right"><strong>₹{{ total_amount }}</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Paid Amount:</strong></td>
+              <td class="text-right" style="color:green;font-weight:bold;">₹{{ amount_paid }}</td>
+            </tr>
+            {% if amount_remaining > 0 %}
+            <tr class="balance-row">
+              <td><strong>Balanced Amount:</strong></td>
+              <td class="text-right" style="color:#dc2626;font-weight:bold;">₹{{ amount_remaining }}</td>
+            </tr>
+            {% else %}
+            <tr class="balance-row">
+              <td><strong>Balanced Amount (Refund):</strong></td>
+              <td class="text-right" style="color:green;font-weight:bold;">₹{{ refund_amount }}</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
       </div>
     </div>
     <div style="font-size:11px;text-align:center;margin-top:4px;color:#555;">You hereby agree to all terms &amp;
       conditions mentioned on our booking portal</div>
     <div class="thank-you">Thank you for booking with us.</div>
+  </div>
+</div>
+
+<!-- Bottom Action Buttons -->
+<div class="receipt-screen-wrap" style="margin-top:20px;">
+  <div class="receipt-action-bar" style="justify-content:center;">
+    <div class="ra-btns">
+      <button class="ra-btn ra-btn-red" onclick="downloadPDF()"><i class="fas fa-download"></i> Download PDF</button>
+      <button class="ra-btn ra-btn-dark" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+      <button class="ra-btn ra-btn-green" onclick="shareReceipt()"><i class="fas fa-share-alt"></i> Share</button>
+      <button class="ra-btn ra-btn-grey" onclick="window.location.href='{% url 'bookingsammry' %}'"><i
+          class="fas fa-arrow-left"></i> Back</button>
+    </div>
   </div>
 </div>
 
@@ -486,6 +604,28 @@
       jsPDF: { unit: "mm", format: "a5", orientation: "landscape" }
     };
     html2pdf().set(opt).from(element).save();
+  }
+
+  function shareReceipt() {
+    const title = "Return Receipt — Order #{{ rental.order_id }}";
+    const text = "Return Receipt for Order #{{ rental.order_id }} - Sick Bed Services";
+    const url = window.location.href;
+
+    if (navigator.share) {
+      navigator.share({
+        title: title,
+        text: text,
+        url: url
+      }).catch(err => console.log('Share dismissed:', err));
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        alert("Receipt link copied to clipboard!");
+      }).catch(() => {
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + " " + url)}`, '_blank');
+      });
+    } else {
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + " " + url)}`, '_blank');
+    }
   }
 </script>
 {% endblock %}

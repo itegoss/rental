@@ -150,12 +150,20 @@ def build_booking_receipt_breakdown(rental, related_rentals):
         delivery_paid = mathematical_delivery_paid
         amount_remaining = max(final_total_amount - amount_paid, Decimal("0"))
 
+    original_days = (rental.end_date - rental.start_date).days + 1 if rental.start_date and rental.end_date else 0
+    total_extra_days = sum((ext["extra_days"] for ext in extension_history), 0)
+    total_rent_days = original_days + total_extra_days
+    effective_return_date = extension_history[-1]["new_return_date"] if extension_history else rental.end_date
+
     return {
         "original_item_totals": original_item_totals,
         "original_booking_date": rental.created_at.date() if rental.created_at else timezone.now().date(),
         "original_start_date": rental.start_date,
         "original_return_date": rental.end_date,
-        "original_days": (rental.end_date - rental.start_date).days + 1,
+        "original_days": original_days,
+        "total_extra_days": total_extra_days,
+        "total_rent_days": total_rent_days,
+        "effective_return_date": effective_return_date,
         "original_total_rent": original_total_rent,
         "original_total_deposit": original_total_deposit,
         "original_total_amount": original_total_amount,
@@ -259,39 +267,20 @@ def generate_receipt(order):
     phone = order.phone or (user_detail.phone if user_detail else "N/A")
 
     details_data = [
-        [Paragraph(f"<b>Order ID:</b> {order.order_id}", normal_style), Paragraph(f"<b>Booking Date:</b> {breakdown['original_booking_date'].strftime('%d %b %Y')}", normal_style)],
-        [Paragraph(f"<b>Renter Name:</b> {renter_name}", normal_style), Paragraph(f"<b>Contact No:</b> {phone}", normal_style)],
-        [Paragraph(f"<b>Patient Name:</b> {patient_name}", normal_style), Paragraph(f"<b>Address:</b> {address}", normal_style)]
+        [Paragraph("<b>Renter Name:</b>", normal_style), Paragraph(str(renter_name), normal_style), Paragraph("<b>Booking Date:</b>", normal_style), Paragraph(breakdown['original_start_date'].strftime('%d %b %Y'), normal_style)],
+        [Paragraph("<b>Address:</b>", normal_style), Paragraph(str(address), normal_style), Paragraph("<b>Return Date:</b>", normal_style), Paragraph(breakdown['effective_return_date'].strftime('%d %b %Y'), normal_style)],
+        [Paragraph("<b>Contact No:</b>", normal_style), Paragraph(str(phone), normal_style), Paragraph("<b>Rent Days:</b>", normal_style), Paragraph(f"{breakdown['total_rent_days']} Days", normal_style)],
+        [Paragraph("<b>Patient Name:</b>", normal_style), Paragraph(str(patient_name), normal_style), Paragraph("", normal_style), Paragraph("", normal_style)],
     ]
-    details_table = Table(details_data, colWidths=[261, 262])
+    details_table = Table(details_data, colWidths=[90, 171, 90, 172])
     details_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LINEBELOW', (0, 0), (-1, -1), 0.5, HexColor('#e5e7eb')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
     ]))
     elements.append(details_table)
     elements.append(Spacer(1, 10))
-
-    # 3. Original Booking details info
-    elements.append(Paragraph("Original Booking Info", section_title_style))
-    orig_info_data = [
-        [
-            Paragraph(f"<b>Original Start Date:</b> {breakdown['original_start_date'].strftime('%d %b %Y')}", normal_style),
-            Paragraph(f"<b>Original Return Date:</b> {breakdown['original_return_date'].strftime('%d %b %Y')}", normal_style),
-            Paragraph(f"<b>Original Rent Days:</b> {breakdown['original_days']} Days", normal_style)
-        ],
-        [
-            Paragraph(f"<b>Delivery Option:</b> {order.delivery_option.title() if order.delivery_option else 'Pickup'}", normal_style),
-            Paragraph(f"<b>Original Deposit Total:</b> Rs. {breakdown['original_total_deposit']:.2f}", normal_style),
-            Paragraph("", normal_style)
-        ]
-    ]
-    orig_info_table = Table(orig_info_data, colWidths=[174, 174, 175])
-    orig_info_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-    ]))
-    elements.append(orig_info_table)
-    elements.append(Spacer(1, 5))
 
     # 4. Item details table
     item_header = [
@@ -372,39 +361,53 @@ def generate_receipt(order):
     # 6. Final Summary / Totals
     elements.append(Paragraph("Final Invoice Details", section_title_style))
     delivery_charge = order.delivery_charge if order.delivery_option == "delivery" else Decimal("0")
+    return_pickup_charge = getattr(order, 'return_pickup_charge', Decimal("0")) or Decimal("0")
+    
+    right_normal_style = ParagraphStyle('RightNormal', parent=normal_style, alignment=2)
     
     delivery_paid = breakdown.get("delivery_paid", Decimal("0"))
-    del_paid_status = f" (Rs. {delivery_paid:.2f} Paid)"
+    del_paid_status = f" (Rs. {delivery_paid:.2f} Paid)" if delivery_paid else ""
     del_charge_text = f"Rs. {delivery_charge:.2f}{del_paid_status if order.delivery_option == 'delivery' else ''}"
 
     summary_rows = [
-        [Paragraph("Original Rent Total:", normal_style), Paragraph(f"Rs. {breakdown['original_total_rent']:.2f}", normal_style)],
-        [Paragraph("Delivery Charge:", normal_style), Paragraph(del_charge_text, normal_style)],
-        [Paragraph("Original Booking Total Amount:", bold_style), Paragraph(f"Rs. {breakdown['original_total_amount']:.2f}", bold_style)],
+        [Paragraph("<b>Rent Amount:</b>", normal_style), Paragraph(f"Rs. {breakdown['original_total_rent']:.2f}", right_normal_style)],
     ]
     if breakdown['extension_history']:
-        summary_rows.extend([
-            [Paragraph("Total Extension Charges:", normal_style), Paragraph(f"Rs. {breakdown['extension_total']:.2f}", normal_style)],
-            [Paragraph("Final Grand Total Amount:", ParagraphStyle('LargeBold', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b'))), 
-             Paragraph(f"Rs. {breakdown['final_total_amount']:.2f}", ParagraphStyle('LargeBold', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b')))]
-        ])
-    else:
         summary_rows.append(
-            [Paragraph("Total Amount Paid:", ParagraphStyle('LargeBold', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b'))), 
-             Paragraph(f"Rs. {breakdown['original_total_amount']:.2f}", ParagraphStyle('LargeBold', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b')))]
+            [Paragraph("<b>Extension Rent:</b>", normal_style), Paragraph(f"Rs. {breakdown['extension_total']:.2f}", right_normal_style)]
         )
+    summary_rows.append(
+        [Paragraph("<b>Delivery Charges:</b>", normal_style), Paragraph(del_charge_text, right_normal_style)]
+    )
+    if return_pickup_charge > 0:
+        summary_rows.append(
+            [Paragraph("<b>Return Delivery Charges:</b>", normal_style), Paragraph(f"Rs. {return_pickup_charge:.2f}", right_normal_style)]
+        )
+    summary_rows.append(
+        [Paragraph("<b>Deposit Total:</b>", normal_style), Paragraph(f"Rs. {breakdown['original_total_deposit']:.2f}", right_normal_style)]
+    )
+    if getattr(order, 'deposit_donated', False) or getattr(order, 'donation_amount', 0):
+        don_amt = getattr(order, 'donation_amount', 0) or breakdown['original_total_deposit']
+        summary_rows.append(
+            [Paragraph("<b>Donation Amount:</b>", normal_style), Paragraph(f"Rs. {don_amt:.2f}", ParagraphStyle('RightGreen', parent=bold_style, textColor=HexColor('#1b8a4b'), alignment=2))]
+        )
+    
+    summary_rows.append(
+        [Paragraph("<b>Total Amount:</b>", ParagraphStyle('LargeBold', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b'))), 
+         Paragraph(f"Rs. {breakdown['final_total_amount']:.2f}", ParagraphStyle('LargeBoldRight', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b'), alignment=2))]
+    )
+    summary_rows.append(
+        [Paragraph("<b>Paid Amount:</b>", normal_style), Paragraph(f"Rs. {breakdown['amount_paid']:.2f}", ParagraphStyle('PaidAmtRight', parent=bold_style, textColor=HexColor('#1b8a4b'), alignment=2))]
+    )
+    summary_rows.append(
+        [Paragraph("<b>Balanced Amount:</b>", normal_style), Paragraph(f"Rs. {breakdown['amount_remaining']:.2f}", ParagraphStyle('RemainAmtRight', parent=bold_style, textColor=HexColor('#ec2427'), alignment=2))]
+    )
 
-    # Add Amount Paid & Amount Remaining
-    summary_rows.extend([
-        [Paragraph("<b>Amount Paid:</b>", normal_style), Paragraph(f"<b>Rs. {breakdown['amount_paid']:.2f}</b>", ParagraphStyle('PaidAmt', parent=bold_style, textColor=HexColor('#1b8a4b')))],
-        [Paragraph("<b>Amount Remaining:</b>", normal_style), Paragraph(f"<b>Rs. {breakdown['amount_remaining']:.2f}</b>", ParagraphStyle('RemainAmt', parent=bold_style, textColor=HexColor('#ec2427')))],
-    ])
-
-    summary_table = Table(summary_rows, colWidths=[220, 100])
+    summary_table = Table(summary_rows, colWidths=[200, 120])
     summary_table.hAlign = 'RIGHT'
     summary_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
         ('TOPPADDING', (0, 0), (-1, -1), 3),
         ('LINEBELOW', (0, -1), (-1, -1), 1, HexColor('#1b8a4b')),

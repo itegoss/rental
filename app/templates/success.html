@@ -99,6 +99,17 @@
     color: #fff;
   }
 
+  .ra-btn-green {
+    background: #10b981;
+    color: #fff;
+  }
+
+  .ra-btn-green:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
   /* ── PRINTABLE RECEIPT ── */
   .receipt-container {
     max-width: 100%;
@@ -168,7 +179,34 @@
   }
 
   .info-column {
-    width: 32%;
+    width: 48%;
+  }
+
+  .details-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2px 0 4px;
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .details-table td {
+    padding: 2px 4px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+  }
+
+  .details-table td.lbl {
+    font-weight: bold;
+    color: #000;
+    white-space: nowrap;
+    width: 1%;
+    padding-right: 6px;
+  }
+
+  .details-table td.val {
+    color: #333;
+    padding-right: 20px;
   }
 
   .info-item p {
@@ -207,6 +245,40 @@
 
   .total-info {
     text-align: left;
+    min-width: 280px;
+  }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+  }
+
+  .summary-table td {
+    padding: 3px 8px;
+    font-size: 11px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+  }
+
+  .summary-table td.text-right {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .summary-table tr.highlight-row td {
+    font-size: 12px;
+    font-weight: bold;
+    color: #1b8a4b;
+    border-top: 1.5px solid #1b8a4b;
+    border-bottom: 1.5px solid #1b8a4b;
+    background-color: #eef7f2;
+  }
+
+  .summary-table tr.balance-row td {
+    font-size: 12px;
+    font-weight: bold;
+    border-top: 1.5px dashed #ccc;
   }
 
   .total-amount {
@@ -282,23 +354,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 
-<!-- Screen action bar -->
+<!-- Top Screen Header -->
 <div class="receipt-screen-wrap">
   <div class="receipt-action-bar">
     <div class="ra-left">
       <h2><i class="fas fa-receipt" style="color:var(--primary);margin-right:8px;"></i>Booking Receipt</h2>
       <p>Order #{{ rental.order_id }}</p>
-    </div>
-    <div class="ra-btns">
-      <button class="ra-btn ra-btn-red" onclick="downloadPDF()"><i class="fas fa-download"></i> Download PDF</button>
-      <button class="ra-btn ra-btn-dark" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
-      {% if not rental.is_returned %}
-      <button class="ra-btn ra-btn-blue"
-        onclick="window.location.href='{% url 'extend_return_date' rental.order_id %}'"><i
-          class="fas fa-calendar-plus"></i> Extend</button>
-      {% endif %}
-      <button class="ra-btn ra-btn-grey" onclick="window.location.href='{% url 'bookingsammry' %}'"><i
-          class="fas fa-arrow-left"></i> Back</button>
     </div>
   </div>
 </div>
@@ -319,45 +380,34 @@
     <div class="order-id"><strong>Order ID:</strong> {{ rental.order_id }}</div>
 
     <h3 class="section-title">Patient &amp; Booking Details</h3>
-    <div class="info-grid">
-      <div class="info-column">
-        <div class="info-item">
-          <p><strong>Renter Name:</strong> {{ customer_name|default:"N/A" }}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Address:</strong> {{ customer_address|default:"N/A" }}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Contact No:</strong> {{ customer_phone|default:"N/A" }}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Patient Name:</strong> {{ patient_name|default:"N/A" }}</p>
-        </div>
-      </div>
-      <div class="info-column">
-        <div class="info-item">
-          <p><strong>Booking Date:</strong> {{ original_booking_date|date:"d M Y" }}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Start Date:</strong> {{ original_start_date|date:"d M Y" }}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Return Date:</strong> {{ original_return_date|date:"d M Y" }}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Rent Days:</strong> {{ original_days }} Days</p>
-        </div>
-      </div>
-      <div class="info-column">
-        <div class="info-item">
-          <p><strong>Delivery Option:</strong> {{ rental.delivery_option|title }}</p>
-        </div>
-        <div class="info-item">
-          <p><strong>Deposit Total:</strong> ₹{{ total_deposit }}{% if rental.deposit_donated %} <span
-              style="color:green;font-weight:bold;">(Donated)</span>{% endif %}</p>
-        </div>
-      </div>
-    </div>
+    <table class="details-table">
+      <tbody>
+        <tr>
+          <td class="lbl">Renter Name:</td>
+          <td class="val">{{ customer_name|default:"N/A" }}</td>
+          <td class="lbl">Booking Date:</td>
+          <td class="val">{{ original_start_date|default:original_booking_date|date:"d M Y" }}</td>
+        </tr>
+        <tr>
+          <td class="lbl">Address:</td>
+          <td class="val">{{ customer_address|default:"N/A" }}</td>
+          <td class="lbl">Return Date:</td>
+          <td class="val">{{ effective_return_date|default:original_return_date|date:"d M Y" }}</td>
+        </tr>
+        <tr>
+          <td class="lbl">Contact No:</td>
+          <td class="val">{{ customer_phone|default:"N/A" }}</td>
+          <td class="lbl">Rent Days:</td>
+          <td class="val">{{ total_rent_days|default:original_days }} Days</td>
+        </tr>
+        <tr>
+          <td class="lbl">Patient Name:</td>
+          <td class="val">{{ patient_name|default:"N/A" }}</td>
+          <td class="lbl"></td>
+          <td class="val"></td>
+        </tr>
+      </tbody>
+    </table>
 
     <h3 class="section-title">Item Details</h3>
     <table class="items-table">
@@ -442,54 +492,86 @@
         <p>{{ rental.address|default:"Take Away – Nearest Hub" }}</p>
       </div>
       <div class="total-info">
-        {% if rental.delivery_option|lower == "delivery" %}
-        <strong>Delivery Charge:</strong> ₹500
-        <span style="color:{% if delivery_paid == delivery_charge %}green{% else %}red{% endif %};font-weight:bold;">(₹{{ delivery_paid }} Paid)</span>
-        {% else %}
-        <strong>Delivery Charge:</strong> ₹0
-        {% endif %}
-        <!-- <div class="info-item">
-          <p><strong>Payment Mode:</strong>
-            {% if rental.payment_method == "online" %}
-            Online Payment
-            {% else %}
-            Cash
+        <table class="summary-table">
+          <tbody>
+            <tr>
+              <td><strong>Rent Amount:</strong></td>
+              <td class="text-right">₹{{ total_rent }}</td>
+            </tr>
+            {% if extension_history %}
+            <tr>
+              <td><strong>Extension Rent:</strong></td>
+              <td class="text-right">₹{{ extension_total }}</td>
+            </tr>
             {% endif %}
-          </p>
-        </div> -->
-
-        <!-- <p><strong>Rent Total:</strong> ₹{{ total_rent }}</p> -->
-        <p><strong>Booking Total:</strong> ₹{{ original_total_amount }}</p>
-
-        {% if extension_history %}
-        <!-- <p><strong>Total Extension Charges:</strong> ₹{{ extension_total }}</p> -->
-        <p class="total-amount">
-          <strong>Final Grand Total:</strong> ₹{{ final_total_amount }}
-          {% if rental.deposit_donated %}
-          <br><small style="color:green;font-weight:bold;">(Deposit Donated - Thank you!)</small>
-          {% endif %}
-        </p>
-        {% else %}
-        <p class="total-amount">
-          <!-- <strong>Total Amount:</strong> ₹{{ original_total_amount }} -->
-          {% if rental.deposit_donated %}
-          <br><small style="color:green;font-weight:bold;">(Deposit Donated - Thank you!)</small>
-          {% endif %}
-        </p>
-        {% endif %}
-
-        <div
-          style="border-top: 1.5px dashed var(--border); margin-top: -10px; padding-top: 1px; display: inline-block; width: 100%;">
-          <p style="font-size: 0.95rem; margin: 2px 0;"><strong>Amount Paid:</strong> <span
-              style="color:green;font-weight:bold;">₹{{ amount_paid }}</span></p>
-          <p style="font-size: 0.95rem; margin: 2px 0;"><strong>Amount Remaining:</strong> <span
-              style="color:var(--primary);font-weight:bold;">₹{{ amount_remaining }}</span></p>
-        </div>
+            <tr>
+              <td><strong>Delivery Charges:</strong></td>
+              <td class="text-right">
+                {% if rental.delivery_option|lower == "delivery" %}
+                ₹{{ delivery_charge }}
+                {% if delivery_paid %}
+                <span style="color:{% if delivery_paid == delivery_charge %}green{% else %}red{% endif %};font-weight:bold;">(₹{{ delivery_paid }} Paid)</span>
+                {% endif %}
+                {% else %}
+                ₹0
+                {% endif %}
+              </td>
+            </tr>
+            {% if rental.return_pickup_charge and rental.return_pickup_charge > 0 %}
+            <tr>
+              <td><strong>Return Delivery Charges:</strong></td>
+              <td class="text-right">₹{{ rental.return_pickup_charge }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+              <td><strong>Deposit Total:</strong></td>
+              <td class="text-right">₹{{ total_deposit }}</td>
+            </tr>
+            {% if rental.deposit_donated or donation_amount %}
+            <tr>
+              <td><strong>Donation Amount:</strong></td>
+              <td class="text-right" style="color:green;font-weight:bold;">
+                {% if donation_amount %}₹{{ donation_amount }}{% else %}₹{{ total_deposit }} (Donated){% endif %}
+              </td>
+            </tr>
+            {% endif %}
+            <tr class="highlight-row">
+              <td><strong>Total Amount:</strong></td>
+              <td class="text-right"><strong>₹{{ final_total_amount|default:original_total_amount }}</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Paid Amount:</strong></td>
+              <td class="text-right" style="color:green;font-weight:bold;">₹{{ amount_paid }}</td>
+            </tr>
+            <tr class="balance-row">
+              <td><strong>Balanced Amount:</strong></td>
+              <td class="text-right" style="color:var(--primary);font-weight:bold;">₹{{ amount_remaining }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
     <div style="font-size:11px;text-align:center;margin-top:4px;color:#555;">You hereby agree to all terms &amp;
       conditions mentioned on our booking portal</div>
     <div class="thank-you">Thank you for booking with us.</div>
+  </div>
+</div>
+
+<!-- Bottom Action Buttons -->
+<div class="receipt-screen-wrap" style="margin-top:20px;">
+  <div class="receipt-action-bar" style="justify-content:center;">
+    <div class="ra-btns">
+      <button class="ra-btn ra-btn-red" onclick="downloadPDF()"><i class="fas fa-download"></i> Download PDF</button>
+      <button class="ra-btn ra-btn-dark" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+      <button class="ra-btn ra-btn-green" onclick="shareReceipt()"><i class="fas fa-share-alt"></i> Share</button>
+      {% if not rental.is_returned %}
+      <button class="ra-btn ra-btn-blue"
+        onclick="window.location.href='{% url 'extend_return_date' rental.order_id %}'"><i
+          class="fas fa-calendar-plus"></i> Extend</button>
+      {% endif %}
+      <button class="ra-btn ra-btn-grey" onclick="window.location.href='{% url 'bookingsammry' %}'"><i
+          class="fas fa-arrow-left"></i> Back</button>
+    </div>
   </div>
 </div>
 
@@ -509,6 +591,28 @@
       jsPDF: { unit: "mm", format: "a5", orientation: "landscape" }
     };
     html2pdf().set(opt).from(element).save();
+  }
+
+  function shareReceipt() {
+    const title = "Booking Receipt — Order #{{ rental.order_id }}";
+    const text = "Booking Receipt for Order #{{ rental.order_id }} - Sick Bed Services";
+    const url = window.location.href;
+
+    if (navigator.share) {
+      navigator.share({
+        title: title,
+        text: text,
+        url: url
+      }).catch(err => console.log('Share dismissed:', err));
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        alert("Receipt link copied to clipboard!");
+      }).catch(() => {
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + " " + url)}`, '_blank');
+      });
+    } else {
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + " " + url)}`, '_blank');
+    }
   }
 </script>
 {% endblock %}
