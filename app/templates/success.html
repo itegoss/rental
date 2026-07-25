@@ -365,7 +365,7 @@
 </div>
 
 <!-- Printable receipt (unchanged layout) -->
-<div id="pdf-content" style="max-width:820px; margin:0 auto; padding:0 20px 40px;">
+<div id="pdf-content" style="max-width:820px; margin:0 auto; padding:0 20px 0px;">
   <div class="receipt-container">
     <div class="receipt-header">
       <div class="logo-container">
@@ -560,7 +560,7 @@
 </div>
 
 <!-- Bottom Action Buttons -->
-<div class="receipt-screen-wrap" style="margin-top:20px;">
+<div class="receipt-screen-wrap" style="margin-top:20px; margin-bottom:40px;">
   <div class="receipt-action-bar" style="justify-content:center;">
     <div class="ra-btns">
       <button class="ra-btn ra-btn-red" onclick="downloadPDF()"><i class="fas fa-download"></i> Download PDF</button>
@@ -586,13 +586,27 @@
       .replace(/[\\/:*?"<>|]+/g, "_")
       .replace(/\s+/g, "_")
       .replace(/^_+|_+$/g, "") || "Receipt";
+
+    const prevPadding = element.style.padding;
+    const prevMargin = element.style.margin;
+    element.style.padding = "0px";
+    element.style.margin = "0px";
+
     const opt = {
       margin: 3, filename: `${safeFileName}.pdf`,
       image: { type: "jpeg", quality: 1 },
       html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: element.scrollWidth },
-      jsPDF: { unit: "mm", format: "a5", orientation: "landscape" }
+      jsPDF: { unit: "mm", format: "a5", orientation: "landscape" },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
-    html2pdf().set(opt).from(element).save();
+
+    html2pdf().set(opt).from(element).save().then(() => {
+      element.style.padding = prevPadding;
+      element.style.margin = prevMargin;
+    }).catch(() => {
+      element.style.padding = prevPadding;
+      element.style.margin = prevMargin;
+    });
   }
 
   function shareReceipt() {

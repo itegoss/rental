@@ -587,6 +587,78 @@ class ReturnReceiptCalculationTests(TestCase):
         self.assertEqual(response.context['amount_remaining'], Decimal("1040.00"))
 
 
+class DynamicReturnDeliveryChargeTests(TestCase):
+    def setUp(self):
+        from decimal import Decimal
+        import datetime
+        from django.utils import timezone
+        from app.models import Inventory, History
+        self.user = User.objects.create_user(username='testuser', email='testuser@example.com', password='password123')
+        self.admin = User.objects.create_superuser(username='admin', email='admin@example.com', password='password123')
+        self.item = Inventory.objects.create(
+            title='Oxygen Cylinder',
+            price_per_day=Decimal("20.00"),
+            deposit=Decimal("1500.00"),
+            total_quantity=5,
+            available_quantity=5,
+            booked_quantity=0,
+            available=True
+        )
+        self.rental = History.objects.create(
+            user=self.user,
+            rental_item=self.item,
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date() + datetime.timedelta(days=9), # 10 days
+            quantity=1,
+            deposit=Decimal("1500.00"),
+            amount_paid=Decimal("2200.00"), # 200 rent + 1500 deposit + 500 initial delivery
+            delivery_option='delivery',
+            delivery_charge=Decimal("500.00"),
+            payment_method='cod',
+            status='approved',
+            is_returned=False,
+            order_id='ORD202607990'
+        )
+
+    def test_custom_return_delivery_charge_applies_correctly(self):
+        from decimal import Decimal
+        from app.models import History
+        self.client.login(username='testuser', password='password123')
+        # Request return with dynamic pickup charge of ₹350
+        response = self.client.get(
+            reverse('return_order', args=['ORD202607990']),
+            {'donate_deposit': 'false', 'return_delivery': 'true', 'return_delivery_charge': '350'}
+        )
+        self.assertIn(response.status_code, [302, 200])
+        
+        # Verify pickup charge saved in db
+        self.rental.refresh_from_db()
+        self.assertTrue(self.rental.is_return_requested)
+        self.assertEqual(self.rental.return_pickup_charge, Decimal("350.00"))
+        
+        # Admin approves the return
+        self.client.login(username='admin', password='password123')
+        response_approve = self.client.get(reverse('approve_return_order', args=['ORD202607990']))
+        self.assertIn(response_approve.status_code, [302, 200])
+        self.rental.refresh_from_db()
+        self.assertTrue(self.rental.is_returned)
+        
+        # Verify receipt reflects custom charge of ₹350
+        self.client.login(username='testuser', password='password123')
+        response_receipt = self.client.get(reverse('return_receipt', args=['ORD202607990']))
+        self.assertEqual(response_receipt.status_code, 200)
+        self.assertEqual(response_receipt.context['return_pickup_charge'], Decimal("350.00"))
+        
+        # total_amount: 200 rent + 500 delivery + 350 return delivery + 0 donation = 1050
+        # final_deposit: 1500
+        # amount_paid: 2200
+        # net_balance = amount_paid - total_amount = 2200 - 1050 = 1150
+        # refund_amount = min(net_balance, final_deposit) = min(1150, 1500) = 1150
+        self.assertEqual(response_receipt.context['refund_amount'], Decimal("1150.00"))
+        self.assertEqual(response_receipt.context['amount_remaining'], Decimal("0.00"))
+
+
+
 
 
 

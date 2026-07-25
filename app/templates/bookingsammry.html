@@ -1260,9 +1260,26 @@
     <div class="d-icon"><i class="fas fa-hand-holding-heart"></i></div>
     <h2>Donate Your Deposit?</h2>
     <p>Be generous , help us to support for the good cause.</p>
-    <button type="button" id="returnDeliveryBtn" class="act-btn" style="width: 100%; margin-bottom: 20px; border: 2.5px solid #cbd5e1; background: transparent; color: #475569; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; border-radius: 999px; padding: 12px 24px; transition: all 0.22s; outline: none; cursor: pointer; font-family: var(--font);" onclick="toggleReturnDelivery(event)">
-      <i class="fas fa-truck"></i> Do you want return delivery? (₹500)
-    </button>
+    <!-- Return Delivery Section -->
+    <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: left; box-sizing: border-box;">
+      <div style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;" onclick="toggleReturnDelivery(event)">
+        <div style="display: flex; align-items: center; gap: 10px; font-weight: 700; color: #475569; font-size: 0.95rem;">
+          <i class="fas fa-truck" style="color: var(--primary); font-size: 1.1rem;"></i> Do you want return delivery?
+        </div>
+        <div id="returnDeliveryToggle" style="width: 44px; height: 24px; background: #cbd5e1; border-radius: 999px; position: relative; transition: background 0.22s;">
+          <div id="returnDeliveryKnob" style="width: 18px; height: 18px; background: #fff; border-radius: 50%; position: absolute; top: 3px; left: 3px; transition: left 0.22s; box-shadow: 0 1px 3px rgba(0,0,0,0.15);"></div>
+        </div>
+      </div>
+      
+      <div id="returnDeliveryChargeContainer" style="max-height: 0; overflow: hidden; transition: all 0.25s ease-out; opacity: 0;">
+        <div style="margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 14px;">
+          <div class="d-field" style="margin-bottom: 0;">
+            <label for="returnDeliveryCharge" style="font-weight: 700; font-size: 0.78rem; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; display: block;">Return Delivery Charge (₹)</label>
+            <input type="number" id="returnDeliveryCharge" min="0" step="1" value="500" style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-family: var(--font); font-size: 0.9rem; outline: none; box-sizing: border-box;" placeholder="Enter delivery charge">
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="d-donate-fields" id="donateFields">
       <div class="d-current-deposit">Current Deposit: <span>₹<span id="currentDepositAmount">0</span></span></div>
       <div class="d-field">
@@ -1422,24 +1439,45 @@
     document.getElementById('donationError').classList.remove('open');
     document.getElementById('donateFields').classList.remove('open');
     document.getElementById('currentDepositAmount').textContent = depositTotal.toFixed(2);
+    
+    // Reset return delivery selection and styles
+    returnDeliveryRequested = false;
+    const toggle = document.getElementById('returnDeliveryToggle');
+    const knob = document.getElementById('returnDeliveryKnob');
+    const container = document.getElementById('returnDeliveryChargeContainer');
+    if (toggle) toggle.style.backgroundColor = '#cbd5e1';
+    if (knob) knob.style.left = '3px';
+    if (container) {
+      container.style.maxHeight = '0';
+      container.style.opacity = '0';
+    }
+    const chargeInput = document.getElementById('returnDeliveryCharge');
+    if (chargeInput) chargeInput.value = '500';
+
     document.getElementById('depositModal').classList.add('open');
   }
   let returnDeliveryRequested = false;
   function toggleReturnDelivery(event) {
     if (event) event.preventDefault();
     returnDeliveryRequested = !returnDeliveryRequested;
-    const btn = document.getElementById('returnDeliveryBtn');
-    if (btn) {
-      if (returnDeliveryRequested) {
-        btn.style.borderColor = 'var(--primary)';
-        btn.style.backgroundColor = 'var(--primary)';
-        btn.style.color = '#fff';
-        btn.style.boxShadow = '0 4px 12px rgba(236,36,39,0.2)';
-      } else {
-        btn.style.borderColor = '#cbd5e1';
-        btn.style.backgroundColor = 'transparent';
-        btn.style.color = '#475569';
-        btn.style.boxShadow = 'none';
+    
+    const toggle = document.getElementById('returnDeliveryToggle');
+    const knob = document.getElementById('returnDeliveryKnob');
+    const container = document.getElementById('returnDeliveryChargeContainer');
+    
+    if (returnDeliveryRequested) {
+      if (toggle) toggle.style.backgroundColor = 'var(--primary)';
+      if (knob) knob.style.left = '23px';
+      if (container) {
+        container.style.maxHeight = '100px';
+        container.style.opacity = '1';
+      }
+    } else {
+      if (toggle) toggle.style.backgroundColor = '#cbd5e1';
+      if (knob) knob.style.left = '3px';
+      if (container) {
+        container.style.maxHeight = '0';
+        container.style.opacity = '0';
       }
     }
   }
@@ -1451,13 +1489,17 @@
     
     // Reset return delivery selection
     returnDeliveryRequested = false;
-    const btn = document.getElementById('returnDeliveryBtn');
-    if (btn) {
-      btn.style.borderColor = '#cbd5e1';
-      btn.style.backgroundColor = 'transparent';
-      btn.style.color = '#475569';
-      btn.style.boxShadow = 'none';
+    const toggle = document.getElementById('returnDeliveryToggle');
+    const knob = document.getElementById('returnDeliveryKnob');
+    const container = document.getElementById('returnDeliveryChargeContainer');
+    if (toggle) toggle.style.backgroundColor = '#cbd5e1';
+    if (knob) knob.style.left = '3px';
+    if (container) {
+      container.style.maxHeight = '0';
+      container.style.opacity = '0';
     }
+    const chargeInput = document.getElementById('returnDeliveryCharge');
+    if (chargeInput) chargeInput.value = '500';
   }
 
   function submitDepositChoice(donate) {
@@ -1467,21 +1509,45 @@
       document.getElementById('donateFields').classList.add('open');
       return;
     }
+    
+    // Validate return delivery charge if requested
+    let chargeVal = '500';
+    if (returnDeliveryRequested) {
+      const chargeInput = document.getElementById('returnDeliveryCharge');
+      chargeVal = chargeInput ? chargeInput.value.trim() : '500';
+      if (chargeVal === '' || parseFloat(chargeVal) < 0 || isNaN(parseFloat(chargeVal))) {
+        const errorDiv = document.getElementById('donationError');
+        if (errorDiv) {
+          errorDiv.textContent = 'Please enter a valid return delivery charge (0 or higher).';
+          errorDiv.classList.add('open');
+        }
+        return;
+      }
+    }
+
     const sep = depositReturnHref.includes('?') ? '&' : '?';
     let url = depositReturnHref + sep + 'donate_deposit=' + (donate ? 'true' : 'false');
     if (returnDeliveryRequested) {
       url += '&return_delivery=true';
+      url += '&return_delivery_charge=' + encodeURIComponent(chargeVal);
     }
     if (donate) {
       const amount = document.getElementById('donationAmount').value;
       const comment = document.getElementById('donationComment').value;
       if (!amount || parseFloat(amount) <= 0) {
-        document.getElementById('donationError').classList.add('open');
+        const errorDiv = document.getElementById('donationError');
+        if (errorDiv) {
+          errorDiv.textContent = 'Please enter a valid donation amount.';
+          errorDiv.classList.add('open');
+        }
         return;
       }
       if (parseFloat(amount) > depositTotal) {
-        document.getElementById('donationError').textContent = 'Donation amount cannot be more than current deposit.';
-        document.getElementById('donationError').classList.add('open');
+        const errorDiv = document.getElementById('donationError');
+        if (errorDiv) {
+          errorDiv.textContent = 'Donation amount cannot be more than current deposit.';
+          errorDiv.classList.add('open');
+        }
         return;
       }
       url += '&donation_amount=' + encodeURIComponent(amount);

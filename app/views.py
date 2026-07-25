@@ -1646,6 +1646,12 @@ def extend_return_date(request, order_id):
 def return_order(request, order_id):
     donate_deposit = request.GET.get("donate_deposit") == "true"
     return_delivery = request.GET.get("return_delivery") == "true"
+    return_delivery_charge = Decimal("0")
+    if return_delivery:
+        try:
+            return_delivery_charge = Decimal(request.GET.get("return_delivery_charge", "500"))
+        except Exception:
+            return_delivery_charge = Decimal("500")
     donation_amount = Decimal("0")
     donation_comment = request.GET.get("donation_comment", "").strip()
 
@@ -1708,7 +1714,7 @@ def return_order(request, order_id):
             rr.donation_amount = donation_amount if index == 0 else Decimal("0")
             rr.donation_comment = donation_comment if index == 0 else ""
             if return_delivery:
-                rr.return_pickup_charge = Decimal("500") if index == 0 else Decimal("0")
+                rr.return_pickup_charge = return_delivery_charge if index == 0 else Decimal("0")
             else:
                 rr.return_pickup_charge = Decimal("0")
             update_fields = [
@@ -1756,7 +1762,7 @@ def return_order(request, order_id):
         rr.donation_amount = donation_amount if index == 0 else Decimal("0")
         rr.donation_comment = donation_comment if index == 0 else ""
         if return_delivery:
-            rr.return_pickup_charge = Decimal("500")
+            rr.return_pickup_charge = return_delivery_charge if index == 0 else Decimal("0")
         else:
             rr.return_pickup_charge = Decimal("0")
         rr.save(update_fields=[
