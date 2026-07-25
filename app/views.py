@@ -1937,7 +1937,8 @@ def return_receipt(request, order_id):
     final_deposit = total_deposit + additional_deposit
     
     delivery_charge = rental.delivery_charge
-    return_pickup_charge = rental.return_pickup_charge
+    all_order_rentals = History.objects.filter(order_id=order_id)
+    return_pickup_charge = max((rr.return_pickup_charge for rr in all_order_rentals), default=Decimal("0"))
     
     total_rent_with_extensions = breakdown["original_total_rent"] + breakdown["extension_total"]
     total_amount = total_rent_with_extensions + delivery_charge + return_pickup_charge + donation_amount
@@ -1972,7 +1973,7 @@ def return_receipt(request, order_id):
         "refund_amount": refund_amount,
         "delivery_option": rental.delivery_option,
         "delivery_charge": rental.delivery_charge,
-        "return_pickup_charge": rental.return_pickup_charge,
+        "return_pickup_charge": return_pickup_charge,
         
         # Extension history fields
         "original_booking_date": breakdown["original_booking_date"],

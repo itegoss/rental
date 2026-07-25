@@ -340,7 +340,7 @@ def generate_receipt(order):
     # 6. Final Summary / Totals
     elements.append(Paragraph("Final Invoice Details", section_title_style))
     delivery_charge = order.delivery_charge if order.delivery_option == "delivery" else Decimal("0")
-    return_pickup_charge = getattr(order, 'return_pickup_charge', Decimal("0")) or Decimal("0")
+    return_pickup_charge = max((rr.return_pickup_charge for rr in related_rentals), default=Decimal("0"))
     
     right_normal_style = ParagraphStyle('RightNormal', parent=normal_style, alignment=2)
     
