@@ -1006,12 +1006,6 @@ def success(request, rental_id):
 
 
 def about(request):
-    # About is a normal module: if the user has a Role assigned, only
-    # show it when explicitly allowed by role. Otherwise allow.
-    from .models import user_has_assigned_role
-    if request.user.is_authenticated and user_has_assigned_role(request.user) and not (request.user.is_superuser or request.user.is_staff):
-        return render(request, 'permission_denied.html', status=403)
-
     return render(request, 'about.html')
 
 
@@ -2574,18 +2568,18 @@ def employee_blood_requests(request):
 
 from django.contrib.auth.decorators import login_required
 
-@login_required(login_url='signin')
 def organize_camp(request):
-    resp = ensure_module_access(request, 'can_manage_camps')
-    if resp:
-        return resp
     if request.method == 'POST':
         form = CampOrganizerForm(request.POST)
         if form.is_valid():
             camp = form.save(commit=False)
 
-            camp.created_by = request.user
-            camp.updated_by = request.user
+            if request.user.is_authenticated:
+                camp.created_by = request.user
+                camp.updated_by = request.user
+            else:
+                camp.created_by = None
+                camp.updated_by = None
 
             camp.save()
 
@@ -2655,18 +2649,18 @@ def organize_camp(request):
 
     return render(request, 'organize_camp.html', {'form': form})
 
-@login_required(login_url='signin')
 def be_donor(request):
-    resp = ensure_module_access(request, 'can_manage_donors')
-    if resp:
-        return resp
     if request.method == 'POST':
         form = BloodDonorForm(request.POST)
         if form.is_valid():
             donor = form.save(commit=False)
 
-            donor.created_by = request.user
-            donor.updated_by = request.user
+            if request.user.is_authenticated:
+                donor.created_by = request.user
+                donor.updated_by = request.user
+            else:
+                donor.created_by = None
+                donor.updated_by = None
 
             donor.save()
 
@@ -2737,9 +2731,6 @@ def be_donor(request):
 from django.contrib.auth.decorators import login_required
 
 def medical_services(request):
-    resp = ensure_module_access(request, 'can_manage_services')
-    if resp:
-        return resp
     # Admin: show services management
     if user_has_permission(request.user, 'can_manage_services'):
         q = request.GET.get('q', '').strip()
@@ -2848,18 +2839,18 @@ def delete_service(request, pk):
     messages.success(request, 'Service deleted successfully.')
     return redirect('medical_services')
 
-@login_required(login_url='signin')
 def volunteer_event(request):
-    resp = ensure_module_access(request, 'can_manage_volunteers')
-    if resp:
-        return resp
     if request.method == 'POST':
         form = EventVolunteerForm(request.POST)
         if form.is_valid():
             volunteer = form.save(commit=False)
 
-            volunteer.created_by = request.user
-            volunteer.updated_by = request.user
+            if request.user.is_authenticated:
+                volunteer.created_by = request.user
+                volunteer.updated_by = request.user
+            else:
+                volunteer.created_by = None
+                volunteer.updated_by = None
 
             volunteer.save()
 
