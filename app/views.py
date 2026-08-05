@@ -2767,14 +2767,16 @@ def add_service(request):
             )
             seen_contacts = set()
             for i in range(1, 5):
+                s_name = (request.POST.get(f'service_name_{i}') or '').strip()
                 c_name = (request.POST.get(f'contact_name_{i}') or '').strip()
                 c_num = (request.POST.get(f'contact_number_{i}') or '').strip()
-                if c_name and c_num:
-                    key = (c_name.lower(), c_num)
+                if c_name or c_num or s_name:
+                    key = (s_name.lower(), c_name.lower(), c_num)
                     if key not in seen_contacts:
                         seen_contacts.add(key)
                         SupportServiceContact.objects.create(
                             service=service,
+                            service_name=s_name,
                             contact_name=c_name,
                             contact_number=c_num,
                             display_order=i
@@ -2793,7 +2795,7 @@ def edit_service(request, pk):
     if request.method == 'POST':
         name = (request.POST.get('name') or request.POST.get('title') or '').strip()
         description = (request.POST.get('description') or '').strip()
-        is_active = 'is_active' in request.POST
+        is_active = 'is_active' in request.POST or request.POST.get('is_active') == 'on'
         if name and description:
             service.name = name
             service.description = description
@@ -2803,14 +2805,16 @@ def edit_service(request, pk):
             service.contacts.all().delete()
             seen_contacts = set()
             for i in range(1, 5):
+                s_name = (request.POST.get(f'service_name_{i}') or '').strip()
                 c_name = (request.POST.get(f'contact_name_{i}') or '').strip()
                 c_num = (request.POST.get(f'contact_number_{i}') or '').strip()
-                if c_name and c_num:
-                    key = (c_name.lower(), c_num)
+                if c_name or c_num or s_name:
+                    key = (s_name.lower(), c_name.lower(), c_num)
                     if key not in seen_contacts:
                         seen_contacts.add(key)
                         SupportServiceContact.objects.create(
                             service=service,
+                            service_name=s_name,
                             contact_name=c_name,
                             contact_number=c_num,
                             display_order=i
@@ -2825,7 +2829,7 @@ def edit_service(request, pk):
         if i < len(contacts_list):
             contacts.append(contacts_list[i])
         else:
-            contacts.append({'contact_name': '', 'contact_number': ''})
+            contacts.append({'service_name': '', 'contact_name': '', 'contact_number': ''})
 
     return render(request, 'edit_service.html', {'service': service, 'contacts': contacts})
 

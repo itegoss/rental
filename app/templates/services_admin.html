@@ -111,7 +111,13 @@
             <td class="item-name-cell"><strong>{{ s.name }}</strong></td>
             <td>
               {% for c in s.contacts.all %}
-                <div class="mb-1"><small class="text-dark font-weight-bold">{{ c.contact_name }}:</small> <small class="text-muted">{{ c.contact_number }}</small></div>
+                <div class="mb-1">
+                  {% if c.service_name %}
+                    <span class="badge bg-light text-danger border" style="font-size:0.75rem; padding:3px 7px; margin-right:4px;">{{ c.service_name }}</span>
+                  {% endif %}
+                  <small class="text-dark font-weight-bold">{{ c.contact_name }}:</small>
+                  <small class="text-muted">{{ c.contact_number }}</small>
+                </div>
               {% empty %}
                 <span class="text-muted small">No contacts</span>
               {% endfor %}
