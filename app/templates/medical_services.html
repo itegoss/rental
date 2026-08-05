@@ -20,6 +20,7 @@
     color: var(--text, #0f172a);
     margin-bottom: 8px;
     letter-spacing: -0.5px;
+    text-align: center;
   }
 
   .support-services-head h1 span {
@@ -31,6 +32,7 @@
     font-size: 1rem;
     max-width: 600px;
     margin: 0 auto;
+    text-align: center;
   }
 
   .underline-bar {
@@ -39,6 +41,52 @@
     background: linear-gradient(90deg, #ec2427 0%, #ff6b6b 100%);
     border-radius: 4px;
     margin: 14px auto 0;
+  }
+
+  /* ── Empty State Box (Centered) ── */
+  .empty-state-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 50px 24px;
+    background: #ffffff;
+    border-radius: 20px;
+    border: 1.5px dashed #cbd5e1;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+    margin: 20px auto;
+    max-width: 580px;
+    width: 100%;
+  }
+
+  .empty-state-icon {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: #fef2f2;
+    color: #ec2427;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    margin-bottom: 18px;
+    box-shadow: 0 8px 20px rgba(236,36,39,0.15);
+  }
+
+  .empty-state-box h4 {
+    font-weight: 800;
+    color: #1e293b;
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .empty-state-box p {
+    color: #64748b;
+    font-size: 0.92rem;
+    margin: 0;
+    text-align: center;
   }
 
   /* ── Grid Row ── */
@@ -81,7 +129,7 @@
     transform: rotateY(180deg);
   }
 
-  /* ── Both Faces: 100% Height & Width ── */
+  /* ── Both Faces ── */
   .flip-card-front,
   .flip-card-back {
     grid-area: card;
@@ -370,6 +418,81 @@
     font-style: italic;
     padding: 18px !important;
   }
+
+  /* ── Mobile Responsive Breakpoints ── */
+  @media (max-width: 768px) {
+    .support-services-page {
+      padding: 28px 14px;
+    }
+
+    .support-services-head {
+      margin-bottom: 32px;
+    }
+
+    .support-services-head h1 {
+      font-size: 1.8rem;
+    }
+
+    .support-services-head p {
+      font-size: 0.9rem;
+    }
+
+    .flip-card-wrapper {
+      height: 390px;
+      margin-bottom: 20px;
+    }
+
+    .flip-card-front,
+    .flip-card-back {
+      padding: 18px;
+      border-radius: 16px;
+    }
+
+    .card-icon-glow {
+      width: 42px;
+      height: 42px;
+      font-size: 1.1rem;
+    }
+
+    .flip-card-front h3 {
+      font-size: 1.15rem;
+    }
+
+    .flip-card-front .service-desc {
+      font-size: 0.86rem;
+      -webkit-line-clamp: 3;
+    }
+
+    .click-to-flip-btn {
+      padding: 9px 14px;
+      font-size: 0.8rem;
+    }
+
+    .contacts-table th {
+      padding: 8px 6px;
+      font-size: 0.65rem;
+    }
+
+    .contacts-table td {
+      padding: 8px 6px;
+      font-size: 0.78rem;
+    }
+
+    .table-phone-btn {
+      padding: 4px 8px;
+      font-size: 0.72rem;
+    }
+
+    .empty-state-box {
+      padding: 36px 16px;
+    }
+
+    .empty-state-icon {
+      width: 56px;
+      height: 56px;
+      font-size: 1.4rem;
+    }
+  }
 </style>
 
 <div class="support-services-page">
@@ -448,9 +571,14 @@
       </div>
     </div>
     {% empty %}
-    <div class="col-12 text-center py-5 text-muted">
-      <i class="fas fa-hand-holding-medical" style="font-size: 2.5rem; margin-bottom: 12px; color: var(--muted);"></i>
-      <h4>No support services available at the moment.</h4>
+    <div class="col-12 w-100 py-4">
+      <div class="empty-state-box">
+        <div class="empty-state-icon">
+          <i class="fas fa-hand-holding-medical"></i>
+        </div>
+        <h4>No support services available at the moment.</h4>
+        <p>Please check back later or contact site administration for assistance.</p>
+      </div>
     </div>
     {% endfor %}
   </div>
