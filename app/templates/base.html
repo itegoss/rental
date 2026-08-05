@@ -13,6 +13,11 @@
     crossorigin="anonymous">
   {% load static notification_tags %}
   <link rel="shortcut icon" type="image/x-icon" href="{% static 'images/logo2.png' %}">
+<link rel="manifest" href="{% static 'pwa/manifest.json' %}">
+<link rel="apple-touch-icon" href="{% static 'pwa/icons/icon-192x192.png' %}">
+<meta name="theme-color" content="#ec2427">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
   <style>
     :root {
       --primary: #ec2427;
@@ -70,14 +75,23 @@
     }
 
     .nav-inner {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 24px;
-      height: 64px;
+      width: 100%;
+      margin: 0;
+      padding: 6px 20px;
+      min-height: 64px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .logo {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 16px;
+      flex-shrink: 0;
+      min-width: 60px;
+      margin-right: 12px;
+      z-index: 10;
     }
 
     .logo a {
@@ -86,7 +100,7 @@
     }
 
     .logo img {
-      height: 60px;
+      height: 52px;
       width: auto;
       display: block;
       transition: transform var(--transition);
@@ -99,13 +113,26 @@
     .nav-right {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 12px;
+      flex-wrap: nowrap;
+      justify-content: flex-end;
+      min-width: 0;
     }
 
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 2px;
+      justify-content: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      min-width: 0;
+      overflow: visible;
+    }
+
+    .nav-links,
+    .welcome-chip,
+    .nav-auth-btn {
+      flex-shrink: 0;
     }
 
     .nav-links a,
@@ -124,13 +151,86 @@
       white-space: nowrap;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 0px;
     }
 
     .nav-links a:hover,
     .nav-links button.nav-btn:hover {
       background: rgba(255, 255, 255, 0.15);
       color: #fff;
+    }
+
+    /* Equipment Rental Dropdown */
+    .nav-dropdown-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .nav-dropdown-toggle {
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 0.875rem;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    .nav-dropdown-wrapper:hover .nav-dropdown-toggle,
+    .nav-dropdown-toggle:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
+    .nav-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 200px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border);
+      padding: 8px 0;
+      display: none;
+      z-index: 2000;
+      animation: dropIn 0.18s ease;
+    }
+
+    .nav-dropdown-wrapper:hover .nav-dropdown-menu,
+    .nav-dropdown-menu.show {
+      display: block;
+    }
+
+    .nav-dropdown-item {
+      display: flex !important;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px !important;
+      color: #374151 !important;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border-radius: 0 !important;
+    }
+
+    .nav-dropdown-item i {
+      color: var(--primary);
+      width: 18px;
+      text-align: center;
+    }
+
+    .nav-dropdown-item:hover {
+      background: #fef2f2 !important;
+      color: var(--primary) !important;
     }
 
     .nav-cart-btn {
@@ -164,11 +264,10 @@
       position: relative;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      justify-content: center;
       color: rgba(255, 255, 255, 0.92);
-      font-size: 0.875rem;
-      font-weight: 600;
-      padding: 8px 12px;
+      font-size: 1.15rem;
+      padding: 8px 10px;
       border-radius: 8px;
       cursor: pointer;
       user-select: none;
@@ -177,22 +276,25 @@
 
     .notification-bell:hover {
       background: rgba(255, 255, 255, 0.15);
+      color: #fff;
     }
 
     .notification-count {
       position: absolute;
-      top: 4px;
-      right: 6px;
-      background: #fff;
+      top: 0px;
+      right: 0px;
+      background: #ffffff;
       color: var(--primary);
       font-size: 0.65rem;
       font-weight: 800;
-      width: 17px;
-      height: 17px;
-      border-radius: 50%;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      padding: 0 4px;
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
 
     .notification-dropdown {
@@ -294,7 +396,7 @@
 
     /* ── HAMBURGER ── */
     .toggle-btn {
-      display: none;
+      display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
@@ -334,46 +436,146 @@
       transform: translateY(-7.5px) rotate(-45deg);
     }
 
-    /* Mobile nav drawer */
+    /* Mobile/Unified nav drawer */
     .nav-links.mobile {
       display: none;
       position: fixed;
-      top: 64px;
+      top: 64px; /* EXACTLY BELOW NAVBAR */
       right: 0;
-      width: 260px;
+      width: 340px;
       height: calc(100vh - 64px);
-      background: var(--primary);
-      flex-direction: column;
-      padding: 16px 12px;
-      gap: 4px;
-      box-shadow: -6px 0 24px rgba(0, 0, 0, 0.18);
+      background: rgba(254, 242, 242, 0.96); /* Very light rose/red navbar-derived color */
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
       z-index: 999;
-      overflow-y: auto;
-      animation: slideIn 0.25s ease;
+      flex-direction: column;
+      padding: 24px 20px;
+      gap: 0;
+      box-shadow: -10px 10px 30px rgba(192, 24, 27, 0.15);
+      border-top-left-radius: 24px;
+      border-bottom-left-radius: 24px;
+      border-left: 1.5px solid rgba(192, 24, 27, 0.15);
+      border-bottom: 1.5px solid rgba(192, 24, 27, 0.15);
+      overflow: hidden;
+      animation: slideInCurved 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
     .nav-links.mobile.active {
       display: flex;
     }
 
-    @keyframes slideIn {
+    @keyframes slideInCurved {
       from {
         opacity: 0;
-        transform: translateX(30px);
+        transform: translateX(100%);
       }
-
       to {
         opacity: 1;
         transform: translateX(0);
       }
     }
 
-    .nav-links.mobile a,
-    .nav-links.mobile button.nav-btn {
-      width: 100%;
-      justify-content: flex-start;
-      padding: 12px 14px;
-      font-size: 0.95rem;
+    /* Links Container (Flex column filling height) */
+    .drawer-links-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      justify-content: space-between; /* Pushes bottom elements down */
+      overflow: hidden;
+    }
+
+    .drawer-links-main {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-bottom: 16px;
+    }
+
+    .drawer-links-main::-webkit-scrollbar {
+      width: 4px;
+    }
+    .drawer-links-main::-webkit-scrollbar-thumb {
+      background: rgba(192, 24, 27, 0.15);
+      border-radius: 2px;
+    }
+
+    .drawer-links-bottom {
+      flex-shrink: 0;
+      border-top: 1px solid rgba(192, 24, 27, 0.15);
+      padding-top: 16px;
+    }
+    
+    /* Links Cards styling */
+    .drawer-link-card {
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      border-radius: 12px;
+      background: transparent;
+      border: 1px solid transparent;
+      transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    
+    .drawer-link-card i {
+      font-size: 1rem;
+      color: #ffffff;
+      background: #ec2427; /* Accent red circle for icons to match the navbar logo/theme */
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s;
+      flex-shrink: 0;
+    }
+    
+    .drawer-link-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #374151; /* Dark grey for elegant contrast */
+      transition: all 0.25s;
+    }
+    
+    /* Hover Effects */
+    .drawer-link-card:hover {
+      background: rgba(236, 36, 39, 0.08); /* Light red tint hover highlight */
+      border-color: rgba(236, 36, 39, 0.15);
+      transform: translateX(-4px);
+      box-shadow: 0 4px 12px rgba(192, 24, 27, 0.08);
+    }
+    
+    .drawer-link-card:hover .drawer-link-title {
+      color: #c0181b; /* Text turns red to match navbar */
+    }
+
+    .drawer-link-card:hover i {
+      background: #c0181b;
+      transform: scale(1.08);
+    }
+
+    .mobile-only {
+      display: none !important;
+    }
+
+    /* Mobile Adaptations */
+    @media (max-width: 768px) {
+      .nav-links.mobile {
+        top: 64px;
+        width: 100%;
+        height: calc(100vh - 64px);
+        border-radius: 0;
+        border-left: none;
+        padding: 20px 16px;
+        background: #fef2f2;
+      }
+      .mobile-only {
+        display: flex !important;
+      }
     }
 
     .notif-wrapper {
@@ -541,119 +743,340 @@
     }
 
     @media (max-width: 768px) {
-      .nav-links.desktop {
-        display: none !important;
-      }
-
-      .toggle-btn {
-        display: flex;
-      }
-
       .footer-grid {
         gap: 32px;
       }
     }
 
-    @media (min-width: 769px) {
-      .nav-links.mobile {
-        display: none !important;
-      }
+    /* ── ADMIN NAVBAR OVERRIDE ── */
+    /* Shown only for is_staff / is_superuser via Django conditional */
+    nav.admin-nav {
+      position: sticky;
+      top: 0;
+      z-index: 1100;
+    }
 
-      .toggle-btn {
+    /* Tighter inner row for admin */
+    nav.admin-nav .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: nowrap;
+      gap: 8px;
+      padding: 6px 16px;
+      min-height: 64px;
+    }
+
+    /* Admin hamburger toggler */
+    .admin-toggler {
+      display: none;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      border-radius: 8px;
+      width: 40px;
+      height: 40px;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #fff;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      transition: background var(--transition);
+    }
+    .admin-toggler:hover { background: rgba(255,255,255,0.25); }
+
+    /* Admin collapsible menu */
+    .admin-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-wrap: nowrap;
+      overflow: visible;
+      flex: 1;
+      justify-content: center;
+      min-width: 0;
+    }
+
+    .admin-nav-links a,
+    .admin-nav-links .nav-dropdown-toggle {
+      color: rgba(255,255,255,0.93);
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      padding: 7px 10px;
+      border-radius: 7px;
+      white-space: nowrap;
+      text-decoration: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background var(--transition);
+    }
+    .admin-nav-links a:hover,
+    .admin-nav-links .nav-dropdown-toggle:hover {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+
+    /* Admin right controls */
+    .admin-nav-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* Responsive: collapse admin links at <= 1100px */
+    @media (max-width: 1100px) {
+      .admin-toggler { display: inline-flex; }
+      .admin-nav-links {
         display: none;
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #c0181b 0%, #ec2427 100%);
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 10px 0;
+        box-shadow: 0 8px 24px rgba(160,15,17,0.3);
+        z-index: 1099;
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
       }
+      .admin-nav-links.open {
+        display: flex;
+      }
+      .admin-nav-links a,
+      .admin-nav-links .nav-dropdown-toggle {
+        font-size: 0.9rem;
+        padding: 12px 20px;
+        border-radius: 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        justify-content: flex-start;
+      }
+      .admin-nav-links .nav-dropdown-wrapper {
+        display: block;
+      }
+      .admin-nav-links .nav-dropdown-menu {
+        position: static;
+        box-shadow: none;
+        border-radius: 0;
+        border: none;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        background: rgba(0,0,0,0.15);
+        padding: 0;
+      }
+      .admin-nav-links .nav-dropdown-item {
+        color: rgba(255,255,255,0.9) !important;
+        padding: 10px 32px !important;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        font-size: 0.85rem;
+      }
+      .admin-nav-links .nav-dropdown-item:hover {
+        background: rgba(255,255,255,0.1) !important;
+        color: #fff !important;
+      }
+      .admin-nav-links .nav-dropdown-item i { color: rgba(255,255,255,0.8); }
     }
   </style>
 </head>
 
 <body>
-  <nav>
-    <div class="nav-inner">
+  
+  {% if user.is_staff or user.is_superuser %}
+  {# ═══════════════ ADMIN NAVBAR ═══════════════ #}
+  <nav class="admin-nav" style="position:sticky;top:0;z-index:1100;">
+    <div class="nav-inner" style="position:relative;">
+
+      <!-- Logo -->
       <div class="logo">
-        <a href="{% url 'index' %}"> <img src="{% static 'images/logo1.png' %}" alt="Sick Bed Services Logo" width="60"
-            height="60"></a>
+        <a href="{% url 'index' %}"><img src="{% static 'images/logo1.png' %}" alt="Logo" width="50" height="50"></a>
       </div>
 
-      <div class="nav-right">
-        <div class="nav-links desktop" id="navLinksDesktop">
-          <!-- <a href="{% url 'index' %}\"><i class=\"fas fa-home\"></i> Home</a> -->
-          <a href="{% url 'services' %}"><i class="fas fa-concierge-bell"></i> Services</a>
-          {% if user.is_staff or user.is_superuser %}
-          <a href="{% url 'inventory' %}"><i class="fas fa-boxes"></i> Inventory</a>
-          {% endif %}
-          <a href="{% url 'items' %}"><i class="fas fa-th-large"></i> Items</a>
-          {% if user.is_authenticated %}
-          <a href="{% url 'bookingsammry' %}"><i class="fas fa-list-alt"></i> My Bookings</a>
-          <a href="{% url 'cart' %}" class="nav-cart-btn"><i class="fas fa-cart-plus"></i></a>
-          <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
-          {% else %}
-          <a href="{% url 'signin' %}"><i class="fas fa-sign-in-alt"></i> Login</a>
-          {% endif %}
-        </div>
+      <!-- Hamburger toggler (visible only when collapsed) -->
+      <button class="admin-toggler" id="adminNavToggler" aria-label="Toggle navigation" aria-expanded="false" aria-controls="adminNavLinks">
+        <i class="fas fa-bars" id="adminTogglerIcon"></i>
+      </button>
 
-        {% if user.is_authenticated %}
-        <span class="welcome-chip">{{ user.username }}</span>
-        {% if user.is_staff or user.is_superuser %}
-        <div class="notif-wrapper">
-          <div class="notification-bell" id="notificationBell" role="button" tabindex="0" aria-haspopup="true"
-            aria-expanded="false">
-            <i class="fas fa-bell"></i>
-            <span>Alerts</span>
-            {% if unread_notification_count > 0 %}<span class="notification-count">{{ unread_notification_count }}</span>{% endif %}
+      <!-- Collapsible nav links -->
+      <div class="admin-nav-links" id="adminNavLinks">
+        {% if rbac_show_equipment_rental %}
+        <div class="nav-dropdown-wrapper">
+          <button class="nav-dropdown-toggle" id="adminEqDropToggle" type="button" aria-haspopup="true" aria-expanded="false">
+            Equipment Rental <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i>
+          </button>
+          <div class="nav-dropdown-menu" id="adminEqDropMenu">
+            <a href="{% url 'items' %}" class="nav-dropdown-item"><i class="fas fa-th-large"></i> Items</a>
+            <a href="{% url 'inventory' %}" class="nav-dropdown-item"><i class="fas fa-boxes"></i> Inventory</a>
+            <a href="{% url 'bookingsammry' %}" class="nav-dropdown-item"><i class="fas fa-list-alt"></i> My Bookings</a>
           </div>
-          <div class="notification-dropdown" id="notificationDropdown">
-            <div class="notif-header">
-              <div>
-                <strong>Notifications</strong><br>
-                <small>Latest activity</small>
-              </div>
-              <a href="{% url 'admin_notifications' %}">View all →</a>
-            </div>
-            {% if latest_notifications %}
-            {% for note in latest_notifications %}
-            <a href="{% if note.link %}{{ note.link }}{% else %}{% url 'admin_notifications' %}{% endif %}"
-              class="notification-item">
-              <span class="notification-badge bg-{{ note.badge_class }} text-white">{{ note.get_type_display }}</span>
-              <div style="flex:1;">
-                <strong style="font-size:0.85rem;">{{ note.title }}</strong>
-                <p style="margin:3px 0 0; font-size:0.8rem; color:var(--muted);">{{ note.message|truncatechars:70 }}</p>
-                <small style="color:var(--muted); font-size:0.75rem;">{{ note.created_at|date:"d M, H:i" }}{% if not note.is_read %} · <span style="color:var(--primary);">Unread</span>{% endif %}</small>
-              </div>
-            </a>
-            {% endfor %}
-            {% else %}
-            <div class="notif-empty"><i class="fas fa-bell-slash"
-                style="font-size:1.5rem; margin-bottom:8px; display:block;"></i>No new notifications</div>
+        </div>
+        {% endif %}
+        {% if rbac_show_request_blood %}
+        <a href="{% url 'request_blood' %}">Request Blood</a>
+        {% endif %}
+        {% if rbac_show_medical_services %}
+        <a href="{% url 'medical_services' %}">Services</a>
+        {% endif %}
+        {% if rbac_show_organize_camp %}
+        <a href="{% url 'organize_camp' %}">Organize Camp</a>
+        {% endif %}
+        {% if rbac_show_be_donor %}
+        <a href="{% url 'be_donor' %}">Be a Donor</a>
+        {% endif %}
+        {% if rbac_show_volunteer %}
+        <a href="{% url 'volunteer_event' %}">Volunteer</a>
+        {% endif %}
+        {% if rbac_manage_users or rbac_manage_roles %}
+        <div class="nav-dropdown-wrapper">
+          <button class="nav-dropdown-toggle" id="adminUserMgmtToggle" type="button" aria-haspopup="true" aria-expanded="false">
+            </i> User Management <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i>
+          </button>
+          <div class="nav-dropdown-menu" id="adminUserMgmtMenu">
+            {% if rbac_manage_users %}
+            <a href="{% url 'users' %}" class="nav-dropdown-item"><i class="fas fa-users"></i> Users</a>
+            {% endif %}
+            {% if rbac_manage_roles %}
+            <a href="{% url 'roles' %}" class="nav-dropdown-item"><i class="fas fa-user-shield"></i> Roles</a>
             {% endif %}
           </div>
         </div>
         {% endif %}
-        {% endif %}
+      </div>
 
-        <button class="toggle-btn" id="toggleBtn" aria-label="Toggle navigation" aria-expanded="false">
-          <span></span><span></span><span></span>
-        </button>
+      <!-- Right: username + bell + logout -->
+      <div class="admin-nav-right">
+        {% if user.is_authenticated %}
+        <span class="welcome-chip">{{ user.username }}</span>
+        {% if rbac_any_permission %}
+        <div class="notif-wrapper">
+          <div class="notification-bell" id="notificationBell" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" title="Alerts">
+            <i class="fas fa-bell"></i>
+            {% if unread_notification_count > 0 %}<span class="notification-count">{{ unread_notification_count }}</span>{% endif %}
+          </div>
+          <div class="notification-dropdown" id="notificationDropdown">
+            <div class="notif-header">
+              <div><strong>Notifications</strong><br><small>Latest activity</small></div>
+              <a href="{% url 'admin_notifications' %}">View all →</a>
+            </div>
+            {% if latest_notifications %}
+            {% for note in latest_notifications %}
+            <a href="{% url 'mark_notification_read' note.id %}?next={% if note.link %}{{ note.link|urlencode }}{% else %}{% url 'admin_notifications' %}{% endif %}" class="notification-item">
+              <span class="notification-badge bg-{{ note.badge_class }} text-white">{{ note.get_type_display }}</span>
+              <div style="flex:1;">
+                <strong style="font-size:0.85rem;">{{ note.title }}</strong>
+                <p style="margin:3px 0 0;font-size:0.8rem;color:var(--muted);">{{ note.message|truncatechars:70 }}</p>
+                <small style="color:var(--muted);font-size:0.75rem;">{{ note.created_at|date:"d M, H:i" }}{% if not note.is_read %} · <span style="color:var(--primary);">Unread</span>{% endif %}</small>
+              </div>
+            </a>
+            {% endfor %}
+            {% else %}
+            <div class="notif-empty"><i class="fas fa-bell-slash" style="font-size:1.5rem;margin-bottom:8px;display:block;"></i>No new notifications</div>
+            {% endif %}
+          </div>{# end notification-dropdown #}
+        </div>{# end notif-wrapper #}
+        {% endif %}{# rbac_any_permission #}
+        <a href="{% url 'logout' %}" class="nav-auth-btn" title="Logout" style="color:#fff;background:rgba(255,255,255,0.2);padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:600;font-size:1rem;display:inline-flex;align-items:center;justify-content:center;"><i class="fas fa-sign-out-alt"></i></a>
+        {% else %}
+        <a href="{% url 'signin' %}" class="nav-auth-btn" style="color:#fff;background:rgba(255,255,255,0.2);padding:6px 14px;border-radius:8px;text-decoration:none;font-weight:600;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;"><i class="fas fa-sign-in-alt"></i> Login</a>
+        {% endif %}
+      </div>{# end admin-nav-right #}
+    </div>{# end nav-inner #}
+  </nav>
+  {# ═══════════════ END ADMIN NAVBAR ═══════════════ #}
+
+  {% else %}
+  {# ═══════════════ PUBLIC NAVBAR (unchanged) ═══════════════ #}
+  <nav>
+    <div class="nav-inner">
+      <div class="logo">
+        <a href="{% url 'index' %}"><img src="{% static 'images/logo1.png' %}" alt="Sick Bed Services Logo" width="50" height="50"></a>
+      </div>
+      <div class="nav-links" id="navLinksHeader">
+        {% if rbac_show_equipment_rental %}
+        <div class="nav-dropdown-wrapper">
+          <button class="nav-dropdown-toggle" id="equipmentDropdownToggle" type="button" aria-haspopup="true" aria-expanded="false">
+            Equipment rental <i class="fas fa-chevron-down" style="font-size:0.72rem;margin-left:2px;"></i>
+          </button>
+          <div class="nav-dropdown-menu" id="equipmentDropdownMenu">
+            <a href="{% url 'items' %}" class="nav-dropdown-item"><i class="fas fa-th-large"></i> Items</a>
+            <a href="{% url 'inventory' %}" class="nav-dropdown-item"><i class="fas fa-boxes"></i> Inventory</a>
+            <a href="{% url 'bookingsammry' %}" class="nav-dropdown-item"><i class="fas fa-list-alt"></i> My Bookings</a>
+          </div>
+        </div>
+        {% endif %}
+        {% if rbac_show_request_blood %}
+        <a href="{% url 'request_blood' %}">Request blood</a>
+        {% endif %}
+        {% if rbac_show_medical_services %}
+        <a href="{% url 'medical_services' %}">Services</a>
+        {% endif %}
+        {% if rbac_show_organize_camp %}
+        <a href="{% url 'organize_camp' %}"> Organize camp</a>
+        {% endif %}
+        {% if rbac_show_be_donor %}
+        <a href="{% url 'be_donor' %}"> Be a donor</a>
+        {% endif %}
+        {% if rbac_show_volunteer %}
+        <a href="{% url 'volunteer_event' %}"> Volunteer</a>
+        {% endif %}
+        {% if rbac_show_about %}
+        <a href="{% url 'about' %}">About us</a>
+        {% endif %}
+        {% if rbac_manage_users %}
+        <a href="{% url 'users' %}">Users</a>
+        {% endif %}
+        {% if rbac_manage_roles %}
+        <a href="{% url 'roles' %}">Roles</a>
+        {% endif %}
+        {% if user.is_authenticated %}
+        <a href="{% url 'cart' %}" class="nav-cart-btn" title="Cart"><i class="fas fa-cart-plus"></i></a>
+        {% endif %}
+      </div>
+      <div class="nav-right">
+        {% if user.is_authenticated %}
+        <span class="welcome-chip">{{ user.username }}</span>
+        {% if rbac_any_permission %}
+        <div class="notif-wrapper">
+          <div class="notification-bell" id="notificationBell" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" title="Alerts">
+            <i class="fas fa-bell"></i>
+            {% if unread_notification_count > 0 %}<span class="notification-count">{{ unread_notification_count }}</span>{% endif %}
+          </div>
+          <div class="notification-dropdown" id="notificationDropdown">
+            <div class="notif-header">
+              <div><strong>Notifications</strong><br><small>Latest activity</small></div>
+              <a href="{% url 'admin_notifications' %}">View all →</a>
+            </div>
+            {% if latest_notifications %}
+            {% for note in latest_notifications %}
+            <a href="{% url 'mark_notification_read' note.id %}?next={% if note.link %}{{ note.link|urlencode }}{% else %}{% url 'admin_notifications' %}{% endif %}" class="notification-item">
+              <span class="notification-badge bg-{{ note.badge_class }} text-white">{{ note.get_type_display }}</span>
+              <div style="flex:1;">
+                <strong style="font-size:0.85rem;">{{ note.title }}</strong>
+                <p style="margin:3px 0 0;font-size:0.8rem;color:var(--muted);">{{ note.message|truncatechars:70 }}</p>
+                <small style="color:var(--muted);font-size:0.75rem;">{{ note.created_at|date:"d M, H:i" }}{% if not note.is_read %} · <span style="color:var(--primary);">Unread</span>{% endif %}</small>
+              </div>
+            </a>
+            {% endfor %}
+            {% else %}
+            <div class="notif-empty"><i class="fas fa-bell-slash" style="font-size:1.5rem;margin-bottom:8px;display:block;"></i>No new notifications</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        <a href="{% url 'logout' %}" class="nav-auth-btn" title="Logout" style="color:#fff;background:rgba(255,255,255,0.2);padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:600;font-size:1rem;display:inline-flex;align-items:center;justify-content:center;"><i class="fas fa-sign-out-alt"></i></a>
+        {% else %}
+        <a href="{% url 'signin' %}" class="nav-auth-btn" style="color:#fff;background:rgba(255,255,255,0.2);padding:6px 14px;border-radius:8px;text-decoration:none;font-weight:600;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;"><i class="fas fa-sign-in-alt"></i> Login</a>
+        {% endif %}
       </div>
     </div>
-
-    <!-- Mobile Drawer -->
-    <div class="nav-links mobile" id="navLinksMobile">
-      <a href="{% url 'index' %}"><i class="fas fa-home"></i> Home</a>
-      <a href="{% url 'services' %}"><i class="fas fa-concierge-bell"></i> Services</a>
-      {% if user.is_staff or user.is_superuser %}
-      <a href="{% url 'inventory' %}"><i class="fas fa-boxes"></i> Inventory</a>
-      {% endif %}
-      {% if user.is_authenticated %}
-      <a href="{% url 'items' %}"><i class="fas fa-th-large"></i> Items</a>
-      <a href="{% url 'bookingsammry' %}"><i class="fas fa-list-alt"></i> My Bookings</a>
-      <a href="{% url 'cart' %}"><i class="fas fa-cart-plus"></i> Cart</a>
-      <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
-      {% else %}
-      <a href="{% url 'signin' %}"><i class="fas fa-sign-in-alt"></i> Login</a>
-      {% endif %}
-    </div>
   </nav>
-
+  {% endif %}{# end is_staff/is_superuser check #}
   {% if messages %}
   <div class="messages-container">
     {% for message in messages %}
@@ -667,6 +1090,7 @@
     {% endfor %}
   </div>
   {% endif %}
+
 
   <main>
     {% block content %}{% endblock %}
@@ -735,6 +1159,8 @@
     </div>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       const toggleBtn = document.getElementById('toggleBtn');
@@ -760,34 +1186,86 @@
         });
       }
 
-      // Hamburger
-      if (toggleBtn && navMobile) {
-        toggleBtn.addEventListener('click', function () {
-          const open = navMobile.classList.toggle('active');
-          toggleBtn.classList.toggle('active', open);
-          toggleBtn.setAttribute('aria-expanded', open);
-          document.body.style.overflow = open ? 'hidden' : '';
+      // Equipment rental dropdown toggle (public navbar)
+      const eqBtn = document.getElementById('equipmentDropdownToggle');
+      const eqMenu = document.getElementById('equipmentDropdownMenu');
+      if (eqBtn && eqMenu) {
+        eqBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          const show = eqMenu.classList.toggle('show');
+          eqBtn.setAttribute('aria-expanded', show);
         });
-
-        navMobile.querySelectorAll('a').forEach(link => {
-          link.addEventListener('click', () => {
-            navMobile.classList.remove('active');
-            toggleBtn.classList.remove('active');
-            toggleBtn.setAttribute('aria-expanded', 'false');
-            document.body.style.overflow = '';
-          });
-        });
-
         document.addEventListener('click', function (e) {
-          if (navMobile.classList.contains('active') &&
-            !navMobile.contains(e.target) && !toggleBtn.contains(e.target)) {
-            navMobile.classList.remove('active');
-            toggleBtn.classList.remove('active');
-            toggleBtn.setAttribute('aria-expanded', 'false');
-            document.body.style.overflow = '';
+          if (!eqMenu.contains(e.target) && !eqBtn.contains(e.target)) {
+            eqMenu.classList.remove('show');
+            eqBtn.setAttribute('aria-expanded', 'false');
           }
         });
       }
+
+      // ── ADMIN NAVBAR JS ──
+
+      // Admin hamburger toggler
+      const adminToggler = document.getElementById('adminNavToggler');
+      const adminNavLinks = document.getElementById('adminNavLinks');
+      const adminTogglerIcon = document.getElementById('adminTogglerIcon');
+      if (adminToggler && adminNavLinks) {
+        adminToggler.addEventListener('click', function (e) {
+          e.stopPropagation();
+          const isOpen = adminNavLinks.classList.toggle('open');
+          adminToggler.setAttribute('aria-expanded', isOpen);
+          if (adminTogglerIcon) {
+            adminTogglerIcon.className = isOpen ? 'fas fa-times' : 'fas fa-bars';
+          }
+        });
+        document.addEventListener('click', function (e) {
+          if (!adminNavLinks.contains(e.target) && !adminToggler.contains(e.target)) {
+            adminNavLinks.classList.remove('open');
+            adminToggler.setAttribute('aria-expanded', 'false');
+            if (adminTogglerIcon) adminTogglerIcon.className = 'fas fa-bars';
+          }
+        });
+      }
+
+      // Admin Equipment Rental dropdown
+      const adminEqBtn = document.getElementById('adminEqDropToggle');
+      const adminEqMenu = document.getElementById('adminEqDropMenu');
+      if (adminEqBtn && adminEqMenu) {
+        adminEqBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          const show = adminEqMenu.classList.toggle('show');
+          adminEqBtn.setAttribute('aria-expanded', show);
+        });
+        document.addEventListener('click', function (e) {
+          if (!adminEqMenu.contains(e.target) && !adminEqBtn.contains(e.target)) {
+            adminEqMenu.classList.remove('show');
+            adminEqBtn.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
+
+      // Admin User Management dropdown
+      const umBtn = document.getElementById('adminUserMgmtToggle');
+      const umMenu = document.getElementById('adminUserMgmtMenu');
+      if (umBtn && umMenu) {
+        umBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          const show = umMenu.classList.toggle('show');
+          umBtn.setAttribute('aria-expanded', show);
+        });
+        document.addEventListener('click', function (e) {
+          if (!umMenu.contains(e.target) && !umBtn.contains(e.target)) {
+            umMenu.classList.remove('show');
+            umBtn.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
+
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+
       document.querySelectorAll('.msg-toast').forEach(el => {
         setTimeout(() => {
           el.style.transition = 'opacity 0.4s';
@@ -797,6 +1275,21 @@
       });
     });
   </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/static/pwa/service-worker.js')
+            .then(function (registration) {
+                console.log('Service Worker registered:', registration);
+            })
+            .catch(function (error) {
+                console.log('Service Worker registration failed:', error);
+            });
+    });
+}
+</script>
+
 </body>
 
 </html>

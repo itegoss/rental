@@ -1,6 +1,7 @@
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from collections import defaultdict
+from functools import wraps
 from io import BytesIO
 import os
 import re
@@ -8,11 +9,13 @@ import uuid
 import random
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse, Http404
+from django.http import HttpResponse, JsonResponse, Http404, HttpResponseForbidden
 from django.urls import reverse
 from django.utils import timezone
 from django.db import transaction
 from django.core.paginator import Paginator
+from django.db import ProgrammingError
+from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout as auth_logout
@@ -28,6 +31,7 @@ from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from django.core.files.base import ContentFile
 from urllib3 import request
+from django.core.exceptions import FieldError
 
 from .models import (
     Inventory,
@@ -36,12 +40,71 @@ from .models import (
     UserDetail,
     Payment,
     Services,
+    SupportService,
+    SupportServiceContact,
     Cart,
     CartItem,
     Receipt,
     Customer,
     NotifyRequest,
+    BloodRequest,
+    CampOrganizer,
+    BloodDonor,
+    EventVolunteer,
+    Role,
+    UserRole,
+    user_has_permission,
+    user_has_any_permission,
 )
+
+def rbac_view_permission(permission_name):
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                return redirect('signin')
+
+            if not user_has_permission(request.user, permission_name):
+                return render(request, 'permission_denied.html', status=403)
+
+            return view_func(request, *args, **kwargs)
+        return _wrapped
+    return decorator
+
+
+def ensure_module_access(request, permission_name):
+    """Enforce module-level access according to role-assignment policy.
+
+    - Superuser/staff: always allowed.
+    - If the user has no Role assigned: allow (default access to normal modules).
+    - If the user has one or more Roles assigned: require the given permission
+      (checked via `user_has_permission`).
+    - Anonymous users are allowed for public views (this helper returns None
+      to indicate allowed). Views that require login must still use
+      `@login_required` or check authentication separately.
+
+    Returns: None when access is allowed; an HttpResponse (403 or redirect)
+    when access is denied or user should sign in.
+    """
+    # Admins are always allowed
+    if request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff):
+        return None
+
+    # If not authenticated, treat as public — allow here (views may require login)
+    if not request.user.is_authenticated:
+        return None
+
+    # If user has no role assignments, allow default normal-module access
+    from .models import user_has_assigned_role
+    if not user_has_assigned_role(request.user):
+        return None
+
+    # User has a role assigned: enforce permission
+    if not user_has_permission(request.user, permission_name):
+        return render(request, 'permission_denied.html', status=403)
+
+    return None
+from .forms import BloodRequestForm, CampOrganizerForm, BloodDonorForm, EventVolunteerForm, AssignEmployeeForm
 from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, receipt_filename, send_whatsapp_message, send_notification, build_booking_receipt_breakdown
 
 def index(request):
@@ -335,6 +398,10 @@ def resetpass(request, username):
     return render(request, 'resetpass.html', {'username': username})
 
 def items(request):
+    # Enforce module access: equipment rental maps to 'can_access_inventory'
+    resp = ensure_module_access(request, 'can_access_inventory')
+    if resp:
+        return resp
     items = Inventory.objects.all().order_by('-available', 'title')
     search_query = request.GET.get('q', '').strip()
     if search_query:
@@ -350,7 +417,7 @@ def items(request):
     })
 
 @login_required
-@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+@user_passes_test(lambda u: user_has_permission(u, 'can_access_inventory'))
 def inventory(request):
     items = Inventory.objects.all().order_by('-available', 'title')
     search_query = request.GET.get('q', '').strip()
@@ -369,7 +436,7 @@ def inventory(request):
     })
 
 @login_required
-@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+@user_passes_test(lambda u: user_has_permission(u, 'can_access_inventory'))
 def add_inventory_item(request):
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
@@ -411,7 +478,7 @@ def add_inventory_item(request):
     return redirect('inventory')
 
 @login_required
-@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+@user_passes_test(lambda u: user_has_permission(u, 'can_access_inventory'))
 def delete_inventory_item(request, item_id):
     item = get_object_or_404(Inventory, id=item_id)
     item.delete()
@@ -419,7 +486,7 @@ def delete_inventory_item(request, item_id):
     return redirect('inventory')
 
 @login_required
-@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+@user_passes_test(lambda u: user_has_permission(u, 'can_access_inventory'))
 def edit_inventory_item(request, item_id):
     item = get_object_or_404(Inventory, id=item_id)
     if request.method == 'POST':
@@ -468,7 +535,9 @@ def notify_request(request):
 from django.db import transaction
 @transaction.atomic
 def add_to_cart(request, item_id):
-
+    resp = ensure_module_access(request, 'can_access_inventory')
+    if resp:
+        return resp
     if not request.user.is_authenticated:
         messages.warning(request, "Please login to rent items")
         return redirect('signin')
@@ -499,6 +568,9 @@ def add_to_cart(request, item_id):
 
 @login_required
 def cart_view(request):
+    resp = ensure_module_access(request, 'can_access_inventory')
+    if resp:
+        return resp
     cart, _ = Cart.objects.get_or_create(user_id=request.user.id)
     cart_items = cart.items.select_related("rental_item")
 
@@ -517,7 +589,7 @@ def cart_view(request):
             messages.error(request, "Please select valid rental dates.")
             return redirect("cart")
 
-        if not request.user.is_superuser:
+        if not user_has_any_permission(request.user):
             today = timezone.localdate()
             if start_date_value < today or end_date_value < today:
                 messages.error(request, "Past dates are not allowed. Please select today or a future date.")
@@ -543,13 +615,13 @@ def cart_view(request):
         request.session["end_date"] = end_date
         request.session["paid_amount"] = request.POST.get("paid_amount", "0")
         request.session["is_paid"] = request.POST.get("is_paid") == "on"
-        if request.user.is_superuser and request.session.get("details_filled"):
+        if user_has_any_permission(request.user) and request.session.get("details_filled"):
             if cart_items:
                 return redirect("select_delivery", pk=cart_items.first().rental_item.id)
 
         return redirect("userdetail")
 
-    return render(request, "cart.html", {"cart_items": cart_items, "is_admin": request.user.is_superuser})
+    return render(request, "cart.html", {"cart_items": cart_items, "is_admin": user_has_any_permission(request.user)})
 
 @login_required
 def select_delivery(request, pk):
@@ -703,7 +775,7 @@ def paymentmethod(request):
         session_is_paid = request.session.get("is_paid", False)
 
         renter_email = request.session.get("renter_email")
-        if not renter_email and not request.user.is_superuser:
+        if not renter_email and not user_has_any_permission(request.user):
             user_detail = UserDetail.objects.filter(user_id=request.user.id).first()
             if user_detail:
                 renter_email = user_detail.email
@@ -789,21 +861,21 @@ def paymentmethod(request):
             return redirect('payment', rental_id=created_rentals[0].id)
 
         elif payment_method.lower() in ['cod', 'cash on delivery']:
-            is_superuser = request.user.is_superuser
+            is_admin = user_has_any_permission(request.user)
             for rental in created_rentals:
                 rental.payment_method = 'cod'
-                rental.status = 'approved' if is_superuser else 'pending'
+                rental.status = 'approved' if is_admin else 'pending'
                 rental.save(update_fields=['payment_method', 'status'])
 
                 Payment.objects.create(rental_request=rental, payment_status='PENDING', order_id=generate_order_id())
 
-                if is_superuser:
+                if is_admin:
                     try:
                         rental.rental_item.update_availability()
                     except Exception:
                         pass
 
-            if is_superuser:
+            if is_admin:
                 messages.success(request, "Order placed and approved successfully!")
             else:
                 messages.success(request, "Order placed successfully! Awaiting admin approval.")
@@ -934,6 +1006,12 @@ def success(request, rental_id):
 
 
 def about(request):
+    # About is a normal module: if the user has a Role assigned, only
+    # show it when explicitly allowed by role. Otherwise allow.
+    from .models import user_has_assigned_role
+    if request.user.is_authenticated and user_has_assigned_role(request.user) and not (request.user.is_superuser or request.user.is_staff):
+        return render(request, 'permission_denied.html', status=403)
+
     return render(request, 'about.html')
 
 
@@ -1153,7 +1231,7 @@ def generate_order_id():
 
 
 @login_required
-@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+@user_passes_test(lambda u: user_has_permission(u, 'can_access_inventory'))
 def approve_order(request, order_id):
     orders = History.objects.filter(order_id=order_id)
     if not orders.exists():
@@ -1186,7 +1264,7 @@ def approve_order(request, order_id):
     return redirect("bookingsammry")
 
 @login_required
-@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+@user_passes_test(lambda u: user_has_permission(u, 'can_access_inventory'))
 @transaction.atomic
 def approve_return_order(request, order_id):
     rentals = History.objects.select_for_update().filter(order_id=order_id, is_returned=False)
@@ -1224,7 +1302,7 @@ def approve_return_order(request, order_id):
     return redirect("bookingsammry")
 
 @login_required
-@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+@user_passes_test(lambda u: user_has_permission(u, 'can_access_inventory'))
 def download_rental_report(request):
     if request.method == 'POST':
         start_date_str = request.POST.get('start_date')
@@ -1251,14 +1329,14 @@ def terms(request):
     return render(request, 'terms.html')
 
 def services(request):
-    all_services = Services.objects.all()
-    return render(request, 'services.html', {'services': all_services})
+    active_services = SupportService.objects.filter(is_active=True).prefetch_related('contacts')
+    return render(request, 'services.html', {'services': active_services})
 
 from django.utils import timezone
 @login_required
 @transaction.atomic
 def userdetail(request):
-    is_admin = request.user.is_superuser
+    is_admin = user_has_any_permission(request.user)
     cart = Cart.objects.filter(user_id=request.user.id).first()
     cart_items = cart.items.select_related("rental_item") if cart else []
     customers = []
@@ -1414,7 +1492,7 @@ from collections import defaultdict
 @login_required
 def bookingsammry(request):
     rental_requests = History.objects.select_related('user', 'user__userdetail', 'rental_item').order_by('-created_at')
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not user_has_any_permission(request.user):
         rental_requests = rental_requests.filter(user_id=request.user.id)
 
     paginator = Paginator(rental_requests, 20)
@@ -1438,7 +1516,7 @@ def bookingsammry(request):
             "date": items[0].start_date,
             "items": items,
             "total_deposit": total_deposit,
-            "customer": items[0].user if request.user.is_staff or request.user.is_superuser else None,
+            "customer": items[0].user if user_has_any_permission(request.user) else None,
         })
 
     return render(
@@ -1471,7 +1549,7 @@ def mark_returned(request, rental_id, item_id):
 @login_required
 def view_rental(request, rental_id):
     rentals = History.objects.all()
-    if not (request.user.is_staff or request.user.is_superuser):
+    if not user_has_any_permission(request.user):
         rentals = rentals.filter(user_id=request.user.id)
 
     rental = get_object_or_404(rentals, id=rental_id)
@@ -1536,7 +1614,7 @@ def extend_return_date(request, order_id):
         .filter(order_id=order_id, is_returned=False)
         .select_related("rental_item")
     )
-    if not (request.user.is_staff or request.user.is_superuser):
+    if not user_has_any_permission(request.user):
         rentals = rentals.filter(user_id=request.user.id)
 
     if not rentals.exists():
@@ -1664,7 +1742,7 @@ def return_order(request, order_id):
         )
         .select_related("rental_item")
     )
-    if not (request.user.is_staff or request.user.is_superuser):
+    if not user_has_any_permission(request.user):
         rentals = rentals.filter(user_id=request.user.id)
 
     if not rentals.exists():
@@ -1704,7 +1782,7 @@ def return_order(request, order_id):
             messages.error(request, f"Donation amount cannot be more than the total deposit of ₹{total_deposit}.")
             return redirect("bookingsammry")
 
-    if request.user.is_staff or request.user.is_superuser:
+    if user_has_any_permission(request.user):
         for index, rr in enumerate(rental_rows):
             rr.is_return_requested = False
             rr.is_returned = True
@@ -1804,7 +1882,7 @@ def cancel_order(request, order_id):
         is_returned=False
     ).exclude(status='cancelled')
 
-    if not (request.user.is_staff or request.user.is_superuser):
+    if not user_has_any_permission(request.user):
         rentals = rentals.filter(user_id=request.user.id)
 
     if not rentals.exists():
@@ -1842,21 +1920,187 @@ def cancel_order(request, order_id):
     return redirect('bookingsammry')
 
 @login_required
-@user_passes_test(lambda u: u.is_staff or u.is_superuser)
 def admin_notifications(request):
+    from django.db.models import Q
     from .models import Notification
-    notifications = Notification.objects.all()
-    unread_count = notifications.filter(is_read=False).count()
+    try:
+        notifications = Notification.objects.filter(
+            Q(recipient=request.user) | Q(recipient__isnull=True)
+        ).order_by('-created_at')
+        unread_count = notifications.filter(is_read=False).count()
+    except ProgrammingError:
+        notifications = Notification.objects.none()
+        unread_count = 0
     return render(request, 'notifications/list.html', {
         'notifications': notifications,
         'unread_count': unread_count,
     })
 
+@login_required(login_url='signin')
+def users(request):
+    if not user_has_permission(request.user, 'can_manage_users'):
+        return redirect('index')
+
+    q = request.GET.get('q', '').strip()
+    users = User.objects.all().order_by('username').prefetch_related('role_assignments__role')
+    if q:
+        users = users.filter(
+            Q(username__icontains=q) |
+            Q(email__icontains=q)
+        )
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'assign_role':
+            user_id = request.POST.get('user_id')
+            role_id = request.POST.get('role_id')
+            if not user_id:
+                messages.error(request, "No user specified for role assignment.")
+            elif not role_id:
+                messages.error(request, "Please select a role to assign.")
+            else:
+                try:
+                    user_id_int = int(user_id)
+                    role_id_int = int(role_id)
+                except Exception:
+                    messages.error(request, "Invalid user or role identifier.")
+                else:
+                    target_user = User.objects.filter(id=user_id_int).first()
+                    target_role = Role.objects.filter(id=role_id_int).first()
+                    if not target_user or not target_role:
+                        messages.error(request, "Invalid user or role selected.")
+                    else:
+                        from django.db import transaction
+                        try:
+                            with transaction.atomic():
+                                assignment, created = UserRole.objects.get_or_create(user=target_user, role=target_role)
+                                if created:
+                                    messages.success(request, f"Role '{target_role.name}' assigned to {target_user.username}.")
+                                else:
+                                    messages.info(request, f"{target_user.username} already has the role '{target_role.name}'.")
+                        except Exception as e:
+                            print(f"[assign_role error] user_id={user_id_int} role_id={role_id_int} error={e}")
+                            messages.error(request, "Failed to assign role due to a server error.")
+        elif action == 'remove_role':
+            assignment_id = request.POST.get('assignment_id')
+            assignment = UserRole.objects.filter(id=assignment_id).first()
+            if assignment:
+                assignment.delete()
+                messages.success(request, "Role removed successfully.")
+            else:
+                messages.error(request, "Role assignment not found.")
+        return redirect('users')
+
+    paginator = Paginator(users, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    roles = Role.objects.all().order_by('name')
+
+    return render(request, 'users.html', {
+        'page_obj': page_obj,
+        'search_query': q,
+        'roles': roles,
+    })
+
+@login_required(login_url='signin')
+def roles(request):
+    if not user_has_permission(request.user, 'can_manage_roles'):
+        return redirect('index')
+
+    q = request.GET.get('q', '').strip()
+    roles = Role.objects.all().order_by('name')
+    edit_role = None
+    edit_role_id = request.GET.get('edit')
+    if edit_role_id:
+        edit_role = Role.objects.filter(id=edit_role_id).first()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'save_role':
+            role_id = request.POST.get('role_id')
+            name = request.POST.get('name', '').strip()
+            description = request.POST.get('description', '').strip()
+            permissions = request.POST.getlist('permission')
+
+            if not name:
+                messages.error(request, 'Please provide a role name.')
+                return redirect('roles')
+
+            if role_id:
+                role = Role.objects.filter(id=role_id).first()
+                if not role:
+                    messages.error(request, 'Role not found.')
+                    return redirect('roles')
+            else:
+                role = Role()
+
+            role.name = name
+            role.description = description
+            role.can_access_inventory = 'can_access_inventory' in permissions
+            role.can_manage_blood_requests = 'can_manage_blood_requests' in permissions
+            role.can_manage_camps = 'can_manage_camps' in permissions
+            role.can_manage_donors = 'can_manage_donors' in permissions
+            role.can_manage_volunteers = 'can_manage_volunteers' in permissions
+            role.can_manage_services = 'can_manage_services' in permissions
+            role.can_manage_users = 'can_manage_users' in permissions
+            role.can_manage_roles = 'can_manage_roles' in permissions
+
+            try:
+                role.save()
+                messages.success(request, f"Role '{role.name}' saved successfully.")
+            except Exception as e:
+                messages.error(request, f"Could not save role: {e}")
+            return redirect('roles')
+
+        if action == 'delete_role':
+            role_id = request.POST.get('role_id')
+            role = Role.objects.filter(id=role_id).first()
+            if role:
+                role.delete()
+                messages.success(request, f"Role '{role.name}' deleted successfully.")
+            else:
+                messages.error(request, 'Role not found.')
+            return redirect('roles')
+
+    if q:
+        roles = roles.filter(name__icontains=q)
+
+    paginator = Paginator(roles, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    permission_fields = [
+        ('can_access_inventory', 'Inventory Access'),
+        ('can_manage_blood_requests', 'Blood Requests'),
+        ('can_manage_camps', 'Camps'),
+        ('can_manage_donors', 'Donors'),
+        ('can_manage_volunteers', 'Volunteers'),
+        ('can_manage_services', 'Services'),
+        ('can_manage_users', 'Users'),
+        ('can_manage_roles', 'Roles'),
+    ]
+
+    edit_role_permissions = set()
+    if edit_role:
+        for field, _ in permission_fields:
+            if getattr(edit_role, field, False):
+                edit_role_permissions.add(field)
+
+    return render(request, 'roles.html', {
+        'page_obj': page_obj,
+        'search_query': q,
+        'edit_role': edit_role,
+        'permission_fields': permission_fields,
+        'edit_role_permissions': edit_role_permissions,
+    })
+
 @login_required
-@user_passes_test(lambda u: u.is_staff or u.is_superuser)
+@user_passes_test(lambda u: user_has_any_permission(u))
 def mark_notification_read(request, notification_id):
+    from django.db.models import Q
     from .models import Notification
-    notification = get_object_or_404(Notification, id=notification_id)
+    notification = get_object_or_404(
+        Notification,
+        Q(id=notification_id),
+        Q(recipient=request.user) | Q(recipient__isnull=True)
+    )
     notification.is_read = True
     notification.save(update_fields=['is_read'])
     next_url = request.GET.get('next')
@@ -1865,10 +2109,17 @@ def mark_notification_read(request, notification_id):
     return redirect('admin_notifications')
 
 @login_required
-@user_passes_test(lambda u: u.is_staff or u.is_superuser)
 def mark_all_notifications_read(request):
+    from django.db.models import Q
     from .models import Notification
-    Notification.objects.filter(is_read=False).update(is_read=True)
+    try:
+        Notification.objects.filter(
+            is_read=False,
+        ).filter(
+            Q(recipient=request.user) | Q(recipient__isnull=True)
+        ).update(is_read=True)
+    except ProgrammingError:
+        pass
     next_url = request.GET.get('next')
     if next_url:
         return redirect(next_url)
@@ -1917,7 +2168,7 @@ def return_receipt(request, order_id):
         )
         .select_related("rental_item")
     )
-    if not (request.user.is_staff or request.user.is_superuser):
+    if not user_has_any_permission(request.user):
         rentals = rentals.filter(user_id=request.user.id)
 
     if not rentals.exists():
@@ -1987,3 +2238,692 @@ def return_receipt(request, order_id):
     }
 
     return render(request, "return_receipt.html", context)
+
+
+def send_submission_email(subject, details_dict):
+    """
+    Safely sends email to ADMIN_EMAIL with full submission details.
+    """
+    from django.core.mail import send_mail
+    admin_email = getattr(settings, 'ADMIN_EMAIL', 'bhayander@kutchyuvaksangh.org')
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'bhayander@kutchyuvaksangh.org')
+    
+    body = "New Submission Details:\n\n"
+    for key, value in details_dict.items():
+        body += f"{key}: {value}\n"
+    body += "\nRegards,\nKYS Bhayander Portal"
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=from_email,
+            recipient_list=[admin_email],
+            fail_silently=False
+        )
+        print(f"Submission email sent to {admin_email}")
+    except Exception as e:
+        print(f"Error sending submission email: {e}")
+
+
+from django.contrib.auth.decorators import login_required
+
+@login_required(login_url='signin')
+def request_blood(request):
+    resp = ensure_module_access(request, 'can_manage_blood_requests')
+    if resp:
+        return resp
+    # Admin users see the management table on GET. Regular users see the form.
+    if request.method == 'POST':
+        form = BloodRequestForm(request.POST, request.FILES)
+        print("[blood_request] POST received")
+        print("[blood_request] form.is_valid() =", form.is_valid())
+        if not form.is_valid():
+            print("[blood_request] form errors =", form.errors)
+            return render(request, 'request_blood.html', {'form': form})
+
+        blood_request = form.save(commit=False)
+        print("[blood_request] form.save(commit=False) succeeded")
+        blood_request.created_by = request.user
+        blood_request.updated_by = request.user
+        blood_request.save()
+        blood_request.append_status_history('Pending', changed_by=request.user, note='Request submitted')
+        print("[blood_request] model save() succeeded, id=", blood_request.id)
+
+        details = {
+            "Patient Name": blood_request.patient_name,
+            "Hospital Name": blood_request.hospital_name,
+            "Hospital Area": blood_request.hospital_area,
+            "Blood Group Required": blood_request.blood_group,
+            "Relative/Coordinator Name": blood_request.coordinator_name,
+            "Coordinator Contact": blood_request.coordinator_contact,
+            "Reference Name": blood_request.reference_name or "N/A",
+            "Reference Contact": blood_request.reference_contact or "N/A",
+            "Submission Date": blood_request.created_at,
+        }
+
+        send_submission_email("New Blood Request Received", details)
+
+        whatsapp_msg = (
+            f"Hello {blood_request.coordinator_name},\n\n"
+            f"Thank you for submitting a blood request for patient {blood_request.patient_name} ({blood_request.blood_group}). "
+            f"Our team is reviewing the request and will match with available blood banks/donors.\n\n"
+            f"Regards,\nKYS Bhayander Team"
+        )
+
+        send_whatsapp_message(blood_request.coordinator_contact, whatsapp_msg)
+
+        messages.success(request, "Your request for blood has been submitted successfully! We will coordinate shortly.")
+        return redirect('index')
+
+    # GET handling
+    if user_has_permission(request.user, 'can_manage_blood_requests'):
+        # Admin: show management table
+        q = request.GET.get('q', '').strip()
+        qs = BloodRequest.objects.all().order_by('-created_at')
+        if q:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(patient_name__icontains=q) |
+                Q(hospital_name__icontains=q) |
+                Q(hospital_area__icontains=q) |
+                Q(coordinator_name__icontains=q) |
+                Q(coordinator_contact__icontains=q) |
+                Q(reference_name__icontains=q) |
+                Q(reference_contact__icontains=q) |
+                Q(blood_group__icontains=q)
+            )
+
+        paginator = Paginator(qs, 20)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        return render(request, 'blood_requests_admin.html', {
+            'page_obj': page_obj,
+            'search_query': q,
+            'active_employees': User.objects.filter(is_active=True).order_by('username'),
+        })
+
+    # Regular user: show submission form
+    form = BloodRequestForm()
+    return render(request, 'request_blood.html', {'form': form})
+
+
+@login_required
+@user_passes_test(lambda u: user_has_permission(u, 'can_manage_blood_requests'))
+def edit_blood_request(request, request_id):
+    req = get_object_or_404(BloodRequest, id=request_id)
+    if request.method == 'POST' and 'patient_name' in request.POST:
+        form = BloodRequestForm(request.POST, request.FILES, instance=req)
+        if form.is_valid():
+            blood_request = form.save(commit=False)
+            blood_request.updated_by = request.user
+            blood_request.save()
+            messages.success(request, "Blood request updated successfully.")
+            return redirect('admin_view_blood_request', request_id=req.id)
+        return render(request, 'request_blood.html', {'form': form, 'is_edit': True, 'req': req})
+    else:
+        form = BloodRequestForm(instance=req)
+        return render(request, 'request_blood.html', {'form': form, 'is_edit': True, 'req': req})
+
+
+@login_required
+@user_passes_test(lambda u: user_has_permission(u, 'can_manage_blood_requests'))
+def admin_view_blood_request(request, request_id):
+    req = get_object_or_404(BloodRequest, id=request_id)
+    return render(request, 'blood_request_detail.html', {'req': req})
+
+
+@login_required
+@user_passes_test(lambda u: user_has_permission(u, 'can_manage_blood_requests'))
+def assign_blood_request_employee(request, request_id):
+    req = get_object_or_404(BloodRequest, id=request_id)
+    if request.method != 'POST':
+        messages.error(request, 'Invalid assignment request.')
+        return redirect('request_blood')
+
+    if req.status != 'Accepted':
+        messages.error(request, 'Only accepted requests can be assigned.')
+        return redirect('request_blood')
+
+    form = AssignEmployeeForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, 'Please select a valid active user.')
+        return redirect('request_blood')
+
+    employee = form.cleaned_data['assigned_employee']
+    if req.assigned_employee_id:
+        messages.error(request, 'This request already has an assigned employee.')
+        return redirect('request_blood')
+
+    req.assigned_employee = employee
+    req.assigned_by = request.user
+    req.assigned_at = timezone.now()
+    req.status = 'Assigned'
+    req.updated_by = request.user
+    req.remarks = form.cleaned_data.get('remarks') or req.remarks
+    req.save()
+    req.append_status_history('Assigned', changed_by=request.user, note=f'Assigned to {employee.username}')
+    try:
+        send_notification(
+            title='Blood Request Assigned',
+            message=(
+                f'You have been assigned to blood request for {req.patient_name} '
+                f'({req.blood_group}) at {req.hospital_name}. Please review the request.'
+            ),
+            notification_type='info',
+            link=f'/request-blood/view/{req.id}/',
+            recipient=employee,
+        )
+    except Exception:
+        pass
+    messages.success(request, 'Employee assigned successfully.')
+    return redirect('request_blood')
+
+
+@login_required
+@user_passes_test(lambda u: user_has_permission(u, 'can_manage_blood_requests'))
+def admin_edit_blood_request_status(request, request_id):
+    req = get_object_or_404(BloodRequest, id=request_id)
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'accept':
+            if req.status != 'Pending':
+                messages.error(request, 'Only pending requests can be accepted.')
+            else:
+                req.status = 'Accepted'
+                req.updated_by = request.user
+                req.remarks = request.POST.get('remarks', req.remarks)
+                req.save()
+                req.append_status_history('Accepted', changed_by=request.user, note='Accepted by admin')
+                messages.success(request, 'Request accepted.')
+        elif action == 'reject':
+            if req.status in {'Completed', 'Rejected'}:
+                messages.error(request, 'This request cannot be rejected again.')
+            else:
+                req.status = 'Rejected'
+                req.updated_by = request.user
+                req.remarks = request.POST.get('remarks', req.remarks)
+                req.save()
+                req.append_status_history('Rejected', changed_by=request.user, note='Rejected by admin')
+                messages.success(request, 'Request rejected.')
+        elif action == 'assign':
+            return assign_blood_request_employee(request, request_id)
+        elif action == 'advance':
+            if req.status == 'Assigned':
+                req.status = 'Searching'
+            elif req.status == 'Searching':
+                req.status = 'Blood Available'
+            elif req.status == 'Blood Available':
+                req.status = 'Ready for Pickup'
+            elif req.status == 'Ready for Pickup':
+                req.status = 'Received'
+            elif req.status == 'Received':
+                req.status = 'Completed'
+            else:
+                messages.error(request, 'This request cannot be advanced from the current status.')
+                return redirect('request_blood')
+            req.updated_by = request.user
+            req.save()
+            req.append_status_history(req.status, changed_by=request.user, note='Workflow advanced')
+            messages.success(request, f'Status updated to {req.status}.')
+        elif action == 'ready_for_pickup':
+            if req.status != 'Blood Available':
+                messages.error(request, 'Only blood-available requests can be marked ready for pickup.')
+            else:
+                req.status = 'Ready for Pickup'
+                req.updated_by = request.user
+                req.save()
+                req.append_status_history('Ready for Pickup', changed_by=request.user, note='Marked ready for pickup')
+                try:
+                    send_notification(
+                        title='Blood Ready for Pickup',
+                        message=f'Blood for {req.patient_name} is ready for pickup.',
+                        notification_type='info',
+                        link=f'/request-blood/view/{req.id}/',
+                        user=req.created_by
+                    )
+                except Exception:
+                    pass
+                messages.success(request, 'Marked ready for pickup.')
+        elif action == 'complete':
+            if req.status != 'Received':
+                messages.error(request, 'Only received requests can be completed.')
+            else:
+                req.status = 'Completed'
+                req.updated_by = request.user
+                req.save()
+                req.append_status_history('Completed', changed_by=request.user, note='Completed by admin')
+                messages.success(request, 'Request completed.')
+        elif action == 'employee_searching':
+            if req.assigned_employee_id != request.user.id:
+                messages.error(request, 'You are not assigned to this request.')
+            else:
+                req.status = 'Searching'
+                req.updated_by = request.user
+                req.remarks = request.POST.get('remarks', req.remarks)
+                req.save()
+                req.append_status_history('Searching', changed_by=request.user, note='Employee continued searching')
+                try:
+                    send_notification(
+                        title='Blood Search Update',
+                        message=f'Employee updated request for {req.patient_name} to Searching.',
+                        notification_type='info',
+                        link=f'/request-blood/view/{req.id}/',
+                        user=req.created_by
+                    )
+                except Exception:
+                    pass
+                messages.success(request, 'Status updated to Searching.')
+        elif action == 'employee_blood_available':
+            if req.assigned_employee_id != request.user.id:
+                messages.error(request, 'You are not assigned to this request.')
+            else:
+                req.status = 'Blood Available'
+                req.updated_by = request.user
+                req.remarks = request.POST.get('remarks', req.remarks)
+                req.save()
+                req.append_status_history('Blood Available', changed_by=request.user, note='Employee marked blood available')
+                try:
+                    send_notification(
+                        title='Blood Available',
+                        message=f'Blood is available for {req.patient_name}.',
+                        notification_type='info',
+                        link=f'/request-blood/view/{req.id}/',
+                        user=req.created_by
+                    )
+                except Exception:
+                    pass
+                messages.success(request, 'Status updated to Blood Available.')
+        elif action == 'user_received':
+            if req.status != 'Ready for Pickup':
+                messages.error(request, 'Only ready-for-pickup requests can be marked received.')
+            else:
+                req.status = 'Received'
+                req.updated_by = request.user
+                req.save()
+                req.append_status_history('Received', changed_by=request.user, note='User marked received')
+                messages.success(request, 'Blood marked as received.')
+        elif action == 'edit':
+            return edit_blood_request(request, request_id)
+        else:
+            messages.error(request, 'Invalid action.')
+    return redirect('request_blood')
+
+
+@login_required
+@user_passes_test(lambda u: user_has_permission(u, 'can_manage_blood_requests'))
+def delete_blood_request(request, request_id):
+    req = get_object_or_404(BloodRequest, id=request_id)
+    req.delete()
+    messages.success(request, "Blood request deleted.")
+    return redirect('request_blood')
+
+
+@login_required
+def employee_blood_requests(request):
+    if not request.user.is_authenticated:
+        return redirect('signin')
+    qs = BloodRequest.objects.filter(assigned_employee=request.user).order_by('-created_at')
+    paginator = Paginator(qs, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'employee_blood_requests.html', {
+        'page_obj': page_obj,
+        'search_query': request.GET.get('q', '').strip(),
+    })
+
+from django.contrib.auth.decorators import login_required
+
+@login_required(login_url='signin')
+def organize_camp(request):
+    resp = ensure_module_access(request, 'can_manage_camps')
+    if resp:
+        return resp
+    if request.method == 'POST':
+        form = CampOrganizerForm(request.POST)
+        if form.is_valid():
+            camp = form.save(commit=False)
+
+            camp.created_by = request.user
+            camp.updated_by = request.user
+
+            camp.save()
+
+            # Send Email to Admin
+            details = {
+                "Organizer Name": camp.organizer_name,
+                "Organization/Group": camp.organization_name,
+                "Contact Number": camp.contact_number,
+                "Email": camp.email,
+                "Proposed Date": camp.proposed_date,
+                "Proposed Venue": camp.proposed_venue,
+                "Expected Donors": camp.expected_donors,
+                "Mobile Van Required": "Yes" if camp.mobile_van_required else "No",
+                "Volunteers Available": "Yes" if camp.volunteers_available else "No",
+                "Submission Date": camp.created_at,
+            }
+
+            send_submission_email("New Blood Donation Camp Proposal", details)
+
+            # Send WhatsApp notification
+            whatsapp_msg = (
+                f"Hello {camp.organizer_name},\n\n"
+                f"We deeply appreciate your initiative to organize a blood donation camp with {camp.organization_name} at {camp.proposed_venue} on {camp.proposed_date}. "
+                f"Our team will contact you shortly to coordinate details.\n\n"
+                f"Regards,\nKYS Bhayander Team"
+            )
+
+            send_whatsapp_message(camp.contact_number, whatsapp_msg)
+
+            messages.success(
+                request,
+                "Thank you for organizing the blood donation camp! We will contact you shortly."
+            )
+            return redirect('index')
+        else:
+            # Form invalid: log and surface validation errors so we can diagnose
+            try:
+                for field, errs in form.errors.items():
+                    err_text = ", ".join(errs)
+                    messages.error(request, f"{field}: {err_text}")
+                # also non-field errors
+                for err in form.non_field_errors():
+                    messages.error(request, err)
+            except Exception:
+                # fallback: ensure we still render the form
+                print("Error while reporting form errors:", form.errors.as_json())
+            print("CampOrganizerForm invalid:", form.errors.as_json())
+            return render(request, 'organize_camp.html', {'form': form})
+    # Admin: show management table
+    if user_has_permission(request.user, 'can_manage_camps'):
+        q = request.GET.get('q', '').strip()
+        qs = CampOrganizer.objects.all().order_by('-created_at')
+        if q:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(organizer_name__icontains=q) |
+                Q(organization_name__icontains=q) |
+                Q(contact_number__icontains=q) |
+                Q(proposed_venue__icontains=q)
+            )
+        paginator = Paginator(qs, 20)
+        page_obj = paginator.get_page(request.GET.get('page'))
+        return render(request, 'camps_admin.html', {'page_obj': page_obj, 'search_query': q})
+
+    else:
+        form = CampOrganizerForm()
+
+    return render(request, 'organize_camp.html', {'form': form})
+
+@login_required(login_url='signin')
+def be_donor(request):
+    resp = ensure_module_access(request, 'can_manage_donors')
+    if resp:
+        return resp
+    if request.method == 'POST':
+        form = BloodDonorForm(request.POST)
+        if form.is_valid():
+            donor = form.save(commit=False)
+
+            donor.created_by = request.user
+            donor.updated_by = request.user
+
+            donor.save()
+
+            # Send Email to Admin
+            details = {
+                "Donor Name": f"{donor.first_name} {donor.last_name}",
+                "Contact Number": donor.contact_number,
+                "DOB": donor.date_of_birth,
+                "Gender": donor.gender,
+                "Blood Group": donor.blood_group,
+                "Area of Residence": donor.area_of_residence,
+                "Reference Name": donor.reference_name or "N/A",
+                "Reference Contact": donor.reference_contact or "N/A",
+                "Registration Date": donor.created_at,
+            }
+
+            send_submission_email("New Donor Registration Received", details)
+
+            # Send WhatsApp notification
+            whatsapp_msg = (
+                f"Hello {donor.first_name} {donor.last_name},\n\n"
+                f"Congratulations on registering as a blood donor! You are a hero. "
+                f"We will contact you whenever there is a requirement matching your blood group ({donor.blood_group}).\n\n"
+                f"Regards,\nKYS Bhayander Team"
+            )
+
+            send_whatsapp_message(donor.contact_number, whatsapp_msg)
+
+            messages.success(
+                request,
+                "Congratulations! You have registered as a blood donor successfully."
+            )
+            return redirect('index')
+        else:
+            # Form invalid: surface errors and log them for debugging
+            try:
+                for field, errs in form.errors.items():
+                    err_text = ", ".join(errs)
+                    messages.error(request, f"{field}: {err_text}")
+                for err in form.non_field_errors():
+                    messages.error(request, err)
+            except Exception:
+                print("Error while reporting BloodDonorForm errors:", form.errors.as_json())
+            print("BloodDonorForm invalid:", form.errors.as_json())
+            print("BloodDonor POST data:", dict(request.POST))
+            return render(request, 'be_donor.html', {'form': form})
+    # Admin: show management table
+    if user_has_permission(request.user, 'can_manage_donors'):
+        q = request.GET.get('q', '').strip()
+        qs = BloodDonor.objects.all().order_by('-created_at')
+        if q:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(first_name__icontains=q) |
+                Q(last_name__icontains=q) |
+                Q(contact_number__icontains=q) |
+                Q(area_of_residence__icontains=q) |
+                Q(blood_group__icontains=q)
+            )
+        paginator = Paginator(qs, 20)
+        page_obj = paginator.get_page(request.GET.get('page'))
+        return render(request, 'donors_admin.html', {'page_obj': page_obj, 'search_query': q})
+
+    else:
+        form = BloodDonorForm()
+
+    return render(request, 'be_donor.html', {'form': form})
+from django.contrib.auth.decorators import login_required
+
+def medical_services(request):
+    resp = ensure_module_access(request, 'can_manage_services')
+    if resp:
+        return resp
+    # Admin: show services management
+    if user_has_permission(request.user, 'can_manage_services'):
+        q = request.GET.get('q', '').strip()
+        qs = SupportService.objects.all().prefetch_related('contacts').order_by('name')
+        if q:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(name__icontains=q) |
+                Q(description__icontains=q) |
+                Q(contacts__contact_name__icontains=q) |
+                Q(contacts__contact_number__icontains=q)
+            ).distinct()
+        paginator = Paginator(qs, 20)
+        page_obj = paginator.get_page(request.GET.get('page'))
+        return render(request, 'services_admin.html', {'page_obj': page_obj, 'search_query': q})
+
+    active_services = SupportService.objects.filter(is_active=True).prefetch_related('contacts').order_by('name')
+    return render(request, 'medical_services.html', {'services': active_services})
+
+@login_required(login_url='signin')
+def add_service(request):
+    resp = ensure_module_access(request, 'can_manage_services')
+    if resp:
+        return resp
+    if request.method == 'POST':
+        name = (request.POST.get('name') or request.POST.get('title') or '').strip()
+        description = (request.POST.get('description') or '').strip()
+        is_active = 'is_active' in request.POST or request.POST.get('is_active') == 'on'
+        if name and description:
+            service = SupportService.objects.create(
+                name=name,
+                description=description,
+                is_active=is_active
+            )
+            seen_contacts = set()
+            for i in range(1, 5):
+                c_name = (request.POST.get(f'contact_name_{i}') or '').strip()
+                c_num = (request.POST.get(f'contact_number_{i}') or '').strip()
+                if c_name and c_num:
+                    key = (c_name.lower(), c_num)
+                    if key not in seen_contacts:
+                        seen_contacts.add(key)
+                        SupportServiceContact.objects.create(
+                            service=service,
+                            contact_name=c_name,
+                            contact_number=c_num,
+                            display_order=i
+                        )
+            messages.success(request, 'Service created successfully.')
+            return redirect('medical_services')
+        messages.error(request, 'Please fill in all required fields.')
+    return render(request, 'add_service.html')
+
+@login_required(login_url='signin')
+def edit_service(request, pk):
+    resp = ensure_module_access(request, 'can_manage_services')
+    if resp:
+        return resp
+    service = get_object_or_404(SupportService, pk=pk)
+    if request.method == 'POST':
+        name = (request.POST.get('name') or request.POST.get('title') or '').strip()
+        description = (request.POST.get('description') or '').strip()
+        is_active = 'is_active' in request.POST
+        if name and description:
+            service.name = name
+            service.description = description
+            service.is_active = is_active
+            service.save()
+
+            service.contacts.all().delete()
+            seen_contacts = set()
+            for i in range(1, 5):
+                c_name = (request.POST.get(f'contact_name_{i}') or '').strip()
+                c_num = (request.POST.get(f'contact_number_{i}') or '').strip()
+                if c_name and c_num:
+                    key = (c_name.lower(), c_num)
+                    if key not in seen_contacts:
+                        seen_contacts.add(key)
+                        SupportServiceContact.objects.create(
+                            service=service,
+                            contact_name=c_name,
+                            contact_number=c_num,
+                            display_order=i
+                        )
+            messages.success(request, 'Service updated successfully.')
+            return redirect('medical_services')
+        messages.error(request, 'Please fill in all required fields.')
+
+    contacts_list = list(service.contacts.all().order_by('display_order'))
+    contacts = []
+    for i in range(4):
+        if i < len(contacts_list):
+            contacts.append(contacts_list[i])
+        else:
+            contacts.append({'contact_name': '', 'contact_number': ''})
+
+    return render(request, 'edit_service.html', {'service': service, 'contacts': contacts})
+
+@login_required(login_url='signin')
+def delete_service(request, pk):
+    resp = ensure_module_access(request, 'can_manage_services')
+    if resp:
+        return resp
+    service = get_object_or_404(SupportService, pk=pk)
+    service.delete()
+    messages.success(request, 'Service deleted successfully.')
+    return redirect('medical_services')
+
+@login_required(login_url='signin')
+def volunteer_event(request):
+    resp = ensure_module_access(request, 'can_manage_volunteers')
+    if resp:
+        return resp
+    if request.method == 'POST':
+        form = EventVolunteerForm(request.POST)
+        if form.is_valid():
+            volunteer = form.save(commit=False)
+
+            volunteer.created_by = request.user
+            volunteer.updated_by = request.user
+
+            volunteer.save()
+
+            # Send Email to Admin
+            details = {
+                "Volunteer Name": volunteer.full_name,
+                "Contact Number": volunteer.contact_number,
+                "Email": volunteer.email,
+                "DOB": volunteer.date_of_birth or "N/A",
+                "Gender": volunteer.gender or "N/A",
+                "Area of Residence": volunteer.area_of_residence,
+                "Event Interest": volunteer.event_interest or "General Volunteer",
+                "Skills & Remarks": volunteer.skills_remarks or "N/A",
+                "Registration Date": volunteer.created_at,
+            }
+
+            send_submission_email("New Event Volunteer Registration", details)
+
+            # Send WhatsApp notification
+            whatsapp_msg = (
+                f"Hello {volunteer.full_name},\n\n"
+                f"Thank you for registering as a volunteer with KYS Bhayander! "
+                f"Your dedication to community service helps us drive positive social impact. "
+                f"Our team will notify you regarding upcoming drives and events.\n\n"
+                f"Regards,\nKYS Bhayander Team"
+            )
+
+            send_whatsapp_message(volunteer.contact_number, whatsapp_msg)
+
+            messages.success(
+                request,
+                "Thank you for volunteering! Your registration has been submitted successfully."
+            )
+            return redirect('index')
+        else:
+            # Form invalid: surface errors and log them for debugging
+            try:
+                for field, errs in form.errors.items():
+                    err_text = ", ".join(errs)
+                    messages.error(request, f"{field}: {err_text}")
+                for err in form.non_field_errors():
+                    messages.error(request, err)
+            except Exception:
+                print("Error while reporting EventVolunteerForm errors:", form.errors.as_json())
+            print("EventVolunteerForm invalid:", form.errors.as_json())
+            print("EventVolunteer POST data:", dict(request.POST))
+            return render(request, 'volunteer_event.html', {'form': form})
+    # Admin: show volunteers management
+    if user_has_permission(request.user, 'can_manage_volunteers'):
+        q = request.GET.get('q', '').strip()
+        qs = EventVolunteer.objects.all().order_by('-created_at')
+        if q:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(full_name__icontains=q) |
+                Q(contact_number__icontains=q) |
+                Q(email__icontains=q) |
+                Q(area_of_residence__icontains=q)
+            )
+        paginator = Paginator(qs, 20)
+        page_obj = paginator.get_page(request.GET.get('page'))
+        return render(request, 'volunteers_admin.html', {'page_obj': page_obj, 'search_query': q})
+
+    else:
+        form = EventVolunteerForm()
+
+    return render(request, 'volunteer_event.html', {'form': form})

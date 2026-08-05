@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -32,6 +33,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "app.apps.AppConfig",
     "social_django",
+    "storages",
 ]
 
 MIDDLEWARE = [
@@ -64,6 +66,7 @@ TEMPLATES = [
                 "social_django.context_processors.backends",
                 "app.context_processors.notification_context",
                 "app.context_processors.rental_receipt_visibility",
+                "app.context_processors.rbac_context",
             ],
         },
     },
@@ -81,16 +84,16 @@ if 'test' in sys.argv:
     }
 
 else:
-     DATABASES = {
-             'default': {
-                 'ENGINE': 'django.db.backends.postgresql',
-                 'NAME': os.getenv('DB_NAME'),
-                 'USER': os.getenv('DB_USER'),
-                 'PASSWORD': os.getenv('DB_PASSWORD'),
-                 'HOST': os.getenv('DB_HOST'),
-                 'PORT': os.getenv('DB_PORT'),
-     }
-     }
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'kys',
+            'USER': 'postgres',
+            'PASSWORD': 'admin',
+            'HOST': 'localhost',
+            'PORT': '5433',
+        }
+ }
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -159,3 +162,31 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")
 TIME_ZONE = 'Asia/Kolkata'
 USE_TZ = True
+
+
+
+GS_BUCKET_NAME = "quicknest-media-2026"
+
+if DEBUG:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    MEDIA_URL = "/media/"
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    MEDIA_URL = f"https://storage.googleapis.com/{GS_BUCKET_NAME}/"
+
+GS_DEFAULT_ACL = None
+GS_QUERYSTRING_AUTH = False

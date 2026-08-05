@@ -1073,7 +1073,7 @@
 
   {% if booking_summaries %}
 
-  {% if request.user.is_staff or request.user.is_superuser %}
+  {% if rbac_can_access_inventory %}
   <div class="report-card">
     <div class="report-header">
       <i class="fas fa-file-pdf report-icon"></i>
@@ -1122,7 +1122,7 @@
             <th class="col-order" data-sort="text">Order ID <i class="fas fa-sort sort-icon"></i></th>
             <th class="col-date" data-sort="date">Date <i class="fas fa-sort sort-icon"></i></th>
             <th class="col-end-date" data-sort="date">End Date <i class="fas fa-sort sort-icon"></i></th>
-            {% if request.user.is_superuser or request.user.is_staff %}
+            {% if rbac_can_access_inventory %}
             <th class="col-customer" data-sort="text">Customer <i class="fas fa-sort sort-icon"></i></th>
             <th class="col-renter" data-sort="text">Renter Name <i class="fas fa-sort sort-icon"></i></th>
             {% endif %}
@@ -1139,7 +1139,7 @@
             <td class="col-order" data-value="{{ booking.order_id }}"><span class="order-link">{{ rr.display_order_id }}</span></td>
             <td class="col-date" data-value="{{ booking.date|date:'Y-m-d' }}">{{ booking.date|date:"M d, Y" }}</td>
             <td class="col-end-date" data-value="{{ rr.billing_end_date|date:'Y-m-d' }}">{{ rr.billing_end_date|date:"M d, Y" }}</td>
-            {% if request.user.is_superuser or request.user.is_staff %}
+            {% if rbac_can_access_inventory %}
             <td class="col-customer"
               data-value="{% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}">
               {% if booking.customer %}{{ booking.customer.username }}{% else %}{{ request.user.username }}{% endif %}
@@ -1170,7 +1170,7 @@
             </td>
             <td class="col-action">
               <div class="actions-wrap">
-                {% if request.user.is_staff or request.user.is_superuser %}
+                {% if rbac_can_access_inventory %}
                 <!-- Admin Actions -->
                 {% if not rr.is_returned %}
                 {% if rr.is_return_requested %}
@@ -1230,7 +1230,7 @@
           {% endfor %}
           {% endfor %}
           <tr class="no-results-row" id="noResultsRow" style="display:none;">
-            <td colspan="{% if request.user.is_superuser or request.user.is_staff %}9{% else %}7{% endif %}">No
+            <td colspan="{% if rbac_can_access_inventory %}9{% else %}7{% endif %}">No
               bookings match your search.</td>
           </tr>
         </tbody>

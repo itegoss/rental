@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Blood Requests Management — Sick Bed Services{% endblock %}
+{% block content %}
+<style>{% include 'admin_table_css.html' %}</style>
+
+<div class="inventory-page">
+  <div class="inventory-head">
+    <h1>Blood <span>Request Management</span></h1>
+    <p>Manage submitted blood requests</p>
+    <div class="underline-bar"></div>
+  </div>
+
+  <div class="items-toolbar">
+    <form class="items-search" method="GET" action="{% url 'request_blood' %}">
+      <i class="fas fa-search"></i>
+      <input type="search" name="q" value="{{ search_query }}" placeholder="Search blood requests..." aria-label="Search blood requests">
+    </form>
+    <a class="btn-add-item" href="#" onclick="location.href='{% url 'request_blood' %}'; return false;">Export CSV</a>
+  </div>
+
+  <div class="items-table-wrap">
+    <div class="items-table-scroll">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Patient Name</th>
+            <th>Blood Group</th>
+            <th>Blood Component</th>
+            <th>Hospital Name</th>
+            <th>Hospital Area</th>
+            <th>Coordinator Name</th>
+            <th>Coordinator Contact</th>
+            <th>Reference Name</th>
+            <th>Reference Contact</th>
+            <th>Prescription</th>
+            <th>Status</th>
+            <th>Submitted Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in page_obj.object_list %}
+          <tr>
+            <td class="item-name-cell">{{ req.patient_name }}</td>
+            <td class="price-cell">{{ req.blood_group }}</td>
+            <td>{{ req.blood_component|default:"-" }}</td>
+            <td>{{ req.hospital_name }}</td>
+            <td>{{ req.hospital_area }}</td>
+            <td>{{ req.coordinator_name }}</td>
+            <td>{{ req.coordinator_contact }}</td>
+            <td>{{ req.reference_name|default:'-' }}</td>
+            <td>{{ req.reference_contact|default:'-' }}</td>
+            <td>
+              {% if req.prescription %}
+                <a href="{{ req.prescription.url }}" target="_blank" style="color:#3b82f6;text-decoration:underline;">View</a>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>
+              {% if req.status == 'Pending' %}
+                <span style="color:#f59e0b; font-weight:800;">{{ req.status }}</span>
+              {% elif req.status == 'Approved' %}
+                <span style="color:#16a34a; font-weight:800;">{{ req.status }}</span>
+              {% elif req.status == 'Fulfilled' %}
+                <span style="color:#0ea5a4; font-weight:800;">{{ req.status }}</span>
+              {% else %}
+                <span style="color:#6b7280; font-weight:800;">{{ req.status }}</span>
+              {% endif %}
+            </td>
+            <td>{{ req.created_at|date:'d M, Y H:i' }}</td>
+            <td>
+              <div class="table-actions">
+                <a class="btn-edit-item" href="{% url 'admin_view_blood_request' req.id %}" title="View"><i class="fas fa-eye"></i></a>
+                {% if req.assigned_employee %}
+                <span class="assigned-tooltip" data-bs-toggle="tooltip" title="Assigned To: {{ req.assigned_employee.get_full_name|default:req.assigned_employee.username }}">
+                  <button type="button" class="btn-assigned-item" data-bs-toggle="modal" data-bs-target="#assignedInfoModal{{ req.id }}" aria-label="View assigned employee details">
+                    <i class="fas fa-user-check"></i>
+                  </button>
+                </span>
+                {% endif %}
+                {% if req.status == 'Pending' %}
+                <form method="POST" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="accept">
+                  <button class="btn-save-item" type="submit" title="Accept"><i class="fas fa-check"></i></button>
+                </form>
+                <form method="POST" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="reject">
+                  <button class="btn-delete-item-table" type="submit" title="Reject"><i class="fas fa-times"></i></button>
+                </form>
+                {% elif req.status == 'Accepted' %}
+                <button class="btn-save-item" type="button" data-bs-toggle="modal" data-bs-target="#assignModal{{ req.id }}" title="Assign Employee">
+                  <i class="fas fa-user-plus"></i>
+                </button>
+                {% elif req.status == 'Blood Available' %}
+                <form method="POST" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="ready_for_pickup">
+                  <button class="btn-save-item" type="submit" title="Ready for Pickup"><i class="fas fa-box"></i></button>
+                </form>
+                {% elif req.status == 'Received' %}
+                <form method="POST" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="complete">
+                  <button class="btn-save-item" type="submit" title="Complete"><i class="fas fa-flag-checkered"></i></button>
+                </form>
+                {% endif %}
+                <a class="btn-delete-item-table" href="{% url 'delete_blood_request' req.id %}" onclick="return confirm('Delete this record');" title="Delete"><i class="fas fa-trash"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="12" style="text-align:center;padding:40px;color:var(--muted);">No blood requests found</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% for req in page_obj.object_list %}
+    <div class="modal fade" id="assignModal{{ req.id }}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form method="POST" action="{% url 'assign_blood_request_employee' req.id %}">
+            {% csrf_token %}
+            <div class="modal-header">
+              <h5 class="modal-title">Assign Employee</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label class="form-label">Select User</label>
+                <select class="form-select" name="assigned_employee" required>
+                  <option value="">Select one</option>
+                  {% for user in active_employees %}
+                  <option value="{{ user.id }}">{{ user.username }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Remarks</label>
+                <textarea class="form-control" name="remarks" rows="3"></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-danger">Assign</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    {% if req.assigned_employee %}
+    <div class="modal fade" id="assignedInfoModal{{ req.id }}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Assigned Employee</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3"><strong>Name:</strong> {{ req.assigned_employee.get_full_name|default:req.assigned_employee.username }}</div>
+            <div class="mb-3"><strong>Username:</strong> {{ req.assigned_employee.username }}</div>
+            <div class="mb-3"><strong>Email:</strong> {{ req.assigned_employee.email|default:'-' }}</div>
+            <div class="mb-3"><strong>Assigned By:</strong> {{ req.assigned_by.get_full_name|default:req.assigned_by.username|default:'-' }}</div>
+            <div class="mb-3"><strong>Assigned On:</strong> {{ req.assigned_at|date:'d M Y g:i A'|default:'-' }}</div>
+            <div class="mb-3"><strong>Current Status:</strong> {{ req.status }}</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-bar" style="margin-top:24px; justify-content:center;">
+      {% if page_obj.has_previous %}
+      <a class="page-btn" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Previous</a>
+      {% else %}
+      <button class="page-btn" disabled>Previous</button>
+      {% endif %}
+
+      <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+      {% if page_obj.has_next %}
+      <a class="page-btn" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Next</a>
+      {% else %}
+      <button class="page-btn" disabled>Next</button>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

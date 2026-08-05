@@ -21,6 +21,12 @@ from .models import (
     Cart,
     CartItem,
     NotifyRequest,
+    BloodRequest,
+    CampOrganizer,
+    BloodDonor,
+    EventVolunteer,
+    Role,
+    UserRole,
 )
 
 from .utils import generate_receipt, receipt_filename, send_notification, send_whatsapp_message, generate_rental_report_pdf
@@ -243,8 +249,6 @@ class HistoryAdmin(admin.ModelAdmin):
     def get_changelist(self, request, **kwargs):
         return HistoryChangeList
 
-
-
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}
         
@@ -307,8 +311,6 @@ class HistoryAdmin(admin.ModelAdmin):
         return "—"
 
     download_receipt.short_description = "Receipt"
-
-
 
     def send_whatsapp(self, obj):
         try:
@@ -375,6 +377,39 @@ class HistoryAdmin(admin.ModelAdmin):
 
     send_reminder_whatsapp.short_description = "Reminder"
 
+@admin.register(Role)
+class RoleAdmin(admin.ModelAdmin):
+    list_display = (
+        'name',
+        'can_access_inventory',
+        'can_manage_blood_requests',
+        'can_manage_camps',
+        'can_manage_donors',
+        'can_manage_volunteers',
+        'can_manage_services',
+        'can_manage_users',
+        'can_manage_roles',
+        'created_at',
+    )
+    search_fields = ('name',)
+    list_filter = (
+        'can_access_inventory',
+        'can_manage_blood_requests',
+        'can_manage_camps',
+        'can_manage_donors',
+        'can_manage_volunteers',
+        'can_manage_services',
+        'can_manage_users',
+        'can_manage_roles',
+    )
+
+
+@admin.register(UserRole)
+class UserRoleAdmin(admin.ModelAdmin):
+    list_display = ('user', 'role', 'assigned_at')
+    search_fields = ('user__username', 'role__name')
+    list_filter = ('role',)
+
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
     list_display = (
@@ -439,4 +474,140 @@ class NotifyRequestAdmin(admin.ModelAdmin):
     list_filter = ('is_notified', 'created_at', 'item')
     search_fields = ('email', 'mobile', 'item__title')
     readonly_fields = ('created_at',)
+
+
+@admin.register(BloodRequest)
+class BloodRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        'created_at',
+        'patient_name',
+        'hospital_name',
+        'hospital_area',
+        'blood_group',
+        'coordinator_name',
+        'coordinator_contact',
+        'view_prescription',
+        'status',
+        'action_buttons',
+    )
+    list_filter = ('status', 'blood_group', 'created_at')
+    search_fields = ('patient_name', 'hospital_name', 'coordinator_name', 'coordinator_contact')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    actions = ['mark_cancelled', 'mark_fulfilled']
+
+    def view_prescription(self, obj):
+        if obj.prescription:
+            return format_html('<a href="{}" target="_blank" class="button" style="padding:3px 8px; font-size:12px;">View File</a>', obj.prescription.url)
+        return "—"
+    view_prescription.short_description = "Prescription"
+
+    def action_buttons(self, obj):
+        return format_html(
+            '<a class="button" href="{}?status=Cancelled" style="background:#dc2626; color:#fff; padding:3px 8px; font-size:11px; margin-right:4px;">Cancel</a>'
+            '<a class="button" href="{}?status=Fulfilled" style="background:#16a34a; color:#fff; padding:3px 8px; font-size:11px;">Fulfill</a>',
+            reverse('admin:app_bloodrequest_change', args=[obj.pk]),
+            reverse('admin:app_bloodrequest_change', args=[obj.pk])
+        )
+    action_buttons.short_description = "Actions"
+
+    @admin.action(description="Mark selected requests as Cancelled")
+    def mark_cancelled(self, request, queryset):
+        queryset.update(status='Cancelled', updated_by=request.user)
+
+    @admin.action(description="Mark selected requests as Fulfilled")
+    def mark_fulfilled(self, request, queryset):
+        queryset.update(status='Fulfilled', updated_by=request.user)
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(CampOrganizer)
+class CampOrganizerAdmin(admin.ModelAdmin):
+    list_display = (
+        'created_at',
+        'proposed_date',
+        'organizer_name',
+        'organization_name',
+        'contact_number',
+        'email',
+        'proposed_venue',
+        'expected_donors',
+        'mobile_van_required',
+        'volunteers_available',
+        'status',
+    )
+    list_filter = ('status', 'proposed_date', 'created_at')
+    search_fields = ('organizer_name', 'organization_name', 'proposed_venue')
+    readonly_fields = ('created_at', 'updated_at')
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(BloodDonor)
+class BloodDonorAdmin(admin.ModelAdmin):
+    list_display = (
+        'created_at',
+        'donor_name',
+        'blood_group',
+        'contact_number',
+        'date_of_birth',
+        'gender',
+        'area_of_residence',
+        'status',
+    )
+    list_filter = ('status', 'blood_group', 'created_at')
+    search_fields = ('first_name', 'last_name', 'contact_number', 'area_of_residence')
+    readonly_fields = ('created_at', 'updated_at')
+
+    def donor_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}"
+    donor_name.short_description = "Donor Name"
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(EventVolunteer)
+class EventVolunteerAdmin(admin.ModelAdmin):
+    list_display = (
+        'created_at',
+        'full_name',
+        'contact_number',
+        'email',
+        'area_of_residence',
+        'event_interest',
+        'status',
+    )
+    list_filter = ('status', 'created_at')
+    search_fields = ('full_name', 'contact_number', 'email', 'area_of_residence')
+    readonly_fields = ('created_at', 'updated_at')
+
+    actions = ['mark_cancelled', 'mark_fulfilled']
+
+    @admin.action(description="Mark selected volunteers as Cancelled")
+    def mark_cancelled(self, request, queryset):
+        queryset.update(status='Cancelled', updated_by=request.user)
+
+    @admin.action(description="Mark selected volunteers as Fulfilled")
+    def mark_fulfilled(self, request, queryset):
+        queryset.update(status='Fulfilled', updated_by=request.user)
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)
+
 

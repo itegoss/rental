@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Permission Denied — Sick Bed Services{% endblock %}
+{% block content %}
+<div style="max-width:720px;margin:80px auto;padding:24px;background:#fff;border-radius:18px;box-shadow:0 20px 45px rgba(0,0,0,0.08);text-align:center;">
+  <h1 style="font-size:3rem;color:#c0181b;">403</h1>
+  <h2 style="margin:0.5rem 0 1rem;font-size:2rem;">Permission Denied</h2>
+  <p style="color:#555;line-height:1.8;">You do not have access to this page or module. If you believe this is an error, please contact your administrator.</p>
+  <a href="{% url 'index' %}" style="display:inline-block;margin-top:1.5rem;padding:0.85rem 1.5rem;background:#ec2427;color:#fff;border-radius:999px;text-decoration:none;font-weight:700;">Return home</a>
+</div>
+{% endblock %}

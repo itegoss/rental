@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Organize Blood Donation Camp — Sick Bed Services{% endblock %}
+{% block content %}
+<style>
+.camp-banner {
+  background-color: #1e293b;
+  color: #fff;
+  padding: 60px 24px;
+  text-align: center;
+}
+.camp-banner h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+.camp-banner p {
+  font-size: 1.05rem;
+  opacity: 0.9;
+  max-width: 750px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+.form-container {
+  max-width: 960px;
+  margin: -40px auto 60px;
+  background: #ffffff;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  z-index: 10;
+}
+.form-section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 24px;
+}
+.form-group-custom {
+  margin-bottom: 22px;
+}
+.form-group-custom label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  color: #374151;
+}
+.form-group-custom input, .form-group-custom select, .form-group-custom textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: all 0.22s;
+  background: #fafafa;
+  outline: none;
+}
+.form-group-custom input:focus, .form-group-custom select:focus {
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(236,36,39,0.1);
+}
+.error-msg {
+  color: var(--danger);
+  font-size: 0.82rem;
+  margin-top: 5px;
+  font-weight: 600;
+}
+.btn-signin {
+  width: 100%;
+  padding: 14px;
+  background: #ec2427;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.22s;
+  box-shadow: 0 4px 14px rgba(236,36,39,0.3);
+  text-align: center;
+}
+.btn-signin:hover {
+  background: #c0181b;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(236,36,39,0.4);
+}
+</style>
+
+<div class="camp-banner" style="background-color: #c0181b;">
+  <h1>Organise a Blood Donation Camp</h1>
+  <p>We deeply appreciate your generous thought and commitment to organizing a blood donation camp. It is a truly commendable deed that will undoubtedly save lives, and we will definitely help you make it happen!</p>
+  <p style="margin-top: 10px;">To help us coordinate and assist you better, please fill out the details below. Once submitted, our team will get back to you shortly to discuss the next steps.</p>
+</div>
+
+<div class="container">
+  <div class="form-container">
+    <form method="POST" novalidate>
+      {% csrf_token %}
+      
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger mb-4">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="form-section-title">Organizer Information</div>
+      
+      <div class="row">
+        <div class="col-md-6 form-group-custom">
+          <label for="id_organizer_name">Full Name: <span class="text-danger">*</span></label>
+          <input type="text" name="organizer_name" id="id_organizer_name" required placeholder="Enter full name" value="{{ form.organizer_name.value|default_if_none:'' }}">
+          {% if form.organizer_name.errors %}
+            <div class="error-msg">{{ form.organizer_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 form-group-custom">
+          <label for="id_organization_name">Organization/Group Name (if applicable): <span class="text-danger">*</span></label>
+          <input type="text" name="organization_name" id="id_organization_name" required placeholder="e.g. RWA, College, Society" value="{{ form.organization_name.value|default_if_none:'' }}">
+          {% if form.organization_name.errors %}
+            <div class="error-msg">{{ form.organization_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 form-group-custom">
+          <label for="id_contact_number">Contact Number: <span class="text-danger">*</span></label>
+          <input type="tel" name="contact_number" id="id_contact_number" required placeholder="10-digit mobile number" value="{{ form.contact_number.value|default_if_none:'' }}">
+          {% if form.contact_number.errors %}
+            <div class="error-msg">{{ form.contact_number.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 form-group-custom">
+          <label for="id_email">Email Address: <span class="text-danger">*</span></label>
+          <input type="email" name="email" id="id_email" required placeholder="Enter email address" value="{{ form.email.value|default_if_none:'' }}">
+          {% if form.email.errors %}
+            <div class="error-msg">{{ form.email.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-section-title mt-4">Camp Details</div>
+      
+      <div class="row">
+        <div class="col-md-6 form-group-custom">
+          <label for="id_proposed_date">Proposed Date for the Camp: <span class="text-danger">*</span></label>
+          <input type="date" name="proposed_date" id="id_proposed_date" required value="{{ form.proposed_date.value|default_if_none:'' }}">
+          {% if form.proposed_date.errors %}
+            <div class="error-msg">{{ form.proposed_date.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 form-group-custom">
+          <label for="id_expected_donors">Expected Number of Donors: <span class="text-danger">*</span></label>
+          <input type="number" name="expected_donors" id="id_expected_donors" required min="1" placeholder="Estimated donor count" value="{{ form.expected_donors.value|default_if_none:'' }}">
+          {% if form.expected_donors.errors %}
+            <div class="error-msg">{{ form.expected_donors.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-group-custom">
+        <label for="id_proposed_venue">Proposed Venue/Location: <span class="text-danger">*</span></label>
+        <input type="text" name="proposed_venue" id="id_proposed_venue" required placeholder="Detailed address of camp venue" value="{{ form.proposed_venue.value|default_if_none:'' }}">
+        {% if form.proposed_venue.errors %}
+          <div class="error-msg">{{ form.proposed_venue.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 form-group-custom">
+          <label for="id_mobile_van_required">Is mobile van required (Y/N): <span class="text-danger">*</span></label>
+          <select name="mobile_van_required" id="id_mobile_van_required">
+            <option value="False" {% if form.mobile_van_required.value == 'False' or not form.mobile_van_required.value %}selected{% endif %}>No</option>
+            <option value="True" {% if form.mobile_van_required.value == 'True' or form.mobile_van_required.value == True %}selected{% endif %}>Yes</option>
+          </select>
+          {% if form.mobile_van_required.errors %}
+            <div class="error-msg">{{ form.mobile_van_required.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 form-group-custom">
+          <label for="id_volunteers_available">Do you have volunteers to support (Y/N): <span class="text-danger">*</span></label>
+          <select name="volunteers_available" id="id_volunteers_available">
+            <option value="False" {% if form.volunteers_available.value == 'False' or not form.volunteers_available.value %}selected{% endif %}>No</option>
+            <option value="True" {% if form.volunteers_available.value == 'True' or form.volunteers_available.value == True %}selected{% endif %}>Yes</option>
+          </select>
+          {% if form.volunteers_available.errors %}
+            <div class="error-msg">{{ form.volunteers_available.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <button type="submit" class="btn-signin py-3 mt-4">Submit</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

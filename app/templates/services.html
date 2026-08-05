@@ -1,38 +1,215 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Our Services — Sick Bed Services{% endblock %}
+{% block title %}Services — Sick Bed Services{% endblock %}
 {% block content %}
 <style>
-.services-page { max-width:1200px; margin:0 auto; padding:48px 20px; }
-.services-head { text-align:center; margin-bottom:48px; }
-.services-head h1 { font-size:2.2rem; font-weight:800; color:var(--text); margin-bottom:8px; }
-.services-head h1 span { color:var(--primary); }
-.services-head p { color:var(--muted); font-size:0.97rem; }
-.underline-bar { width:64px; height:5px; background:linear-gradient(90deg,var(--primary),#ff6b6b); border-radius:4px; margin:12px auto 0; }
-.services-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:26px; }
-.service-card { background:#fff; border-radius:18px; box-shadow:0 6px 24px rgba(0,0,0,0.06); overflow:hidden; transition:transform 0.3s,box-shadow 0.3s; display:flex; flex-direction:column; }
-.service-card:hover { transform:translateY(-8px); box-shadow:0 20px 50px rgba(236,36,39,0.12); }
-.service-thumb { height:180px; overflow:hidden; }
-.service-thumb img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.5s; }
-.service-card:hover .service-thumb img { transform:scale(1.07); }
-.service-body { padding:20px; flex:1; display:flex; flex-direction:column; }
-.service-body h3 { font-size:1.1rem; font-weight:700; margin-bottom:8px; }
-.service-body p { font-size:0.88rem; color:var(--muted); line-height:1.6; flex:1; margin-bottom:18px; }
-.btn-contact { display:inline-flex; align-items:center; gap:6px; padding:9px 20px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; border:none; border-radius:999px; font-size:0.84rem; font-weight:700; font-family:var(--font); cursor:pointer; transition:transform 0.2s,box-shadow 0.2s; box-shadow:0 3px 10px rgba(236,36,39,0.22); }
-.btn-contact:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(236,36,39,0.3); }
-.btn-contact.revealed { background:#f3f4f6; color:var(--text); box-shadow:none; cursor:text; }
-.no-services { text-align:center; padding:60px 20px; color:var(--muted); }
+.support-services-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 20px;
+}
+.support-services-head {
+  text-align: center;
+  margin-bottom: 48px;
+}
+.support-services-head h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text, #111827);
+  margin-bottom: 8px;
+}
+.support-services-head h1 span {
+  color: var(--primary, #ec2427);
+}
+.support-services-head p {
+  color: var(--muted, #6b7280);
+  font-size: 0.97rem;
+}
+.underline-bar {
+  width: 64px;
+  height: 5px;
+  background: linear-gradient(90deg, var(--primary, #ec2427), #ff6b6b);
+  border-radius: 4px;
+  margin: 12px auto 0;
+}
+
+/* 3D Flip Card Styles */
+.flip-card-wrapper {
+  perspective: 1000px;
+  height: 320px;
+  margin-bottom: 30px;
+}
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+.flip-card-wrapper.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+.flip-card-front, .flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: 16px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: box-shadow 0.3s ease;
+}
+.flip-card-wrapper:hover .flip-card-front {
+  box-shadow: 0 10px 30px rgba(236, 36, 39, 0.12);
+}
+.flip-card-front h3 {
+  color: var(--primary, #ec2427);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.flip-card-front .short-desc {
+  color: #4b5563;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  flex-grow: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+}
+.flip-card-front .click-hint {
+  color: var(--primary, #ec2427);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+  border-top: 4px solid var(--primary, #ec2427);
+}
+.flip-card-back h4 {
+  color: var(--primary, #ec2427);
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.flip-card-back .full-desc {
+  color: #374151;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  max-height: 110px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  padding-right: 4px;
+}
+.contacts-header {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+.contacts-list {
+  max-height: 110px;
+  overflow-y: auto;
+}
+.contact-item {
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+.contact-item .person-name {
+  font-weight: 600;
+  color: #1f2937;
+}
+.contact-item .phone-link {
+  color: var(--primary, #ec2427);
+  font-weight: 700;
+  text-decoration: none;
+}
+.contact-item .phone-link:hover {
+  text-decoration: underline;
+}
+.no-contacts {
+  color: #9ca3af;
+  font-size: 0.88rem;
+  font-style: italic;
+}
 </style>
 
-<div class="services-page">
-  <div class="services-head">
-    <h1>Coming <span>Soon</span></h1>
-</div>
+<div class="support-services-page">
+  <div class="support-services-head">
+    <h1> <span>Services</span></h1>
+    <p>Explore healthcare and community assistance programs</p>
+    <div class="underline-bar"></div>
+  </div>
 
-<script>
-function showNumber(number, btn) {
-  btn.innerHTML = '<i class="fas fa-phone" style="color:var(--success);"></i> ' + number;
-  btn.classList.add('revealed');
-}
-</script>
+  <div class="row">
+    {% for s in services %}
+    <div class="col-lg-4 col-md-6 col-12">
+      <div class="flip-card-wrapper" onclick="this.classList.toggle('flipped');">
+        <div class="flip-card-inner">
+          <!-- Front Side -->
+          <div class="flip-card-front">
+            <div>
+              <h3>{{ s.name }}</h3>
+              <p class="short-desc">{{ s.description|truncatewords:25 }}</p>
+            </div>
+            <div class="click-hint">
+              <i class="fas fa-hand-pointer"></i> Click to View Contacts
+            </div>
+          </div>
+
+          <!-- Back Side -->
+          <div class="flip-card-back">
+            <div>
+              <h4>{{ s.name }}</h4>
+              <p class="full-desc">{{ s.description }}</p>
+            </div>
+            <div>
+              <div class="contacts-header">Available Contacts</div>
+              <div class="contacts-list">
+                {% for c in s.contacts.all %}
+                <div class="contact-item">
+                  <span class="person-name">{{ c.contact_name }}</span>
+                  <a href="tel:{{ c.contact_number }}" class="phone-link" onclick="event.stopPropagation();">
+                    <i class="fas fa-phone-alt me-1"></i>{{ c.contact_number }}
+                  </a>
+                </div>
+                {% empty %}
+                <div class="no-contacts">No contact available.</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5 text-muted">
+      <h4>No support services available at the moment.</h4>
+    </div>
+    {% endfor %}
+  </div>
+</div>
 {% endblock %}

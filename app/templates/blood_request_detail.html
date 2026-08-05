@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% block title %}Blood Request Detail — Sick Bed Services{% endblock %}
+{% block content %}
+<div class="inventory-page">
+  <div class="inventory-head">
+    <h1>Blood <span>Request Detail</span></h1>
+    <p>Request submitted by {% if req.created_by %}{{ req.created_by.username }}{% else %}Guest{% endif %}</p>
+    <div class="underline-bar"></div>
+  </div>
+
+  <div class="card-modern" style="padding:24px; max-width:900px; margin:0 auto;">
+    <h2 style="margin-top:0;">{{ req.patient_name }} — {{ req.blood_group }}</h2>
+    <p><strong>Hospital:</strong> {{ req.hospital_name }} ({{ req.hospital_area }})</p>
+    <p><strong>Coordinator:</strong> {{ req.coordinator_name }} — {{ req.coordinator_contact }}</p>
+    <p><strong>Reference:</strong> {{ req.reference_name|default:'-' }} — {{ req.reference_contact|default:'-' }}</p>
+    <p><strong>Status:</strong> {{ req.status }}</p>
+    <p><strong>Submitted:</strong> {{ req.created_at|date:'d M, Y H:i' }}</p>
+    <p><strong>Remarks:</strong> {{ req.remarks|default:'-' }}</p>
+    <p><strong>Prescription:</strong>
+      {% if req.prescription %}
+        <a href="{{ req.prescription.url }}" target="_blank">View / Download</a>
+      {% else %}
+        -
+      {% endif %}
+    </p>
+
+    <div style="margin-top:18px; display:flex; gap:12px;">
+      <a class="btn-save-item" href="{% url 'request_blood' %}" title="Back"><i class="fas fa-arrow-left"></i></a>
+      <a class="btn-save-item" href="{% url 'edit_blood_request' req.id %}" title="Edit"><i class="fas fa-edit"></i></a>
+      <a class="btn-delete-item-table" href="{% url 'delete_blood_request' req.id %}" onclick="return confirm('Delete this record');" title="Delete"><i class="fas fa-trash"></i></a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .inventory-page {
+    padding: 32px 20px 48px;
+    background: linear-gradient(180deg, #f8fafc 0%, #f3f4f6 100%);
+  }
+
+  .inventory-head {
+    max-width: 1100px;
+    margin: 0 auto 24px;
+    text-align: center;
+  }
+
+  .inventory-head h1 {
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin: 0 0 10px;
+    color: #0f172a;
+  }
+
+  .inventory-head h1 span {
+    color: #dc2626;
+  }
+
+  .inventory-head p {
+    color: #64748b;
+    font-size: 1rem;
+    margin: 0 auto;
+    max-width: 640px;
+  }
+
+  .underline-bar {
+    width: 110px;
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+    margin: 14px auto 0;
+  }
+
+  .card-modern {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 24px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+    padding: 28px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    transition: transform 0.28s ease, box-shadow 0.28s ease;
+  }
+
+  .card-modern:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-modern h2 {
+    margin: 0 0 20px;
+    font-size: clamp(1.5rem, 2.8vw, 2rem);
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .card-modern h2::before {
+    content: "🩸";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    font-size: 1.15rem;
+  }
+
+  .card-modern > p {
+    margin: 0 0 12px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 56px;
+    transition: all 0.25s ease;
+  }
+
+  .card-modern > p:hover {
+    background: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  }
+
+  .card-modern > p strong {
+    color: #64748b;
+    font-weight: 600;
+    min-width: 120px;
+  }
+
+  .card-modern > p:nth-of-type(1) {
+    background: linear-gradient(135deg, #fff7ed 0%, #fff1f2 100%);
+    border-color: #fed7aa;
+  }
+
+  .card-modern > p:nth-of-type(7) {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-color: #dbeafe;
+    display: block;
+  }
+
+  .card-modern > p:nth-of-type(7) a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .card-modern > p:nth-of-type(7) a:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+  }
+
+  .card-modern > div:last-child {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .card-modern .btn-save-item,
+  .card-modern .btn-delete-item-table {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 42px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: 0;
+    text-decoration: none;
+    color: #fff;
+    font-weight: 600;
+    transition: all 0.25s ease;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  }
+
+  .card-modern .btn-save-item {
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  }
+
+  .card-modern .btn-delete-item-table {
+    background: linear-gradient(135deg, #ef4444 0%, #f43f5e 100%);
+  }
+
+  .card-modern .btn-save-item:hover,
+  .card-modern .btn-delete-item-table:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  }
+
+  @media (max-width: 900px) {
+    .card-modern {
+      padding: 24px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .inventory-page {
+      padding: 24px 14px 36px;
+    }
+
+    .card-modern {
+      padding: 20px;
+      border-radius: 20px;
+    }
+
+    .card-modern > p {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .card-modern > p strong {
+      min-width: auto;
+    }
+
+    .card-modern > div:last-child {
+      justify-content: stretch;
+    }
+
+    .card-modern .btn-save-item,
+    .card-modern .btn-delete-item-table {
+      flex: 1 1 100%;
+    }
+  }
+</style>
+
+{% endblock %}

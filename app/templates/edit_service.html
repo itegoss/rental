@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Edit Support Service — Sick Bed Services{% endblock %}
+{% block content %}
+<style>
+.add-service-container {
+  max-width: 750px;
+  margin: 40px auto;
+  padding: 32px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.add-service-head {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.add-service-head h2 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.add-service-head h2 span {
+  color: var(--primary, #ec2427);
+}
+.contact-row-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.contact-row-card h6 {
+  font-weight: 700;
+  color: #ec2427;
+  margin-bottom: 10px;
+}
+.btn-submit-service {
+  background-color: var(--primary, #ec2427);
+  border-color: var(--primary, #ec2427);
+  color: #fff;
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 8px;
+}
+.btn-submit-service:hover {
+  background-color: #c0181b;
+  border-color: #c0181b;
+  color: #fff;
+}
+</style>
+
+<div class="container">
+  <div class="add-service-container">
+    <div class="add-service-head">
+      <h2>Edit <span>Support Service</span></h2>
+      <p class="text-muted">Update service details and contacts</p>
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="name" class="form-label font-weight-bold">Service Name *</label>
+        <input type="text" class="form-control" id="name" name="name" value="{{ service.name }}" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="description" class="form-label font-weight-bold">Description *</label>
+        <textarea class="form-control" id="description" name="description" rows="4" required>{{ service.description }}</textarea>
+      </div>
+
+      <div class="form-check mb-4">
+        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if service.is_active %}checked{% endif %}>
+        <label class="form-check-label font-weight-bold" for="is_active">
+          Active (visible on website)
+        </label>
+      </div>
+
+      <hr class="my-4">
+      <h5 class="mb-3 font-weight-bold" style="color: var(--text);">Contact Persons (Up to 4)</h5>
+
+      {% for c in contacts %}
+      <div class="contact-row-card">
+        <h6>Contact {{ forloop.counter }}</h6>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <input type="text" class="form-control" name="contact_name_{{ forloop.counter }}" value="{{ c.contact_name }}" placeholder="Person Name">
+          </div>
+          <div class="col-md-6">
+            <input type="text" class="form-control" name="contact_number_{{ forloop.counter }}" value="{{ c.contact_number }}" placeholder="Phone Number">
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+      <div class="d-flex justify-content-between align-items-center mt-4">
+        <a href="{% url 'medical_services' %}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-submit-service">Update Service</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

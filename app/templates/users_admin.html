@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}User Management — Sick Bed Services{% endblock %}
+{% block content %}
+<style>
+  {% include 'admin_table_css.html' %}
+
+  .table-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  
+  .table-actions form {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
+
+  .btn-icon-assign {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border: none;
+    border-radius: 10px;
+    background: #3b82f6;
+    color: #ffffff;
+    font-size: 1rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.22s ease;
+  }
+
+  .btn-icon-assign:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    background: #2563eb;
+  }
+
+  .btn-icon-remove {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border: none;
+    border-radius: 10px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 1rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.22s ease;
+  }
+
+  .btn-icon-remove:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    background: #dc2626;
+  }
+</style>
+
+<div class="inventory-page">
+  <div class="inventory-head">
+    <h1>Users <span>Management</span></h1>
+    <p>Assign roles and manage platform users</p>
+    <div class="underline-bar"></div>
+  </div>
+
+  <div class="items-toolbar">
+    <form class="items-search" method="GET" action="{% url 'users' %}">
+      <i class="fas fa-search"></i>
+      <input type="search" name="q" value="{{ search_query }}" placeholder="Search users..." aria-label="Search users">
+    </form>
+  </div>
+
+  <div class="items-table-wrap">
+    <div class="items-table-scroll">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Superuser</th>
+            <th>Staff</th>
+            <th>Roles</th>
+            <th style="width: 220px; max-width: 220px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in page_obj.object_list %}
+          <tr>
+            <td class="item-name-cell">{{ user.username }}</td>
+            <td>{{ user.email|default:'—' }}</td>
+            <td>{{ user.is_superuser|yesno:'Yes,No' }}</td>
+            <td>{{ user.is_staff|yesno:'Yes,No' }}</td>
+            <td>
+              {% for assignment in user.role_assignments.all %}
+                <span>{{ assignment.role.name }}</span>{% if not forloop.last %}, {% endif %}
+              {% empty %}
+                <span class="text-muted">No role assigned</span>
+              {% endfor %}
+            </td>
+            <td>
+              <div class="table-actions">
+                <form method="POST" action="{% url 'users' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="assign_role">
+                  <input type="hidden" name="user_id" value="{{ user.id }}">
+                  <select name="role_id" style="min-width:180px;">
+                    <option value="">Assign role</option>
+                    {% for role in roles %}
+                    <option value="{{ role.id }}">{{ role.name }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="btn-icon-assign" title="Assign Role"><i class="fas fa-user-plus"></i></button>
+                </form>
+                {% for assignment in user.role_assignments.all %}
+                <form method="POST" action="{% url 'users' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="remove_role">
+                  <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                  <button type="submit" class="btn-icon-remove" title="Remove Role"><i class="fas fa-user-minus"></i></button>
+                </form>
+                {% endfor %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted);">No users found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-bar" style="margin-top:24px; justify-content:center;">
+      {% if page_obj.has_previous %}
+      <a class="page-btn" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Previous</a>
+      {% else %}
+      <button class="page-btn" disabled>Previous</button>
+      {% endif %}
+      <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+      <a class="page-btn" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Next</a>
+      {% else %}
+      <button class="page-btn" disabled>Next</button>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

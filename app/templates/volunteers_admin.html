@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Volunteer Management — Sick Bed Services{% endblock %}
+{% block content %}
+<style>{% include 'admin_table_css.html' %}</style>
+
+<div class="inventory-page">
+  <div class="inventory-head">
+    <h1>Volunteer <span>Management</span></h1>
+    <p>Manage volunteer registrations</p>
+    <div class="underline-bar"></div>
+  </div>
+
+  <div class="items-toolbar">
+    <form class="items-search" method="GET" action="{% url 'volunteer_event' %}">
+      <i class="fas fa-search"></i>
+      <input type="search" name="q" value="{{ search_query }}" placeholder="Search volunteers..." aria-label="Search volunteers">
+    </form>
+  </div>
+
+  <div class="items-table-wrap">
+    <div class="items-table-scroll">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Contact</th>
+            <th>Email</th>
+            <th>DOB</th>
+            <th>Area</th>
+            <th>Interest</th>
+            <th>Registered</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in page_obj.object_list %}
+          <tr>
+            <td class="item-name-cell">{{ v.full_name }}</td>
+            <td>{{ v.contact_number }}</td>
+            <td>{{ v.email }}</td>
+            <td>{{ v.date_of_birth }}</td>
+            <td>{{ v.area_of_residence }}</td>
+            <td>{{ v.event_interest|default:'General' }}</td>
+            <td>{{ v.created_at|date:'d M, Y' }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">No volunteers found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-bar" style="margin-top:24px; justify-content:center;">
+      {% if page_obj.has_previous %}
+      <a class="page-btn" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Previous</a>
+      {% else %}
+      <button class="page-btn" disabled>Previous</button>
+      {% endif %}
+      <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+      <a class="page-btn" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Next</a>
+      {% else %}
+      <button class="page-btn" disabled>Next</button>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

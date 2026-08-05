@@ -114,6 +114,10 @@ class UserDetail(models.Model):
         return self.user.username
 
 class History(models.Model):
+    class Meta:
+        verbose_name = "Booking"
+        verbose_name_plural = "Bookings"
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     renter_name = models.CharField(max_length=255, null=True, blank=True)
     email = models.EmailField(max_length=254, null=True, blank=True)
@@ -306,6 +310,13 @@ class Notification(models.Model):
     title = models.CharField(max_length=180)
     message = models.TextField()
     link = models.CharField(max_length=255, blank=True, null=True)
+    recipient = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='notifications'
+    )
     is_read = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
@@ -326,6 +337,120 @@ class Notification(models.Model):
             'user': 'secondary',
             'info': 'secondary',
         }.get(self.type, 'secondary')
+
+class Role(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+    can_access_inventory = models.BooleanField(default=False)
+    can_manage_blood_requests = models.BooleanField(default=False)
+    can_manage_camps = models.BooleanField(default=False)
+    can_manage_donors = models.BooleanField(default=False)
+    can_manage_volunteers = models.BooleanField(default=False)
+    can_manage_services = models.BooleanField(default=False)
+    can_manage_users = models.BooleanField(default=False)
+    can_manage_roles = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def permission_list(self):
+        permissions = []
+        if self.can_access_inventory:
+            permissions.append('Inventory Access')
+        if self.can_manage_blood_requests:
+            permissions.append('Blood Requests')
+        if self.can_manage_camps:
+            permissions.append('Camps')
+        if self.can_manage_donors:
+            permissions.append('Donors')
+        if self.can_manage_volunteers:
+            permissions.append('Volunteers')
+        if self.can_manage_services:
+            permissions.append('Services')
+        if self.can_manage_users:
+            permissions.append('Users')
+        if self.can_manage_roles:
+            permissions.append('Roles')
+        return permissions
+
+    def has_permission(self, permission_name):
+        return getattr(self, permission_name, False)
+
+class UserRole(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='role_assignments')
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name='user_assignments')
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'role')
+        ordering = ['user__username', 'role__name']
+
+    def __str__(self):
+        return f"{self.user.username} → {self.role.name}"
+
+
+def user_has_permission(user, permission_name):
+    if not user or not user.is_authenticated:
+        return False
+
+    if user.is_superuser or user.is_staff:
+        return True
+
+    return any(
+        getattr(assignment.role, permission_name, False)
+        for assignment in user.role_assignments.select_related('role').all()
+    )
+
+
+def user_has_assigned_role(user):
+    """Return True if the given user has any Role assigned.
+
+    - Returns False for anonymous or unauthenticated users.
+    - Superusers/staff are not considered 'assigned' here unless they actually
+      have role assignments; caller should check `is_superuser` / `is_staff`
+      separately when deciding access.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    try:
+        from django.apps import apps
+        UserRole = apps.get_model('app', 'UserRole')
+        return UserRole.objects.filter(user_id=user.id).exists()
+    except Exception:
+        # Fallback to reverse relation if model resolution fails
+        try:
+            return user.role_assignments.exists()
+        except Exception:
+            return False
+
+def user_has_any_permission(user):
+    if not user or not user.is_authenticated:
+        return False
+
+    if user.is_superuser or user.is_staff:
+        return True
+
+    permission_fields = [
+        'can_access_inventory',
+        'can_manage_blood_requests',
+        'can_manage_camps',
+        'can_manage_donors',
+        'can_manage_volunteers',
+        'can_manage_services',
+        'can_manage_users',
+        'can_manage_roles',
+    ]
+    return any(
+        getattr(assignment.role, field, False)
+        for assignment in user.role_assignments.select_related('role').all()
+        for field in permission_fields
+    )
 
 class Payment(models.Model):
     rental_request = models.ForeignKey('app.History',on_delete=models.CASCADE,related_name="payments")
@@ -355,6 +480,10 @@ class Payment(models.Model):
         return f"{self.order_id} - {self.payment_status}"
 
 class Services(models.Model):
+    class Meta:
+        verbose_name = "Medical Service"
+        verbose_name_plural = "Medical Services"
+
     title = models.CharField(max_length=200)
     description = models.TextField()
     image = models.ImageField(upload_to='service_images/')
@@ -440,3 +569,283 @@ def create_return_notification(sender, instance, created, **kwargs):
                 instance.rental_item.save(update_fields=['available'])
             except Exception:
                 print(f"[inventory update error] {e}")
+
+
+class BloodRequest(models.Model):
+    BLOOD_GROUP_CHOICES = [
+        ('A+', 'A+'),
+        ('A-', 'A-'),
+        ('B+', 'B+'),
+        ('B-', 'B-'),
+        ('AB+', 'AB+'),
+        ('AB-', 'AB-'),
+        ('O+', 'O+'),
+        ('O-', 'O-'),
+    ]
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Accepted', 'Accepted'),
+        ('Assigned', 'Assigned'),
+        ('Searching', 'Searching'),
+        ('Blood Available', 'Blood Available'),
+        ('Ready for Pickup', 'Ready for Pickup'),
+        ('Received', 'Received'),
+        ('Completed', 'Completed'),
+        ('Rejected', 'Rejected'),
+    ]
+    BLOOD_COMPONENT_CHOICES = [
+        ('Whole Blood', 'Whole Blood'),
+        ('Packed Red Blood Cells (PRBC)', 'Packed Red Blood Cells (PRBC)'),
+        ('Platelets', 'Platelets'),
+        ('Fresh Frozen Plasma (FFP)', 'Fresh Frozen Plasma (FFP)'),
+        ('Plasma', 'Plasma'),
+        ('Cryoprecipitate', 'Cryoprecipitate'),
+        ('Single Donor Platelets (SDP)', 'Single Donor Platelets (SDP)'),
+        ('Random Donor Platelets (RDP)', 'Random Donor Platelets (RDP)')
+    ]
+    blood_component = models.CharField(max_length=50, choices=BLOOD_COMPONENT_CHOICES, blank=True, null=True)
+    patient_name = models.CharField(max_length=255)
+    hospital_name = models.CharField(max_length=255)
+    hospital_area = models.CharField(max_length=255)
+    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES)
+    units_required = models.PositiveIntegerField(default=1)
+    coordinator_name = models.CharField(max_length=255)
+    coordinator_contact = models.CharField(max_length=15)
+    reference_name = models.CharField(max_length=255, blank=True, null=True)
+    reference_contact = models.CharField(max_length=15, blank=True, null=True)
+    prescription = models.FileField(
+        upload_to='prescriptions/',
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'pdf', 'img', 'webp'])]
+    )
+    consent = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='blood_requests_created')
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='blood_requests_updated')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Pending')
+    remarks = models.TextField(blank=True, null=True)
+    assigned_employee = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_blood_requests'
+    )
+    assigned_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='blood_requests_assigned_by'
+    )
+    assigned_at = models.DateTimeField(blank=True, null=True)
+    status_history = models.TextField(blank=True, null=True, help_text='JSON-like status history timeline')
+    last_status_changed_at = models.DateTimeField(blank=True, null=True)
+    last_status_changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='blood_requests_status_changed')
+
+    def __str__(self):
+        return f"{self.patient_name} - {self.blood_group} ({self.status})"
+
+    @property
+    def is_terminal(self):
+        return self.status in {'Completed', 'Rejected'}
+
+    @property
+    def badge_color(self):
+        colors = {
+            'Pending': '#f59e0b',
+            'Accepted': '#2563eb',
+            'Assigned': '#4f46e5',
+            'Searching': '#7c3aed',
+            'Blood Available': '#16a34a',
+            'Ready for Pickup': '#0891b2',
+            'Received': '#166534',
+            'Completed': '#6b7280',
+            'Rejected': '#dc2626',
+        }
+        return colors.get(self.status, '#64748b')
+
+    def get_next_statuses(self):
+        flow = {
+            'Pending': ['Accepted', 'Rejected'],
+            'Accepted': ['Assigned', 'Rejected'],
+            'Assigned': ['Searching', 'Rejected'],
+            'Searching': ['Blood Available', 'Rejected'],
+            'Blood Available': ['Ready for Pickup', 'Rejected'],
+            'Ready for Pickup': ['Received', 'Rejected'],
+            'Received': ['Completed', 'Rejected'],
+            'Completed': [],
+            'Rejected': [],
+        }
+        return flow.get(self.status, [])
+
+    def can_transition_to(self, target_status):
+        return target_status in self.get_next_statuses()
+
+    def get_status_history(self):
+        if not self.status_history:
+            return []
+        import json
+        try:
+            data = json.loads(self.status_history)
+            if isinstance(data, list):
+                return data
+        except Exception:
+            pass
+        return []
+
+    def append_status_history(self, status, changed_by=None, note=None):
+        import json
+        from django.utils import timezone
+
+        history = self.get_status_history()
+        entry = {
+            'status': status,
+            'changed_at': timezone.now().isoformat(),
+            'changed_by': changed_by.username if changed_by else None,
+            'note': note or '',
+        }
+        history.append(entry)
+        self.status_history = json.dumps(history)
+        self.last_status_changed_at = timezone.now()
+        self.last_status_changed_by = changed_by
+        self.save(update_fields=['status_history', 'last_status_changed_at', 'last_status_changed_by'])
+
+
+class CampOrganizer(models.Model):
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Approved', 'Approved'),
+        ('Cancelled', 'Cancelled'),
+        ('Fulfilled', 'Fulfilled'),
+    ]
+    organizer_name = models.CharField(max_length=255)
+    organization_name = models.CharField(max_length=255)
+    contact_number = models.CharField(max_length=15)
+    email = models.EmailField()
+    proposed_date = models.DateField()
+    proposed_venue = models.CharField(max_length=255)
+    expected_donors = models.PositiveIntegerField()
+    mobile_van_required = models.BooleanField(default=False)
+    volunteers_available = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='camps_created')
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='camps_updated')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    remarks = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.organization_name} - {self.proposed_date} ({self.status})"
+
+
+class BloodDonor(models.Model):
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    ]
+    BLOOD_GROUP_CHOICES = [
+        ('A+', 'A+'),
+        ('A-', 'A-'),
+        ('B+', 'B+'),
+        ('B-', 'B-'),
+        ('AB+', 'AB+'),
+        ('AB-', 'AB-'),
+        ('O+', 'O+'),
+        ('O-', 'O-'),
+    ]
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Approved', 'Approved'),
+        ('Cancelled', 'Cancelled'),
+        ('Fulfilled', 'Fulfilled'),
+    ]
+    first_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255)
+    contact_number = models.CharField(max_length=15)
+    date_of_birth = models.DateField()
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
+    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES)
+    area_of_residence = models.CharField(max_length=255)
+    reference_name = models.CharField(max_length=255, blank=True, null=True)
+    reference_contact = models.CharField(max_length=15, blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='donors_created')
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='donors_updated')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    remarks = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} - {self.blood_group} ({self.status})"
+
+
+class EventVolunteer(models.Model):
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    ]
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Approved', 'Approved'),
+        ('Cancelled', 'Cancelled'),
+        ('Fulfilled', 'Fulfilled'),
+    ]
+    full_name = models.CharField(max_length=255)
+    contact_number = models.CharField(max_length=15)
+    email = models.EmailField()
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
+    area_of_residence = models.CharField(max_length=255)
+    event_interest = models.CharField(max_length=255, blank=True, null=True, help_text="e.g. Blood Camp, Equipment Distribution, Youth Drive")
+    skills_remarks = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='volunteers_created')
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='volunteers_updated')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    remarks = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.full_name} ({self.contact_number}) - {self.status}"
+
+class SupportService(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        # Ensure no more than 5 contacts are associated
+        if self.pk and self.contacts.count() > 5:
+            raise ValidationError('A service can have at most 5 contacts.')
+
+
+class SupportServiceContact(models.Model):
+    service = models.ForeignKey(SupportService, on_delete=models.CASCADE, related_name='contacts')
+    contact_name = models.CharField(max_length=255)
+    contact_number = models.CharField(max_length=30)
+    display_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['display_order']
+        unique_together = (('service', 'contact_name', 'contact_number'),)
+
+    def __str__(self):
+        return f"{self.contact_name} ({self.contact_number})"
+

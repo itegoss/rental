@@ -435,8 +435,11 @@ def send_telegram_message(message):
         print(f"[telegram] error: {e}")
     return False
 
-def send_notification(title, message, notification_type='info', link=None, order_id=None, rental=None):
+def send_notification(title, message, notification_type='info', link=None, order_id=None, rental=None, user=None, recipient=None):
     raw_message = message
+
+    if recipient is None and user is not None:
+        recipient = user
 
     # Determine order_id dynamically from link, order_id, or rental request
     if not order_id and link and "order_id=" in link:
@@ -474,6 +477,7 @@ def send_notification(title, message, notification_type='info', link=None, order
             message=message,
             type=notification_type,
             link=link,
+            recipient=recipient,
         )
     except Exception as e:
         print(f"[notification db error] {e}")

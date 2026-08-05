@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Register as Blood Donor — Sick Bed Services{% endblock %}
+{% block content %}
+<style>
+.donor-banner {
+  background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+  color: #fff;
+  padding: 60px 24px;
+  text-align: center;
+}
+.donor-banner h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+.donor-banner p {
+  font-size: 1.1rem;
+  opacity: 0.95;
+  max-width: 650px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+.form-container {
+  max-width: 960px;
+  margin: -40px auto 60px;
+  background: #ffffff;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  z-index: 10;
+}
+.form-section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 24px;
+}
+.form-group-custom {
+  margin-bottom: 22px;
+}
+.form-group-custom label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  color: #374151;
+}
+.form-group-custom input, .form-group-custom select, .form-group-custom textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: all 0.22s;
+  background: #fafafa;
+  outline: none;
+}
+.form-group-custom input:focus, .form-group-custom select:focus {
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(236,36,39,0.1);
+}
+.error-msg {
+  color: var(--danger);
+  font-size: 0.82rem;
+  margin-top: 5px;
+  font-weight: 600;
+}
+.btn-signin {
+  width: 100%;
+  padding: 14px;
+  background: #ec2427;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.22s;
+  box-shadow: 0 4px 14px rgba(236,36,39,0.3);
+  text-align: center;
+}
+.btn-signin:hover {
+  background: #c0181b;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(236,36,39,0.4);
+}
+</style>
+
+<div class="donor-banner">
+  <h1>Congratulations on Stepping Up!</h1>
+  <p>Thank you for making the noble decision to give the gift of blood. You are the hero of your life, and your incredible generosity has the power to save others!</p>
+  <p style="margin-top: 10px; opacity: 0.9;">Please fill out the details below to register with us. Once you are in our system, you will be notified of all the upcoming blood donation camps we conduct so that you can choose to donate as per your convenience.</p>
+</div>
+
+<div class="container">
+  <div class="form-container">
+    <form method="POST" novalidate>
+      {% csrf_token %}
+      
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger mb-4">
+          {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="form-section-title">Personal Details</div>
+      
+      <div class="row">
+        <div class="col-md-6 form-group-custom">
+          <label for="id_first_name">First Name <span class="text-danger">*</span></label>
+          <input type="text" name="first_name" id="id_first_name" required placeholder="Enter first name" value="{{ form.first_name.value|default_if_none:'' }}">
+          {% if form.first_name.errors %}
+            <div class="error-msg">{{ form.first_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 form-group-custom">
+          <label for="id_last_name">Last Name <span class="text-danger">*</span></label>
+          <input type="text" name="last_name" id="id_last_name" required placeholder="Enter last name" value="{{ form.last_name.value|default_if_none:'' }}">
+          {% if form.last_name.errors %}
+            <div class="error-msg">{{ form.last_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 form-group-custom">
+          <label for="id_contact_number">Contact number <span class="text-danger">*</span></label>
+          <input type="tel" name="contact_number" id="id_contact_number" required placeholder="10-digit mobile number" value="{{ form.contact_number.value|default_if_none:'' }}">
+          {% if form.contact_number.errors %}
+            <div class="error-msg">{{ form.contact_number.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 form-group-custom">
+          <label for="id_date_of_birth">DOB <span class="text-danger">*</span></label>
+          <input type="date" name="date_of_birth" id="id_date_of_birth" required value="{{ form.date_of_birth.value|default_if_none:'' }}">
+          {% if form.date_of_birth.errors %}
+            <div class="error-msg">{{ form.date_of_birth.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 form-group-custom">
+          <label for="id_gender">Gender <span class="text-danger">*</span></label>
+          <select name="gender" id="id_gender" required>
+            <option value="" disabled {% if not form.gender.value %}selected{% endif %}>Select Gender</option>
+            {% for code, label in form.fields.gender.choices %}
+              {% if code %}
+                <option value="{{ code }}" {% if form.gender.value == code %}selected{% endif %}>{{ label }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          {% if form.gender.errors %}
+            <div class="error-msg">{{ form.gender.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 form-group-custom">
+          <label for="id_blood_group">Blood group <span class="text-danger">*</span></label>
+          <select name="blood_group" id="id_blood_group" required>
+            <option value="" disabled {% if not form.blood_group.value %}selected{% endif %}>Select Blood Group</option>
+            {% for code, label in form.fields.blood_group.choices %}
+              {% if code %}
+                <option value="{{ code }}" {% if form.blood_group.value == code %}selected{% endif %}>{{ label }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          {% if form.blood_group.errors %}
+            <div class="error-msg">{{ form.blood_group.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-group-custom">
+        <label for="id_area_of_residence">Area of Residence <span class="text-danger">*</span></label>
+        <input type="text" name="area_of_residence" id="id_area_of_residence" required placeholder="e.g. Bhayander West" value="{{ form.area_of_residence.value|default_if_none:'' }}">
+        {% if form.area_of_residence.errors %}
+          <div class="error-msg">{{ form.area_of_residence.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form-section-title mt-4">Reference Details</div>
+      
+      <div class="row">
+        <div class="col-md-6 form-group-custom">
+          <label for="id_reference_name">Reference Name (if any)</label>
+          <input type="text" name="reference_name" id="id_reference_name" placeholder="Enter reference name" value="{{ form.reference_name.value|default_if_none:'' }}">
+          {% if form.reference_name.errors %}
+            <div class="error-msg">{{ form.reference_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 form-group-custom">
+          <label for="id_reference_contact">Reference contact</label>
+          <input type="tel" name="reference_contact" id="id_reference_contact" placeholder="10-digit contact number" value="{{ form.reference_contact.value|default_if_none:'' }}">
+          {% if form.reference_contact.errors %}
+            <div class="error-msg">{{ form.reference_contact.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <button type="submit" class="btn-signin py-3 mt-4">Submit</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

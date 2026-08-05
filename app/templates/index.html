@@ -3,22 +3,130 @@
 {% block title %}Sick Bed Services — Home{% endblock %}
 {% block content %}
 <style>
-.hero { position:relative; width:100%; overflow:hidden; background:var(--primary-dark); }
-.hero img { width:100%; height:auto; display:block; opacity:0; animation:heroFade 1.4s ease forwards; }
-@keyframes heroFade { from{opacity:0;} to{opacity:1;} }
-.hero-overlay { position:absolute; inset:0; background:linear-gradient(to right,rgba(236,36,39,0.3) 0%,transparent 70%); pointer-events:none; }
+/* Hero Carousel Styling */
+.hero-carousel {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border-bottom: 1.5px solid var(--border);
+}
+.hero-carousel .carousel-item {
+  height: 520px;
+  background-color: #fdf9f5;
+}
+.carousel-item-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+  height: 100%;
+  gap: 32px;
+}
+.carousel-text-col {
+  width: 50%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.carousel-text-col .pre-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+}
+.carousel-text-col h2 {
+  font-size: 2.3rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 16px;
+  line-height: 1.25;
+}
+.carousel-text-col p {
+  font-size: 1rem;
+  color: var(--muted);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+.carousel-text-col .btn-primary-red {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 0.9rem;
+  background: var(--primary);
+  color: #fff;
+  transition: all 0.22s;
+  box-shadow: 0 4px 14px rgba(236,36,39,0.22);
+}
+.carousel-text-col .btn-primary-red:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(236,36,39,0.3);
+}
+.carousel-image-col {
+  width: 50%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.carousel-image-col img {
+  max-width: 100%;
+  max-height: 94%;
+  object-fit: contain;
+  display: block;
+}
 
-.welcome-sec { text-align:center; padding:60px 24px 50px; background:#fff; }
-.welcome-sec h1 { font-size:2.4rem; font-weight:800; color:var(--text); margin-bottom:14px; }
-.welcome-sec h1 span { color:var(--primary); }
-.welcome-sec p { font-size:1.05rem; color:var(--muted); max-width:600px; margin:0 auto 28px; line-height:1.7; }
-.welcome-cta { display:inline-flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-.featured-sec { padding:60px 24px; background:var(--bg); }
-.section-head { text-align:center; margin-bottom:40px; }
-.section-head h2 { font-size:2rem; font-weight:800; color:var(--text); margin-bottom:8px; }
+.hero-carousel-overlay {
+  display: none;
+}
+.carousel-caption-custom {
+  display: none;
+}
+
+/* Sections Styling */
+.home-section {
+  padding: 70px 24px;
+}
+.bg-light-gray {
+  background: var(--bg);
+}
+.bg-white {
+  background: #ffffff;
+}
+.bg-red-gradient {
+  background: linear-gradient(135deg, #ec2427 0%, #a00f11 100%);
+  color: #fff;
+}
+
+.welcome-cta { display:inline-flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-left: 43%; margin-bottom: 3%; }
+
+.section-head { text-align:center; margin-bottom:40px; margin-top: 2%;}
+.section-head h2 { font-size:2.2rem; font-weight:800; color:var(--text); margin-bottom:8px; }
 .section-head h2 span { color:var(--primary); }
-.section-head p { color:var(--muted); font-size:0.95rem; }
+.section-head p { color:var(--muted); font-size:1rem; }
+
 .feat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:24px; max-width:1100px; margin:0 auto 36px; }
 .feat-card { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 4px 18px rgba(0,0,0,0.06); transition:transform 0.3s ease,box-shadow 0.3s ease; text-decoration:none; color:inherit; display:flex; flex-direction:column; }
 .feat-card:hover { transform:translateY(-6px); box-shadow:0 16px 40px rgba(236,36,39,0.14); }
@@ -29,18 +137,76 @@
 .feat-card-body p { font-size:1rem; font-weight:800; color:var(--primary); }
 .feat-empty { grid-column:1/-1; text-align:center; padding:42px 20px; background:#fff; border-radius:16px; box-shadow:var(--shadow); color:var(--muted); }
 .feat-empty i { display:block; font-size:2.4rem; color:var(--primary); margin-bottom:12px; }
-.view-more-wrap { text-align:center; }
 
-.about-sec { padding:70px 24px; background:#fff; }
-.about-inner { max-width:1060px; margin:0 auto; display:flex; gap:50px; align-items:center; flex-wrap:wrap; }
-.about-text { flex:1; min-width:280px; }
-.about-text h2 { font-size:1.9rem; font-weight:800; color:var(--text); margin-bottom:14px; }
-.about-text h2 span { color:var(--primary); }
-.about-text p { color:#4b5563; line-height:1.8; margin-bottom:16px; font-size:0.97rem; }
-.about-img { flex:1; min-width:280px; border-radius:16px; overflow:hidden; box-shadow:var(--shadow); }
-.about-img img { width:100%; height:auto; display:block; }
+/* Info and Contribution Banner */
+.banner-content {
+  max-width: 850px;
+  margin: 0 auto;
+  text-align: center;
+}
+.banner-content h2 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+}
+.banner-content p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  margin-bottom: 30px;
+  opacity: 0.95;
+}
 
-.login-reminder { margin:0 24px 40px; background:#fef2f2; border:1px solid #fca5a5; border-radius:12px; padding:16px 22px; display:flex; align-items:center; gap:14px; max-width:560px; margin-left:auto; margin-right:auto; }
+/* Impact Section Grid */
+.impact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 28px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.impact-item {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: #000;
+  aspect-ratio: 4/3;
+}
+.impact-item img, .impact-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease, opacity 0.3s ease;
+}
+.impact-item:hover img, .impact-item:hover video {
+  transform: scale(1.06);
+  opacity: 0.8;
+}
+.impact-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 20px;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+  color: #fff;
+  z-index: 2;
+}
+.impact-info h4 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.impact-info p {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Modal and Login reminder */
+.login-reminder { margin:40px auto; background:#fef2f2; border:1px solid #fca5a5; border-radius:12px; padding:16px 22px; display:flex; align-items:center; gap:14px; max-width:560px; }
 .login-reminder i { color:var(--primary); font-size:1.3rem; flex-shrink:0; }
 .login-reminder p { font-size:0.9rem; color:#7f1d1d; margin:0; }
 .login-reminder a { color:var(--primary); font-weight:700; text-decoration:none; }
@@ -58,21 +224,123 @@
 .modal-card-btns { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
 
 @media(max-width:768px) {
-  .welcome-sec h1 { font-size:1.7rem; }
-  .about-inner { flex-direction:column; }
+  .hero-carousel .carousel-item { height: 350px; }
+  .carousel-item-inner { padding: 0 16px; justify-content: center; }
+  .carousel-text-col { display: none !important; }
+  .carousel-image-col { width: 100%; }
+  .banner-content h2 { font-size: 1.75rem; }
+  .section-head h2 { font-size: 1.8rem; }
   .feat-card img { height:170px; }
+  .home-section { padding: 50px 20px; }
 }
 </style>
 
-<div class="hero">
-  <img src="{% static 'images/banner1.webp' %}" alt="Hospital equipment rental banner" fetchpriority="high" width="1200" height="400">
-  <div class="hero-overlay"></div>
+<!-- SECTION 1: Hero Carousel Banner (Auto Slide, Responsive, Custom Controls) -->
+<div id="homeCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel">
+  <div class="carousel-indicators" style="z-index: 10;">
+    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="3" aria-label="Slide 4"></button>
+    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="4" aria-label="Slide 5"></button>
+  </div>
+  <div class="carousel-inner">
+    <!-- Slide 1 -->
+    <div class="carousel-item active">
+      <div class="carousel-item-inner">
+        <div class="carousel-text-col">
+          <span class="pre-title">KYS Bhayander Presents</span>
+          <h2>Sickbed & Medical Equipment Rentals</h2>
+          <p>Providing essential hospital beds, wheelchairs, and air beds at affordable deposit rates to those in need.</p>
+          <a href="{% url 'items' %}" class="btn-primary-red">
+            <i class="fas fa-wheelchair"></i> Browse Rentals
+          </a>
+        </div>
+        <div class="carousel-image-col">
+          <img src="{% static 'images/banner_sickbed_rental.png' %}" alt="Hospital equipment rental banner" fetchpriority="high">
+        </div>
+      </div>
+    </div>
+    <!-- Slide 2 -->
+    <div class="carousel-item">
+      <div class="carousel-item-inner">
+        <div class="carousel-text-col">
+          <span class="pre-title">Emergency Support</span>
+          <h2>Request a Blood Component</h2>
+          <p>Please submit your patient emergency requirements. We coordinate matches with donors instantly.</p>
+          <a href="{% url 'request_blood' %}" class="btn-primary-red">
+            <i class="fas fa-tint"></i> Request Blood
+          </a>
+        </div>
+        <div class="carousel-image-col">
+          <img src="{% static 'images/banner_donation_camp.png' %}" alt="Organize blood donation camp banner">
+        </div>
+      </div>
+    </div>
+    <!-- Slide 3 -->
+    <div class="carousel-item">
+      <div class="carousel-item-inner">
+        <div class="carousel-text-col">
+          <span class="pre-title">Be a Hero</span>
+          <h2>Register as a Blood Donor</h2>
+          <p>Join the KYS database as a donor hero and help bridge the gap for critical patients in Bhayander.</p>
+          <a href="{% url 'be_donor' %}" class="btn-primary-red">
+            <i class="fas fa-heartbeat"></i> Register as Donor
+          </a>
+        </div>
+        <div class="carousel-image-col">
+          <img src="{% static 'images/banner_donor_hero.png' %}" alt="Blood donor hero banner">
+        </div>
+      </div>
+    </div>
+    <!-- Slide 4 -->
+    <div class="carousel-item">
+      <div class="carousel-item-inner">
+        <div class="carousel-text-col">
+          <span class="pre-title">Community Health</span>
+          <h2>Premium Medical Services</h2>
+          <p>Professional doctor consultations and wellness services are coming soon to our portal.</p>
+          <a href="{% url 'medical_services' %}" class="btn-primary-red">
+            <i class="fas fa-concierge-bell"></i> Explore Services
+          </a>
+        </div>
+        <div class="carousel-image-col">
+          <img src="{% static 'images/banner_medical_services.png' %}" alt="Medical services coming soon banner">
+        </div>
+      </div>
+    </div>
+    <!-- Slide 5 -->
+    <div class="carousel-item">
+      <div class="carousel-item-inner">
+        <div class="carousel-text-col">
+          <span class="pre-title">Humanitarian Relief</span>
+          <h2>Kutch Yuvak Sangh Bhayander</h2>
+          <p>A dedicated Unit of KYS striving for national welfare, social equality, and humanitarian relief.</p>
+          <a href="{% url 'about' %}" class="btn-primary-red">
+            <i class="fas fa-info-circle"></i> About KYS
+          </a>
+        </div>
+        <div class="carousel-image-col">
+          <img src="{% static 'images/banner_humanitarian.png' %}" alt="NGO humanitarian cause banner">
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Controls -->
+  <button class="carousel-control-prev" type="button" data-bs-target="#homeCarousel" data-bs-slide="prev" style="z-index: 10;">
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Previous</span>
+  </button>
+  <button class="carousel-control-next" type="button" data-bs-target="#homeCarousel" data-bs-slide="next" style="z-index: 10;">
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Next</span>
+  </button>
 </div>
 
-<section class="welcome-sec">
+<!-- SECTION 2: Featured Medical Equipments -->
 <section class="featured-sec">
   <div class="section-head">
-    <h2>Featured <span>Items</span></h2>
+    <h2>Featured <span>Medical Equipments</span></h2>
     <p>Most popular rental equipment available right now</p>
   </div>
   <div class="feat-grid">
@@ -83,7 +351,10 @@
       {% else %}
         <img src="{% static 'images/default-placeholder.png' %}" alt="{{ item.title }}" loading="lazy">
       {% endif %}
-      <div class="feat-card-body"><h3>{{ item.title }}</h3><p>₹{{ item.price_per_day }} / day</p></div>
+      <div class="feat-card-body">
+        <h3>{{ item.title }}</h3>
+        <p>₹{{ item.price_per_day }} / day</p>
+      </div>
     </a>
     {% empty %}
     <div class="feat-empty">
@@ -92,27 +363,68 @@
     </div>
     {% endfor %}
   </div>
-  <!-- <div class="view-more-wrap">
-    <a href="{% url 'items' %}" class="btn-primary-red">View All Items <i class="fas fa-arrow-right"></i></a>
-  </div> -->
-  <div class="welcome-cta">
-    <a href="{% url 'items' %}" class="btn-primary-red"><i class="fas fa-th-large"></i> Browse Items</a>
-    <a href="{% url 'services' %}" style="display:inline-flex;align-items:center;gap:8px;padding:11px 24px;border:2px solid var(--primary);color:var(--primary);border-radius:999px;font-weight:700;font-size:0.9rem;text-decoration:none;transition:all 0.22s;">
-      <i class="fas fa-concierge-bell"></i> Our Services
-    </a>
+  <div class="welcome-cta mt-4">
+    <a href="{% url 'items' %}" class="btn-primary-red"><i class="fas fa-th-large"></i> Browse All Equipment</a>
   </div>
 </section>
 
-<!-- ABOUT -->
-<section class="about-sec">
-  <div class="about-inner">
-    <div class="about-text">
-      <h2>About <span>KYS Bhayandar</span></h2>
-      <p><strong>KYS (Bhayandar)</strong>, a unit of Kutch Yuvak Sangh, is an NGO dedicated to empowering communities and transforming lives through its many humanitarian activities across social, educational, and cultural sectors.</p>
-      <p>We believe in <strong>inclusion and unity</strong> — anyone can join us regardless of caste, gender, or religion. Our volunteers work with full dedication, driven by responsibility towards society and national welfare.</p>
+<!-- SECTION 3: Information Banner -->
+<section class="home-section bg-white border-top">
+  <div class="container banner-content">
+    <h2>How do we do it and Why?</h2>
+    <p>We work tirelessly with a dedicated network of volunteers, donors, and hospitals to provide support precisely when it is needed. Learn about our organization's values, mission, operational transparent workflow, and how we help save lives daily.</p>
+    <a href="{% url 'about' %}" class="btn-primary-red">Learn More <i class="fas fa-arrow-right"></i></a>
+  </div>
+</section>
+
+<!-- SECTION 4: Contribution Section -->
+<section class="home-section bg-light-gray border-top">
+  <div class="container banner-content">
+    <h2>You can contribute for a cause</h2>
+    <p>Every single drop of blood or resource counts. By choosing to stand with us, you can register to become a regular donor, sponsor medical equipments, or volunteer in our community outreach camps. Discover the different ways you can create a positive impact today.</p>
+    <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+      <a href="{% url 'be_donor' %}" class="btn-primary-red">Be a Donor <i class="fas fa-heart"></i></a>
+      <a href="{% url 'volunteer_event' %}" class="btn-primary-red" style="background:#1e3a8a;">Volunteer for Event <i class="fas fa-hands-helping"></i></a>
     </div>
-    <div class="about-img">
-      <img src="{% static 'images/sickbed.webp' %}" alt="Hospital equipment rental" loading="lazy" width="500" height="333">
+  </div>
+</section>
+
+<!-- SECTION 5: Hero Banner (Be a Hero) -->
+<section class="home-section bg-red-gradient text-center">
+  <div class="container banner-content">
+    <h2 class="text-white">Be a Hero</h2>
+    <p class="text-white opacity-75">Your simple decision to register as a blood donor can save up to three lives. Step up, be a beacon of hope for emergency patients, and register yourself today.</p>
+    <a href="{% url 'be_donor' %}" style="display:inline-flex;align-items:center;gap:8px;padding:11px 28px;border:2px solid #fff;color:#fff;border-radius:999px;font-weight:700;font-size:0.9rem;text-decoration:none;transition:all 0.22s;box-shadow: 0 4px 14px rgba(255,255,255,0.15);">Register Now <i class="fas fa-user-plus"></i></a>
+  </div>
+</section>
+
+<!-- SECTION 6: Impact Section (Gallery) -->
+<section class="home-section bg-white border-top">
+  <div class="section-head">
+    <h2>Our <span>Impact</span></h2>
+    <p>Glance through some highlights of our community healthcare drives and equipment rental handovers</p>
+  </div>
+  <div class="impact-grid">
+    <div class="impact-item">
+      <img src="{% static 'images/impact_donation.png' %}" alt="Blood Donation Drive">
+      <div class="impact-info">
+        <h4>Lifesaving Blood Camps</h4>
+        <p>Over 1,200 units of blood collected in Bhayander during recent health camps.</p>
+      </div>
+    </div>
+    <div class="impact-item">
+      <img src="{% static 'images/impact_equipment.png' %}" alt="Equipment Handover">
+      <div class="impact-info">
+        <h4>Sickbed Rentals Handover</h4>
+        <p>More than 450 families benefited from high-grade ICU beds and wheelchairs.</p>
+      </div>
+    </div>
+    <div class="impact-item">
+      <img src="{% static 'images/impact_community.png' %}" alt="Volunteer Outreach">
+      <div class="impact-info">
+        <h4>Youth Volunteers in Action</h4>
+        <p>Dedicated youth force coordinating events and helping emergency matchings.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -137,10 +449,24 @@
   </div>
 </div>
 
+<!-- Bootstrap Bundle JS (includes Popper) for carousel functionality -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const modal = document.getElementById('signupModal');
   const closeBtn = document.getElementById('closeModal');
+  
+  // Explicitly initialize the Bootstrap carousel to auto-slide
+  const carouselEl = document.getElementById('homeCarousel');
+  if (carouselEl && typeof bootstrap !== 'undefined') {
+    new bootstrap.Carousel(carouselEl, {
+      interval: 4000,
+      ride: 'carousel',
+      wrap: true
+    });
+  }
+
   {% if not user.is_authenticated %}
   document.querySelectorAll('.feat-card').forEach(card => {
     card.addEventListener('click', function(e) {
@@ -150,7 +476,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   {% endif %}
   if (closeBtn) closeBtn.addEventListener('click', () => modal.classList.remove('open'));
-  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+  if (modal) modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
 });
 </script>
 {% endblock %}

@@ -225,7 +225,7 @@
       </div>
       <div class="notif-actions">
         {% if note.link %}
-        <a href="{{ note.link }}" class="n-btn n-btn-open"><i class="fas fa-external-link-alt"></i> Open</a>
+        <a href="{% url 'mark_notification_read' note.id %}?next={{ note.link|urlencode }}" class="n-btn n-btn-open"><i class="fas fa-external-link-alt"></i> Open</a>
         {% endif %}
         {% if not note.is_read %}
         <a href="{% url 'mark_notification_read' note.id %}?next={% url 'admin_notifications' %}"

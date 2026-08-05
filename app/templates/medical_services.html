@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Services — Sick Bed Services{% endblock %}
+{% block content %}
+<style>
+.support-services-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 20px;
+}
+.support-services-head {
+  text-align: center;
+  margin-bottom: 48px;
+}
+.support-services-head h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text, #111827);
+  margin-bottom: 8px;
+}
+.support-services-head h1 span {
+  color: var(--primary, #ec2427);
+}
+.support-services-head p {
+  color: var(--muted, #6b7280);
+  font-size: 0.97rem;
+}
+.underline-bar {
+  width: 64px;
+  height: 5px;
+  background: linear-gradient(90deg, var(--primary, #ec2427), #ff6b6b);
+  border-radius: 4px;
+  margin: 12px auto 0;
+}
+
+/* ── Flip Card Wrapper ── */
+.flip-card-wrapper {
+  perspective: 1000px;
+  margin-bottom: 28px;
+  /* NO fixed height — set by JS */
+}
+
+/* ── Inner container: CSS grid stacks front & back in the same cell ── */
+.flip-card-inner {
+  display: grid;
+  grid-template-areas: "card";
+  width: 100%;
+  text-align: left;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+.flip-card-wrapper.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+/* ── Both faces occupy the same grid cell ── */
+.flip-card-front,
+.flip-card-back {
+  grid-area: card;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+}
+
+/* ── Front ── */
+.flip-card-front {
+  padding: 20px;
+  justify-content: space-between;
+}
+.flip-card-wrapper:hover .flip-card-front {
+  box-shadow: 0 10px 30px rgba(236, 36, 39, 0.12);
+}
+.flip-card-front h3 {
+  color: var(--primary, #ec2427);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+.flip-card-front .short-desc {
+  color: #4b5563;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  flex-grow: 1;
+}
+.flip-card-front .click-hint {
+  color: var(--primary, #ec2427);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ── Back ── */
+.flip-card-back {
+  transform: rotateY(180deg);
+  padding: 14px 14px 12px;
+  border-top: 4px solid var(--primary, #ec2427);
+  justify-content: flex-start;
+  gap: 4px;
+}
+.flip-card-back h4 {
+  color: var(--primary, #ec2427);
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 3px;
+  line-height: 1.25;
+}
+.flip-card-back .full-desc {
+  color: #374151;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0 0 8px;
+}
+
+/* ── Contacts ── */
+.contacts-header {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+.contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.contact-item {
+  background: #f9fafb;
+  border: 1px solid #ececec;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.76rem;
+}
+.contact-item .person-name {
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 52%;
+}
+.contact-item .phone-link {
+  color: var(--primary, #ec2427);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.contact-item .phone-link:hover { text-decoration: underline; }
+.no-contacts {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+</style>
+
+<div class="support-services-page">
+  <div class="support-services-head">
+    <h1><span>Services</span></h1>
+    <p>Explore healthcare and community assistance programs</p>
+    <div class="underline-bar"></div>
+  </div>
+
+  <div class="row" id="servicesRow">
+    {% for s in services %}
+    <div class="col-lg-4 col-md-6 col-12">
+      <div class="flip-card-wrapper" onclick="this.classList.toggle('flipped');">
+        <div class="flip-card-inner">
+          <!-- Front Side -->
+          <div class="flip-card-front">
+            <div>
+              <h3>{{ s.name }}</h3>
+              <p class="short-desc">{{ s.description|truncatewords:25 }}</p>
+            </div>
+            <div class="click-hint">
+              <i class="fas fa-hand-pointer"></i> Click to View Contacts
+            </div>
+          </div>
+
+          <!-- Back Side -->
+          <div class="flip-card-back">
+            <h4>{{ s.name }}</h4>
+            <p class="full-desc">{{ s.description }}</p>
+            <div class="contacts-header">Available Contacts</div>
+            <div class="contacts-list">
+              {% for c in s.contacts.all %}
+              <div class="contact-item">
+                <span class="person-name">{{ c.contact_name }}</span>
+                <a href="tel:{{ c.contact_number }}" class="phone-link" onclick="event.stopPropagation();">
+                  {{ c.contact_number }}
+                </a>
+              </div>
+              {% empty %}
+              <div class="no-contacts">No contact available.</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5 text-muted">
+      <h4>No support services available at the moment.</h4>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+(function () {
+  function equalizeCards() {
+    var wrappers = document.querySelectorAll('.flip-card-wrapper');
+    if (!wrappers.length) return;
+
+    // Reset heights so measurement is content-based
+    wrappers.forEach(function (w) {
+      w.style.height = 'auto';
+      w.querySelector('.flip-card-inner').style.height = 'auto';
+    });
+
+    // For each wrapper, measure the natural height of both faces and
+    // set the wrapper height to the taller of the two
+    wrappers.forEach(function (w) {
+      var front = w.querySelector('.flip-card-front');
+      var back  = w.querySelector('.flip-card-back');
+      var h = Math.max(front ? front.scrollHeight : 0,
+                       back  ? back.scrollHeight  : 0);
+      w.style.height = h + 'px';
+      w.querySelector('.flip-card-inner').style.height = h + 'px';
+    });
+
+    // Equalize wrappers that share the same Bootstrap row
+    var cols = Array.from(document.querySelectorAll('#servicesRow > [class*="col-"]'));
+    var rows = {};
+    cols.forEach(function (col) {
+      var top = col.getBoundingClientRect().top;
+      var key = Math.round(top);
+      if (!rows[key]) rows[key] = [];
+      rows[key].push(col.querySelector('.flip-card-wrapper'));
+    });
+
+    Object.values(rows).forEach(function (group) {
+      var maxH = Math.max.apply(null, group.map(function (w) {
+        return w ? parseInt(w.style.height) || 0 : 0;
+      }));
+      group.forEach(function (w) {
+        if (w) {
+          w.style.height = maxH + 'px';
+          w.querySelector('.flip-card-inner').style.height = maxH + 'px';
+        }
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', equalizeCards);
+  } else {
+    equalizeCards();
+  }
+
+  // Re-equalize on window resize
+  var resizeTimer;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(equalizeCards, 150);
+  });
+})();
+</script>
+{% endblock %}
+
+

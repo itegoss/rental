@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}My Assigned Blood Requests{% endblock %}
+{% block content %}
+<style>{% include 'admin_table_css.html' %}</style>
+<div class="inventory-page">
+  <div class="inventory-head">
+    <h1>My <span>Assigned Requests</span></h1>
+    <p>Requests assigned to you</p>
+    <div class="underline-bar"></div>
+  </div>
+
+  <div class="items-table-wrap">
+    <div class="items-table-scroll">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Patient Name</th>
+            <th>Blood Group</th>
+            <th>Hospital</th>
+            <th>Contact</th>
+            <th>Status</th>
+            <th>Assigned Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in page_obj.object_list %}
+          <tr>
+            <td class="item-name-cell">{{ req.patient_name }}</td>
+            <td class="price-cell">{{ req.blood_group }}</td>
+            <td>{{ req.hospital_name }}</td>
+            <td>{{ req.coordinator_contact }}</td>
+            <td><span style="color:#2563eb;font-weight:800;">{{ req.status }}</span></td>
+            <td>{{ req.assigned_at|date:'d M, Y H:i'|default:'-' }}</td>
+            <td>
+              <div class="table-actions">
+                <a class="btn-edit-item" href="{% url 'admin_view_blood_request' req.id %}" title="View"><i class="fas fa-eye"></i></a>
+                <form method="post" action="{% url 'admin_edit_blood_request_status' req.id %}">{% csrf_token %}
+                  <input type="hidden" name="action" value="employee_searching" />
+                  <button class="btn-save-item" type="submit" title="Continue Searching"><i class="fas fa-search"></i></button>
+                </form>
+                <form method="post" action="{% url 'admin_edit_blood_request_status' req.id %}">{% csrf_token %}
+                  <input type="hidden" name="action" value="employee_blood_available" />
+                  <button class="btn-delete-item-table" type="submit" title="Blood Available"><i class="fas fa-check"></i></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">No assigned requests found</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
