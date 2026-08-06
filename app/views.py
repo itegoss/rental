@@ -244,9 +244,18 @@ def signup(request):
             ctx['debug_otp'] = otp
         return render(request, 'signup.html', ctx)
 
+    if request.user.is_authenticated:
+        return redirect('index')
+
     return render(request, 'signup.html')
 
 def signin(request):
+    if request.user.is_authenticated:
+        next_url = request.GET.get('next') or request.POST.get('next')
+        if next_url and next_url not in ['/signin/', '/signin', 'signin']:
+            return redirect(next_url)
+        return redirect('index')
+
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
