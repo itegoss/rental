@@ -1006,12 +1006,6 @@ def success(request, rental_id):
 
 
 def about(request):
-    # About is a normal module: if the user has a Role assigned, only
-    # show it when explicitly allowed by role. Otherwise allow.
-    from .models import user_has_assigned_role
-    if request.user.is_authenticated and user_has_assigned_role(request.user) and not (request.user.is_superuser or request.user.is_staff):
-        return render(request, 'permission_denied.html', status=403)
-
     return render(request, 'about.html')
 
 
@@ -2574,18 +2568,18 @@ def employee_blood_requests(request):
 
 from django.contrib.auth.decorators import login_required
 
-@login_required(login_url='signin')
 def organize_camp(request):
-    resp = ensure_module_access(request, 'can_manage_camps')
-    if resp:
-        return resp
     if request.method == 'POST':
         form = CampOrganizerForm(request.POST)
         if form.is_valid():
             camp = form.save(commit=False)
 
-            camp.created_by = request.user
-            camp.updated_by = request.user
+            if request.user.is_authenticated:
+                camp.created_by = request.user
+                camp.updated_by = request.user
+            else:
+                camp.created_by = None
+                camp.updated_by = None
 
             camp.save()
 
@@ -2655,18 +2649,18 @@ def organize_camp(request):
 
     return render(request, 'organize_camp.html', {'form': form})
 
-@login_required(login_url='signin')
 def be_donor(request):
-    resp = ensure_module_access(request, 'can_manage_donors')
-    if resp:
-        return resp
     if request.method == 'POST':
         form = BloodDonorForm(request.POST)
         if form.is_valid():
             donor = form.save(commit=False)
 
-            donor.created_by = request.user
-            donor.updated_by = request.user
+            if request.user.is_authenticated:
+                donor.created_by = request.user
+                donor.updated_by = request.user
+            else:
+                donor.created_by = None
+                donor.updated_by = None
 
             donor.save()
 
@@ -2737,9 +2731,6 @@ def be_donor(request):
 from django.contrib.auth.decorators import login_required
 
 def medical_services(request):
-    resp = ensure_module_access(request, 'can_manage_services')
-    if resp:
-        return resp
     # Admin: show services management
     if user_has_permission(request.user, 'can_manage_services'):
         q = request.GET.get('q', '').strip()
@@ -2776,14 +2767,16 @@ def add_service(request):
             )
             seen_contacts = set()
             for i in range(1, 5):
+                s_name = (request.POST.get(f'service_name_{i}') or '').strip()
                 c_name = (request.POST.get(f'contact_name_{i}') or '').strip()
                 c_num = (request.POST.get(f'contact_number_{i}') or '').strip()
-                if c_name and c_num:
-                    key = (c_name.lower(), c_num)
+                if c_name or c_num or s_name:
+                    key = (s_name.lower(), c_name.lower(), c_num)
                     if key not in seen_contacts:
                         seen_contacts.add(key)
                         SupportServiceContact.objects.create(
                             service=service,
+                            service_name=s_name,
                             contact_name=c_name,
                             contact_number=c_num,
                             display_order=i
@@ -2802,7 +2795,7 @@ def edit_service(request, pk):
     if request.method == 'POST':
         name = (request.POST.get('name') or request.POST.get('title') or '').strip()
         description = (request.POST.get('description') or '').strip()
-        is_active = 'is_active' in request.POST
+        is_active = 'is_active' in request.POST or request.POST.get('is_active') == 'on'
         if name and description:
             service.name = name
             service.description = description
@@ -2812,14 +2805,16 @@ def edit_service(request, pk):
             service.contacts.all().delete()
             seen_contacts = set()
             for i in range(1, 5):
+                s_name = (request.POST.get(f'service_name_{i}') or '').strip()
                 c_name = (request.POST.get(f'contact_name_{i}') or '').strip()
                 c_num = (request.POST.get(f'contact_number_{i}') or '').strip()
-                if c_name and c_num:
-                    key = (c_name.lower(), c_num)
+                if c_name or c_num or s_name:
+                    key = (s_name.lower(), c_name.lower(), c_num)
                     if key not in seen_contacts:
                         seen_contacts.add(key)
                         SupportServiceContact.objects.create(
                             service=service,
+                            service_name=s_name,
                             contact_name=c_name,
                             contact_number=c_num,
                             display_order=i
@@ -2834,7 +2829,7 @@ def edit_service(request, pk):
         if i < len(contacts_list):
             contacts.append(contacts_list[i])
         else:
-            contacts.append({'contact_name': '', 'contact_number': ''})
+            contacts.append({'service_name': '', 'contact_name': '', 'contact_number': ''})
 
     return render(request, 'edit_service.html', {'service': service, 'contacts': contacts})
 
@@ -2848,18 +2843,18 @@ def delete_service(request, pk):
     messages.success(request, 'Service deleted successfully.')
     return redirect('medical_services')
 
-@login_required(login_url='signin')
 def volunteer_event(request):
-    resp = ensure_module_access(request, 'can_manage_volunteers')
-    if resp:
-        return resp
     if request.method == 'POST':
         form = EventVolunteerForm(request.POST)
         if form.is_valid():
             volunteer = form.save(commit=False)
 
-            volunteer.created_by = request.user
-            volunteer.updated_by = request.user
+            if request.user.is_authenticated:
+                volunteer.created_by = request.user
+                volunteer.updated_by = request.user
+            else:
+                volunteer.created_by = None
+                volunteer.updated_by = None
 
             volunteer.save()
 

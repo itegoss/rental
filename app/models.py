@@ -838,6 +838,7 @@ class SupportService(models.Model):
 
 class SupportServiceContact(models.Model):
     service = models.ForeignKey(SupportService, on_delete=models.CASCADE, related_name='contacts')
+    service_name = models.CharField(max_length=255, blank=True, null=True)
     contact_name = models.CharField(max_length=255)
     contact_number = models.CharField(max_length=30)
     display_order = models.PositiveSmallIntegerField(default=0)

@@ -99,8 +99,11 @@
       <table class="items-table">
         <thead>
           <tr>
+            <th>Service Title</th>
+            <th>Description</th>
             <th>Service Name</th>
-            <th>Contacts</th>
+            <th>Person Name</th>
+            <th>Contact Number</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -109,11 +112,28 @@
           {% for s in page_obj.object_list %}
           <tr>
             <td class="item-name-cell"><strong>{{ s.name }}</strong></td>
+            <td style="max-width:220px; font-size:0.85rem; color:#475569;">{{ s.description|truncatewords:15 }}</td>
             <td>
               {% for c in s.contacts.all %}
-                <div class="mb-1"><small class="text-dark font-weight-bold">{{ c.contact_name }}:</small> <small class="text-muted">{{ c.contact_number }}</small></div>
+                <div class="mb-1 text-danger font-weight-bold" style="font-size:0.85rem;">{{ c.service_name|default:"—" }}</div>
               {% empty %}
-                <span class="text-muted small">No contacts</span>
+                <span class="text-muted small">—</span>
+              {% endfor %}
+            </td>
+            <td>
+              {% for c in s.contacts.all %}
+                <div class="mb-1 text-dark font-weight-bold" style="font-size:0.85rem;">{{ c.contact_name }}</div>
+              {% empty %}
+                <span class="text-muted small">—</span>
+              {% endfor %}
+            </td>
+            <td>
+              {% for c in s.contacts.all %}
+                <div class="mb-1" style="font-size:0.85rem;">
+                  <a href="tel:{{ c.contact_number }}" class="text-primary font-weight-bold" style="text-decoration:none;">{{ c.contact_number }}</a>
+                </div>
+              {% empty %}
+                <span class="text-muted small">—</span>
               {% endfor %}
             </td>
             <td>
@@ -131,7 +151,7 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--muted);">No services found</td></tr>
+          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">No services found</td></tr>
           {% endfor %}
         </tbody>
       </table>
