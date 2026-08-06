@@ -1219,11 +1219,11 @@
       </div>
     </div>
   </nav>
-  {# ═══════════════ END ADMIN NAVBAR ═══════════════ #}
+ 
 
   {% else %}
-  {# ═══════════════ PUBLIC NAVBAR ═══════════════ #}
-  <nav class="public-nav">
+  {# ═══════════════ PUBLIC NAVBAR (unchanged) ═══════════════ #}
+  <nav>
     <div class="nav-inner">
       <div class="logo">
         <a href="{% url 'index' %}"><img src="{% static 'images/logo1.png' %}" alt="Sick Bed Services Logo" width="50"
@@ -1655,14 +1655,14 @@
   </script>
 
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/static/pwa/service-worker.js')
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("/service-worker.js")
           .then(function (registration) {
-            console.log('Service Worker registered:', registration);
+            console.log("Service Worker registered:", registration);
           })
           .catch(function (error) {
-            console.log('Service Worker registration failed:', error);
+            console.error("Service Worker registration failed:", error);
           });
       });
     }
