@@ -381,11 +381,13 @@
   .service-name-td {
     font-weight: 700;
     color: #ec2427;
+    white-space: nowrap;
   }
 
   .person-name-td {
     font-weight: 700;
     color: #0f172a;
+    white-space: nowrap;
   }
 
   .contact-num-td {
@@ -504,7 +506,7 @@
 
   <div class="row" id="servicesRow">
     {% for s in services %}
-    <div class="col-lg-4 col-md-6 col-12">
+    <div class="col-lg-6 col-md-6 col-12">
       <div class="flip-card-wrapper" onclick="this.classList.toggle('flipped');">
         <div class="flip-card-inner">
           <!-- Front Side: Only Service Title and Description -->
@@ -512,9 +514,9 @@
             <div>
               <div class="card-top-row">
                 <div class="card-icon-glow">
-                  <i class="fas fa-hand-holding-medical"></i>
+                  <i class="fas fa-dove"></i>
                 </div>
-                <span class="service-category-badge"><i class="fas fa-heartbeat"></i> Healthcare</span>
+                <span class="service-category-badge"><i class="fas fa-hands-helping"></i> Support Service</span>
               </div>
               <h3>{{ s.name }}</h3>
               <p class="service-desc">{{ s.description }}</p>
