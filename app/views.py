@@ -2927,3 +2927,19 @@ def volunteer_event(request):
         form = EventVolunteerForm()
 
     return render(request, 'volunteer_event.html', {'form': form})
+
+from django.http import FileResponse
+from django.conf import settings
+import os
+def service_worker(request):
+    file_path = os.path.join(
+        settings.BASE_DIR,
+        "static",
+        "pwa",
+        "service-worker.js"
+    )
+
+    return FileResponse(
+        open(file_path, "rb"),
+        content_type="application/javascript"
+    )

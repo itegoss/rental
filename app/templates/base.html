@@ -988,10 +988,10 @@
       </div>{# end admin-nav-right #}
     </div>{# end nav-inner #}
   </nav>
-  {# ═══════════════ END ADMIN NAVBAR ═══════════════ #}
+ 
 
   {% else %}
-  {# ═══════════════ PUBLIC NAVBAR (unchanged) ═══════════════ #}
+ 
   <nav>
     <div class="nav-inner">
       <div class="logo">
@@ -1277,14 +1277,14 @@
   </script>
 
 <script>
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/static/pwa/service-worker.js')
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+        navigator.serviceWorker.register("/service-worker.js")
             .then(function (registration) {
-                console.log('Service Worker registered:', registration);
+                console.log("Service Worker registered:", registration);
             })
             .catch(function (error) {
-                console.log('Service Worker registration failed:', error);
+                console.error("Service Worker registration failed:", error);
             });
     });
 }
