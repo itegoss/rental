@@ -53,6 +53,7 @@ from .models import (
     EventVolunteer,
     Role,
     UserRole,
+    BloodBank,
     user_has_permission,
     user_has_any_permission,
 )
@@ -1927,9 +1928,13 @@ def admin_notifications(request):
     from django.db.models import Q
     from .models import Notification
     try:
-        notifications = Notification.objects.filter(
-            Q(recipient=request.user) | Q(recipient__isnull=True)
-        ).order_by('-created_at')
+        user = request.user
+        if user.is_superuser or user.is_staff:
+            filter_q = Q(recipient=user) | Q(recipient__isnull=True)
+        else:
+            filter_q = Q(recipient=user)
+
+        notifications = Notification.objects.filter(filter_q).order_by('-created_at')
         unread_count = notifications.filter(is_read=False).count()
     except ProgrammingError:
         notifications = Notification.objects.none()
@@ -2316,6 +2321,29 @@ def request_blood(request):
 
         send_whatsapp_message(blood_request.coordinator_contact, whatsapp_msg)
 
+        if request.user.is_authenticated:
+            try:
+                send_notification(
+                    title="Blood Request Submitted",
+                    message=f"Your blood request for patient {blood_request.patient_name} ({blood_request.blood_group}) at {blood_request.hospital_name} has been submitted successfully.",
+                    notification_type="info",
+                    link=f"/request-blood/view/{blood_request.id}/",
+                    recipient=request.user,
+                )
+            except Exception:
+                pass
+
+        try:
+            send_notification(
+                title="New Blood Request Received",
+                message=f"New blood request for patient {blood_request.patient_name} ({blood_request.blood_group}) at {blood_request.hospital_name}.",
+                notification_type="info",
+                link=f"/request-blood/view/{blood_request.id}/",
+                recipient=None,
+            )
+        except Exception:
+            pass
+
         messages.success(request, "Your request for blood has been submitted successfully! We will coordinate shortly.")
         return redirect('index')
 
@@ -2349,25 +2377,59 @@ def request_blood(request):
 
     # Regular user: show submission form
     form = BloodRequestForm()
-    return render(request, 'request_blood.html', {'form': form})
+    blood_banks = BloodBank.objects.all()
+    return render(request, 'request_blood.html', {'form': form, 'blood_banks': blood_banks})
 
 
 @login_required
 @user_passes_test(lambda u: user_has_permission(u, 'can_manage_blood_requests'))
 def edit_blood_request(request, request_id):
     req = get_object_or_404(BloodRequest, id=request_id)
+    blood_banks = BloodBank.objects.all()
     if request.method == 'POST' and 'patient_name' in request.POST:
         form = BloodRequestForm(request.POST, request.FILES, instance=req)
         if form.is_valid():
             blood_request = form.save(commit=False)
+            if blood_request.blood_bank and blood_request.blood_bank.strip():
+                if blood_request.status in {'Assigned', 'Pending', 'Accepted', 'Searching'}:
+                    blood_request.status = 'Fulfilled'
+                    try:
+                        blood_request.append_status_history('Fulfilled', changed_by=request.user, note=f'Blood bank selected: {blood_request.blood_bank}')
+                    except Exception:
+                        pass
             blood_request.updated_by = request.user
             blood_request.save()
+
+            if blood_request.created_by:
+                try:
+                    send_notification(
+                        title=f"Blood Request Update: {blood_request.status}",
+                        message=f"Your blood request for patient {blood_request.patient_name} status was updated to {blood_request.status}.",
+                        notification_type="info",
+                        link=f"/request-blood/view/{blood_request.id}/",
+                        recipient=blood_request.created_by,
+                    )
+                except Exception:
+                    pass
+
+            if blood_request.assigned_employee and blood_request.assigned_employee != request.user:
+                try:
+                    send_notification(
+                        title=f"Assigned Request Update: {blood_request.status}",
+                        message=f"Blood request for {blood_request.patient_name} assigned to you was updated to {blood_request.status}.",
+                        notification_type="info",
+                        link=f"/request-blood/view/{blood_request.id}/",
+                        recipient=blood_request.assigned_employee,
+                    )
+                except Exception:
+                    pass
+
             messages.success(request, "Blood request updated successfully.")
             return redirect('admin_view_blood_request', request_id=req.id)
-        return render(request, 'request_blood.html', {'form': form, 'is_edit': True, 'req': req})
+        return render(request, 'request_blood.html', {'form': form, 'is_edit': True, 'req': req, 'blood_banks': blood_banks})
     else:
         form = BloodRequestForm(instance=req)
-        return render(request, 'request_blood.html', {'form': form, 'is_edit': True, 'req': req})
+        return render(request, 'request_blood.html', {'form': form, 'is_edit': True, 'req': req, 'blood_banks': blood_banks})
 
 
 @login_required
@@ -2498,6 +2560,38 @@ def admin_edit_blood_request_status(request, request_id):
                 req.save()
                 req.append_status_history('Completed', changed_by=request.user, note='Completed by admin')
                 messages.success(request, 'Request completed.')
+        elif action == 'cancel':
+            if req.status in {'Completed', 'Cancelled', 'Rejected'}:
+                messages.error(request, 'This request is already completed, cancelled, or rejected.')
+            else:
+                req.status = 'Cancelled'
+                req.updated_by = request.user
+                req.remarks = request.POST.get('remarks') or req.remarks or 'Blood not available anywhere'
+                req.save()
+                req.append_status_history('Cancelled', changed_by=request.user, note='Cancelled: Blood not available anywhere')
+                if req.created_by:
+                    try:
+                        send_notification(
+                            title='Blood Request Cancelled',
+                            message=f'Your blood request for patient {req.patient_name} ({req.blood_group}) was cancelled as blood was not available.',
+                            notification_type='cancelled',
+                            link=f'/request-blood/view/{req.id}/',
+                            recipient=req.created_by
+                        )
+                    except Exception:
+                        pass
+                if req.assigned_employee and req.assigned_employee != request.user:
+                    try:
+                        send_notification(
+                            title='Assigned Request Cancelled',
+                            message=f'Blood request for patient {req.patient_name} assigned to you was cancelled.',
+                            notification_type='cancelled',
+                            link=f'/request-blood/view/{req.id}/',
+                            recipient=req.assigned_employee
+                        )
+                    except Exception:
+                        pass
+                messages.success(request, 'Blood request cancelled successfully.')
         elif action == 'employee_searching':
             if req.assigned_employee_id != request.user.id:
                 messages.error(request, 'You are not assigned to this request.')

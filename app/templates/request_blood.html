@@ -126,6 +126,33 @@
   transform: translateY(-2px);
   box-shadow: 0 8px 22px rgba(236,36,39,0.4);
 }
+.form-actions-wrapper {
+  display: flex;
+  gap: 16px;
+  margin-top: 28px;
+}
+.btn-cancel-custom {
+  flex: 1;
+  padding: 14px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.22s;
+  text-align: center;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-cancel-custom:hover {
+  background: #e5e7eb;
+  color: #111827;
+  transform: translateY(-1px);
+}
 </style>
 
 <div class="blood-banner">
@@ -269,7 +296,70 @@
         {% endif %}
       </div>
 
-      <button type="submit" class="btn-signin py-3 mt-4">{% if is_edit %}Update Request{% else %}Submit{% endif %}</button>
+      {% if user.is_staff or user.is_superuser or rbac_manage_blood_requests or req.assigned_employee == user %}
+      <div class="form-section-title mt-4">Admin / Employee Details</div>
+      <div class="row">
+        <div class="col-md-6 form-group-custom">
+          <label for="id_blood_type">Blood Group required <span class="text-danger">*</span></label>
+          <select name="blood_type" id="id_blood_type">
+            <option value="" disabled {% if not form.blood_type.value %}selected{% endif %}>Select Blood Group</option>
+            {% for code, label in form.fields.blood_group.choices %}
+              {% if code %}
+                <option value="{{ code }}" {% if form.blood_type.value == code %}selected{% endif %}>{{ label }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          {% if form.blood_type.errors %}
+            <div class="error-msg">{{ form.blood_type.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 form-group-custom">
+          <label for="id_blood_component_admin">Blood Component</label>
+          <select name="blood_component" id="id_blood_component_admin">
+            <option value="" {% if not form.blood_component.value %}selected{% endif %}>Select Blood Component</option>
+            {% for code, label in form.fields.blood_component.choices %}
+              {% if code %}
+                <option value="{{ code }}" {% if form.blood_component.value == code %}selected{% endif %}>{{ label }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          {% if form.blood_component.errors %}
+            <div class="error-msg">{{ form.blood_component.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 form-group-custom">
+          <label for="id_price">Price (₹)</label>
+          <input type="number" step="0.01" min="0" name="price" id="id_price" placeholder="Enter price" value="{{ form.price.value|default_if_none:'' }}">
+          {% if form.price.errors %}
+            <div class="error-msg">{{ form.price.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 form-group-custom">
+          <label for="id_blood_bank">Blood Bank</label>
+          <select name="blood_bank" id="id_blood_bank">
+            <option value="" {% if not form.blood_bank.value %}selected{% endif %}>Select Blood Bank</option>
+            {% for bb in blood_banks %}
+              <option value="{{ bb.name }}" {% if form.blood_bank.value == bb.name or req.blood_bank == bb.name %}selected{% endif %}>
+                {{ bb.name }}{% if bb.address %} — {{ bb.address }}{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+          {% if form.blood_bank.errors %}
+            <div class="error-msg">{{ form.blood_bank.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="form-actions-wrapper">
+        {% if is_edit %}
+          <a href="{% if req %}{% url 'admin_view_blood_request' req.id %}{% else %}{% url 'request_blood' %}{% endif %}" class="btn-cancel-custom">Cancel</a>
+        {% endif %}
+        <button type="submit" class="btn-signin" style="flex:1;">{% if is_edit %}Update Request{% else %}Submit{% endif %}</button>
+      </div>
     </form>
   </div>
 </div>

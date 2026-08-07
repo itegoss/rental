@@ -27,6 +27,7 @@ from .models import (
     EventVolunteer,
     Role,
     UserRole,
+    BloodBank,
 )
 
 from .utils import generate_receipt, receipt_filename, send_notification, send_whatsapp_message, generate_rental_report_pdf
@@ -609,5 +610,12 @@ class EventVolunteerAdmin(admin.ModelAdmin):
             obj.created_by = request.user
         obj.updated_by = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(BloodBank)
+class BloodBankAdmin(admin.ModelAdmin):
+    list_display = ('name', 'person_name', 'contact', 'address', 'created_at')
+    search_fields = ('name', 'person_name', 'contact', 'address')
+    list_filter = ('created_at',)
 
 

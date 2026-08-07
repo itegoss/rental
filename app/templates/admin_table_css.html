@@ -162,6 +162,32 @@
   font-weight: 700;
 }
 
+.price-col {
+  min-width: 130px !important;
+  white-space: nowrap !important;
+}
+
+.btn-cancel-request-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #f59e0b;
+  color: #ffffff;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.btn-cancel-request-icon:hover {
+  background: #d97706;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
 .qty-cell {
   text-align: center;
 }
@@ -396,8 +422,22 @@
   color: var(--muted);
 }
 
-.btn-secondary:hover {
-  background: #f3f4f6;
+.btn-secondary:hover,
+.btn-secondary:focus,
+.btn-secondary:active {
+  background: #fff !important;
+  color: var(--muted) !important;
+  border-color: var(--border) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.modal {
+  z-index: 2050 !important;
+}
+
+.modal-backdrop {
+  z-index: 2040 !important;
 }
 
 .btn-save-item {

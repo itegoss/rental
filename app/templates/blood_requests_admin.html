@@ -27,6 +27,9 @@
             <th>Patient Name</th>
             <th>Blood Group</th>
             <th>Blood Component</th>
+            <th>Blood Type</th>
+            <th class="price-col">Price</th>
+            <th>Blood Bank</th>
             <th>Hospital Name</th>
             <th>Hospital Area</th>
             <th>Coordinator Name</th>
@@ -45,6 +48,9 @@
             <td class="item-name-cell">{{ req.patient_name }}</td>
             <td class="price-cell">{{ req.blood_group }}</td>
             <td>{{ req.blood_component|default:"-" }}</td>
+            <td>{{ req.blood_type|default:"-" }}</td>
+            <td class="price-col">{% if req.price %}₹{{ req.price }}{% else %}-{% endif %}</td>
+            <td>{{ req.blood_bank|default:"-" }}</td>
             <td>{{ req.hospital_name }}</td>
             <td>{{ req.hospital_area }}</td>
             <td>{{ req.coordinator_name }}</td>
@@ -108,13 +114,22 @@
                   <button class="btn-save-item" type="submit" title="Complete"><i class="fas fa-flag-checkered"></i></button>
                 </form>
                 {% endif %}
+                {% if req.status != 'Completed' and req.status != 'Cancelled' and req.status != 'Rejected' %}
+                <form method="POST" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="cancel">
+                  <button class="btn-cancel-request-icon" type="submit" title="Cancel Request (Blood Not Available)" onclick="return confirm('Cancel this blood request (Blood not available anywhere)?');">
+                    <i class="fas fa-ban"></i>
+                  </button>
+                </form>
+                {% endif %}
                 <a class="btn-delete-item-table" href="{% url 'delete_blood_request' req.id %}" onclick="return confirm('Delete this record');" title="Delete"><i class="fas fa-trash"></i></a>
               </div>
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="12" style="text-align:center;padding:40px;color:var(--muted);">No blood requests found</td>
+            <td colspan="16" style="text-align:center;padding:40px;color:var(--muted);">No blood requests found</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -122,7 +137,7 @@
     </div>
     {% for req in page_obj.object_list %}
     <div class="modal fade" id="assignModal{{ req.id }}" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <form method="POST" action="{% url 'assign_blood_request_employee' req.id %}">
             {% csrf_token %}

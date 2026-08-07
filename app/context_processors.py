@@ -78,14 +78,17 @@ def notification_context(request):
         return {}
 
     try:
+        user = request.user
+        if user.is_superuser or user.is_staff:
+            filter_q = Q(recipient=user) | Q(recipient__isnull=True)
+        else:
+            filter_q = Q(recipient=user)
+
         latest_notifications = list(
-            Notification.objects.filter(
-                Q(recipient=request.user) | Q(recipient__isnull=True)
-            ).order_by('-created_at')[:5]
+            Notification.objects.filter(filter_q).order_by('-created_at')[:5]
         )
         unread_notification_count = Notification.objects.filter(
-            Q(is_read=False),
-            Q(recipient=request.user) | Q(recipient__isnull=True)
+            filter_q, is_read=False
         ).count()
     except ProgrammingError:
         latest_notifications = []

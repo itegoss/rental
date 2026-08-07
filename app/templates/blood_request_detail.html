@@ -13,6 +13,10 @@
     <p><strong>Hospital:</strong> {{ req.hospital_name }} ({{ req.hospital_area }})</p>
     <p><strong>Coordinator:</strong> {{ req.coordinator_name }} — {{ req.coordinator_contact }}</p>
     <p><strong>Reference:</strong> {{ req.reference_name|default:'-' }} — {{ req.reference_contact|default:'-' }}</p>
+    <p><strong>Blood Component:</strong> {{ req.blood_component|default:'-' }}</p>
+    <p><strong>Blood Type:</strong> {{ req.blood_type|default:'-' }}</p>
+    <p><strong>Price:</strong> {% if req.price %}₹{{ req.price }}{% else %}-{% endif %}</p>
+    <p><strong>Blood Bank:</strong> {{ req.blood_bank|default:'-' }}</p>
     <p><strong>Status:</strong> {{ req.status }}</p>
     <p><strong>Submitted:</strong> {{ req.created_at|date:'d M, Y H:i' }}</p>
     <p><strong>Remarks:</strong> {{ req.remarks|default:'-' }}</p>

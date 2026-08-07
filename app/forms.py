@@ -44,19 +44,23 @@ class ContactForm(forms.Form):
 
 
 class BloodRequestForm(forms.ModelForm):
-    blood_component = forms.ChoiceField(choices=BloodRequest.BLOOD_COMPONENT_CHOICES, required=True, label='Blood Component')
+    blood_component = forms.ChoiceField(choices=BloodRequest.BLOOD_COMPONENT_CHOICES, required=False, label='Blood Component')
     consent = forms.BooleanField(
-        required=True,
+        required=False,
         error_messages={'required': 'You must consent to the terms before submitting.'}
     )
     units_required = forms.IntegerField(required=False, initial=1, min_value=1)
+    blood_type = forms.ChoiceField(choices=BloodRequest.BLOOD_GROUP_CHOICES, required=False, label='Blood Group')
+    price = forms.DecimalField(required=False, min_value=0, max_digits=10, decimal_places=2, label='Price')
+    blood_bank = forms.CharField(required=False, label='Blood Bank')
 
     class Meta:
         model = BloodRequest
         fields = [
             'patient_name', 'hospital_name', 'hospital_area', 'blood_group', 'blood_component', 'units_required',
             'coordinator_name', 'coordinator_contact', 'reference_name',
-            'reference_contact', 'prescription', 'consent'
+            'reference_contact', 'prescription', 'consent',
+            'blood_type', 'price', 'blood_bank'
         ]
 
     def clean_coordinator_contact(self):
@@ -78,7 +82,8 @@ class BloodRequestForm(forms.ModelForm):
         patient_name = cleaned_data.get('patient_name')
         hospital_name = cleaned_data.get('hospital_name')
         blood_group = cleaned_data.get('blood_group')
-        if patient_name and hospital_name and blood_group:
+        # Skip duplicate check if editing existing record
+        if not self.instance.pk and patient_name and hospital_name and blood_group:
             one_hour_ago = timezone.now() - timezone.timedelta(hours=1)
             duplicates = BloodRequest.objects.filter(
                 patient_name__iexact=patient_name,

@@ -590,7 +590,9 @@ class BloodRequest(models.Model):
         ('Blood Available', 'Blood Available'),
         ('Ready for Pickup', 'Ready for Pickup'),
         ('Received', 'Received'),
+        ('Fulfilled', 'Fulfilled'),
         ('Completed', 'Completed'),
+        ('Cancelled', 'Cancelled'),
         ('Rejected', 'Rejected'),
     ]
     BLOOD_COMPONENT_CHOICES = [
@@ -621,6 +623,10 @@ class BloodRequest(models.Model):
     )
     consent = models.BooleanField(default=False)
     
+    blood_type = models.CharField(max_length=100, blank=True, null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0, blank=True, null=True)
+    blood_bank = models.CharField(max_length=255, blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='blood_requests_created')
@@ -651,7 +657,7 @@ class BloodRequest(models.Model):
 
     @property
     def is_terminal(self):
-        return self.status in {'Completed', 'Rejected'}
+        return self.status in {'Completed', 'Cancelled', 'Rejected'}
 
     @property
     def badge_color(self):
@@ -663,10 +669,28 @@ class BloodRequest(models.Model):
             'Blood Available': '#16a34a',
             'Ready for Pickup': '#0891b2',
             'Received': '#166534',
+            'Fulfilled': '#16a34a',
             'Completed': '#6b7280',
+            'Cancelled': '#ef4444',
             'Rejected': '#dc2626',
         }
         return colors.get(self.status, '#64748b')
+
+
+class BloodBank(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Blood Bank Name")
+    address = models.TextField(blank=True, null=True, verbose_name="Address")
+    person_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Contact Person Name")
+    contact = models.CharField(max_length=20, blank=True, null=True, verbose_name="Contact Number")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Blood Bank"
+        verbose_name_plural = "Blood Banks"
+
+    def __str__(self):
+        return f"{self.name} ({self.person_name or 'N/A'})"
 
     def get_next_statuses(self):
         flow = {

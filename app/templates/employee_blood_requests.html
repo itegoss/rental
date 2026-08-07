@@ -41,7 +41,11 @@
                 </form>
                 <form method="post" action="{% url 'admin_edit_blood_request_status' req.id %}">{% csrf_token %}
                   <input type="hidden" name="action" value="employee_blood_available" />
-                  <button class="btn-delete-item-table" type="submit" title="Blood Available"><i class="fas fa-check"></i></button>
+                  <button class="btn-save-item" type="submit" title="Blood Available"><i class="fas fa-check"></i></button>
+                </form>
+                <form method="post" action="{% url 'admin_edit_blood_request_status' req.id %}">{% csrf_token %}
+                  <input type="hidden" name="action" value="cancel" />
+                  <button class="btn-cancel-request-icon" type="submit" title="Cancel Request (Blood Not Available)" onclick="return confirm('Cancel request as blood is not available anywhere?');"><i class="fas fa-ban"></i></button>
                 </form>
               </div>
             </td>
