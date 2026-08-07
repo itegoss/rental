@@ -2345,7 +2345,7 @@ def request_blood(request):
             pass
 
         messages.success(request, "Your request for blood has been submitted successfully! We will coordinate shortly.")
-        return redirect('index')
+        return redirect('request_blood')
 
     # GET handling
     if user_has_permission(request.user, 'can_manage_blood_requests'):

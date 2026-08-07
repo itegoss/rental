@@ -79,20 +79,6 @@ class BloodRequestForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        patient_name = cleaned_data.get('patient_name')
-        hospital_name = cleaned_data.get('hospital_name')
-        blood_group = cleaned_data.get('blood_group')
-        # Skip duplicate check if editing existing record
-        if not self.instance.pk and patient_name and hospital_name and blood_group:
-            one_hour_ago = timezone.now() - timezone.timedelta(hours=1)
-            duplicates = BloodRequest.objects.filter(
-                patient_name__iexact=patient_name,
-                hospital_name__iexact=hospital_name,
-                blood_group=blood_group,
-                created_at__gte=one_hour_ago
-            )
-            if duplicates.exists():
-                raise ValidationError("A similar request for this patient at the same hospital was submitted recently. Please wait.")
         return cleaned_data
 
 

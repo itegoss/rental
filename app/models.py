@@ -677,21 +677,6 @@ class BloodRequest(models.Model):
         return colors.get(self.status, '#64748b')
 
 
-class BloodBank(models.Model):
-    name = models.CharField(max_length=255, verbose_name="Blood Bank Name")
-    address = models.TextField(blank=True, null=True, verbose_name="Address")
-    person_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Contact Person Name")
-    contact = models.CharField(max_length=20, blank=True, null=True, verbose_name="Contact Number")
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['name']
-        verbose_name = "Blood Bank"
-        verbose_name_plural = "Blood Banks"
-
-    def __str__(self):
-        return f"{self.name} ({self.person_name or 'N/A'})"
-
     def get_next_statuses(self):
         flow = {
             'Pending': ['Accepted', 'Rejected'],
@@ -737,6 +722,22 @@ class BloodBank(models.Model):
         self.last_status_changed_at = timezone.now()
         self.last_status_changed_by = changed_by
         self.save(update_fields=['status_history', 'last_status_changed_at', 'last_status_changed_by'])
+
+
+class BloodBank(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Blood Bank Name")
+    address = models.TextField(blank=True, null=True, verbose_name="Address")
+    person_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Contact Person Name")
+    contact = models.CharField(max_length=20, blank=True, null=True, verbose_name="Contact Number")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Blood Bank"
+        verbose_name_plural = "Blood Banks"
+
+    def __str__(self):
+        return f"{self.name} ({self.person_name or 'N/A'})"
 
 
 class CampOrganizer(models.Model):
