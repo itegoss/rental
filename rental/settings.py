@@ -181,3 +181,4 @@ STORAGES = {
 }
 
 GS_DEFAULT_ACL = None
+GS_IAM_SIGN_BLOB = True
