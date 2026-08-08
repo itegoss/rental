@@ -16,7 +16,7 @@
       <i class="fas fa-search"></i>
       <input type="search" name="q" value="{{ search_query }}" placeholder="Search blood requests..." aria-label="Search blood requests">
     </form>
-    <a class="btn-add-item" href="#" onclick="location.href='{% url 'request_blood' %}'; return false;">Export CSV</a>
+    <a class="btn-add-item" href="?export=csv{% if search_query %}&q={{ search_query }}{% endif %}">Export CSV</a>
   </div>
 
   <div class="items-table-wrap">
@@ -57,9 +57,11 @@
             <td>{{ req.coordinator_contact }}</td>
             <td>{{ req.reference_name|default:'-' }}</td>
             <td>{{ req.reference_contact|default:'-' }}</td>
-            <td>
+            <td onclick="event.stopPropagation();">
               {% if req.prescription %}
-                <a href="{{ req.prescription.url }}" target="_blank" onclick="event.stopPropagation();" style="color:#3b82f6;text-decoration:underline;">View</a>
+                <button type="button" class="btn btn-sm btn-link p-0 text-decoration-underline" data-bs-toggle="modal" data-bs-target="#prescriptionModal{{ req.id }}" style="color:#3b82f6; font-weight:600; border:none; background:none;">
+                  View
+                </button>
               {% else %}
                 -
               {% endif %}
@@ -93,13 +95,44 @@
       </table>
     </div>
     {% for req in page_obj.object_list %}
+    <!-- Dedicated Prescription Modal -->
+    {% if req.prescription %}
+    <div class="modal fade" id="prescriptionModal{{ req.id }}" tabindex="-1" aria-labelledby="prescriptionModalLabel{{ req.id }}" aria-hidden="true" onclick="event.stopPropagation();">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border-radius: 16px; overflow: hidden; border: none; box-shadow: 0 20px 40px rgba(0,0,0,0.25);">
+          <div class="modal-header" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #ffffff; padding: 18px 24px;">
+            <h5 class="modal-title" id="prescriptionModalLabel{{ req.id }}" style="font-weight: 800; font-size: 1.15rem; color:#ffffff; display: flex; align-items: center; gap: 10px;">
+              <i class="fas fa-file-medical"></i> Prescription — {{ req.patient_name }} ({{ req.blood_group }})
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" style="padding: 24px; background: #f8fafc; text-align: center;">
+            {% if req.prescription.url|lower|slice:"-4:" == ".pdf" %}
+              <iframe src="{{ req.prescription.url }}" style="width: 100%; height: 500px; border: none; border-radius: 10px;"></iframe>
+            {% else %}
+              <img src="{{ req.prescription.url }}" alt="Doctor Prescription for {{ req.patient_name }}" style="max-width: 100%; max-height: 70vh; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); object-fit: contain;">
+            {% endif %}
+          </div>
+          <div class="modal-footer" style="background: #ffffff; padding: 14px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+            <a href="{{ req.prescription.url }}" target="_blank" class="btn btn-outline-primary" style="font-weight: 700; border-radius: 8px;">
+              <i class="fas fa-external-link-alt me-1"></i> Open Original File
+            </a>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="font-weight: 700; border-radius: 8px;">
+              <i class="fas fa-times me-1"></i> Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Detailed View & Action Popup Modal -->
     <div class="modal fade" id="viewModal{{ req.id }}" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden; box-shadow: 0 24px 48px rgba(0,0,0,0.18);">
           <div class="modal-header" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #fff; padding: 18px 24px;">
             <h5 class="modal-title" style="font-weight: 800; color: #fff; font-size: 1.2rem;">
-              <i class="fas fa-notes-medical me-2"></i> Blood Request Details — {{ req.patient_name }}
+              <i class="fas fa-clipboard-list me-2"></i> Request Details — {{ req.patient_name }}
             </h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
@@ -125,7 +158,7 @@
             </div>
 
             <!-- Details Grid -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
               
               <!-- Medical Details Card -->
               <div style="background: #ffffff; border-radius: 12px; padding: 16px; border: 1px solid #e2e8f0;">
@@ -173,9 +206,9 @@
                 <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.92rem; color: #334155;">
                   <div><strong>Prescription:</strong> 
                     {% if req.prescription %}
-                      <a href="{{ req.prescription.url }}" target="_blank" class="btn btn-sm btn-outline-primary ms-1" style="padding: 2px 10px; font-size: 0.8rem;">
-                        <i class="fas fa-external-link-alt me-1"></i> View Prescription
-                      </a>
+                      <button type="button" class="btn btn-sm btn-outline-primary ms-1" data-bs-toggle="modal" data-bs-target="#prescriptionModal{{ req.id }}" style="padding: 2px 10px; font-size: 0.8rem;">
+                        <i class="fas fa-eye me-1"></i> View Prescription
+                      </button>
                     {% else %}
                       <span class="text-muted">None uploaded</span>
                     {% endif %}

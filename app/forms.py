@@ -44,13 +44,18 @@ class ContactForm(forms.Form):
 
 
 class BloodRequestForm(forms.ModelForm):
-    blood_component = forms.ChoiceField(choices=BloodRequest.BLOOD_COMPONENT_CHOICES, required=False, label='Blood Component')
+    blood_group = forms.ChoiceField(choices=BloodRequest.BLOOD_GROUP_CHOICES, required=True, label='Blood Group')
+    blood_component = forms.ChoiceField(choices=BloodRequest.BLOOD_COMPONENT_CHOICES, required=True, label='Blood Component')
+    prescription = forms.FileField(
+        required=True,
+        widget=forms.FileInput(attrs={'accept': '.jpg,.jpeg,.png,.pdf,.img,.webp'}),
+        error_messages={'required': "Doctor's prescription image/document is mandatory. Please upload a file."}
+    )
     consent = forms.BooleanField(
-        required=False,
+        required=True,
         error_messages={'required': 'You must consent to the terms before submitting.'}
     )
     units_required = forms.IntegerField(required=False, initial=1, min_value=1)
-    blood_type = forms.ChoiceField(choices=BloodRequest.BLOOD_GROUP_CHOICES, required=False, label='Blood Group')
     price = forms.DecimalField(required=False, min_value=0, max_digits=10, decimal_places=2, label='Price')
     blood_bank = forms.CharField(required=False, label='Blood Bank')
 
@@ -60,8 +65,13 @@ class BloodRequestForm(forms.ModelForm):
             'patient_name', 'hospital_name', 'hospital_area', 'blood_group', 'blood_component', 'units_required',
             'coordinator_name', 'coordinator_contact', 'reference_name',
             'reference_contact', 'prescription', 'consent',
-            'blood_type', 'price', 'blood_bank'
+            'price', 'blood_bank'
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.prescription:
+            self.fields['prescription'].required = False
 
     def clean_coordinator_contact(self):
         contact = self.cleaned_data.get('coordinator_contact', '').strip()

@@ -183,44 +183,6 @@
             <div class="error-msg">{{ form.patient_name.errors.0 }}</div>
           {% endif %}
         </div>
-        {% if not is_edit %}
-        <div class="col-md-6 form-group-custom">
-          <label for="id_blood_group">Blood Group required <span class="text-danger">*</span></label>
-          <select name="blood_group" id="id_blood_group" required>
-            <option value="" disabled {% if not form.blood_group.value %}selected{% endif %}>Select Blood Group</option>
-            {% for code, label in form.fields.blood_group.choices %}
-              {% if code %}
-                <option value="{{ code }}" {% if form.blood_group.value == code %}selected{% endif %}>{{ label }}</option>
-              {% endif %}
-            {% endfor %}
-          </select>
-          {% if form.blood_group.errors %}
-            <div class="error-msg">{{ form.blood_group.errors.0 }}</div>
-          {% endif %}
-        </div>
-        {% endif %}
-      </div>
-
-      {% if not is_edit %}
-      <div class="row">
-        <div class="col-md-6 form-group-custom">
-          <label for="id_blood_component">Blood Component <span class="text-danger">*</span></label>
-          <select name="blood_component" id="id_blood_component" required>
-            <option value="" disabled {% if not form.blood_component.value %}selected{% endif %}>Select Blood Component</option>
-            {% for code, label in form.fields.blood_component.choices %}
-              {% if code %}
-                <option value="{{ code }}" {% if form.blood_component.value == code %}selected{% endif %}>{{ label }}</option>
-              {% endif %}
-            {% endfor %}
-          </select>
-          {% if form.blood_component.errors %}
-            <div class="error-msg">{{ form.blood_component.errors.0 }}</div>
-          {% endif %}
-        </div>
-      </div>
-      {% endif %}
-
-      <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_hospital_name">Hospital Name <span class="text-danger">*</span></label>
           <input type="text" name="hospital_name" id="id_hospital_name" required placeholder="Enter hospital name" value="{{ form.hospital_name.value|default_if_none:'' }}">
@@ -228,6 +190,9 @@
             <div class="error-msg">{{ form.hospital_name.errors.0 }}</div>
           {% endif %}
         </div>
+      </div>
+
+      <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_hospital_area">Hospital Area <span class="text-danger">*</span></label>
           <input type="text" name="hospital_area" id="id_hospital_area" required placeholder="e.g. Bhayander West" value="{{ form.hospital_area.value|default_if_none:'' }}">
@@ -235,11 +200,6 @@
             <div class="error-msg">{{ form.hospital_area.errors.0 }}</div>
           {% endif %}
         </div>
-      </div>
-
-      <div class="form-section-title mt-4">Relative / Coordinator Information</div>
-
-      <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_units_required">Units Required <span class="text-danger">*</span></label>
           <input type="number" name="units_required" id="id_units_required" min="1" required value="{{ form.units_required.value|default_if_none:'1' }}">
@@ -248,6 +208,8 @@
           {% endif %}
         </div>
       </div>
+
+      <div class="form-section-title mt-4">Relative / Coordinator Information</div>
       
       <div class="row">
         <div class="col-md-6 form-group-custom">
@@ -284,8 +246,11 @@
       </div>
 
       <div class="form-group-custom mt-3">
-        <label for="id_prescription">Upload Doctor’s prescription image (jpg, jpeg, png, pdf, img)</label>
-        <input type="file" name="prescription" id="id_prescription" accept=".jpg,.jpeg,.png,.pdf,.img,.webp">
+        <label for="id_prescription">Upload Doctor’s prescription image (jpg, jpeg, png, pdf, img) <span class="text-danger">*</span></label>
+        <input type="file" name="prescription" id="id_prescription" {% if not is_edit or not req.prescription %}required{% endif %} accept=".jpg,.jpeg,.png,.pdf,.img,.webp">
+        {% if req.prescription %}
+          <small class="text-muted d-block mt-1">Current prescription: <a href="{{ req.prescription.url }}" target="_blank" style="color:#3b82f6;text-decoration:underline;">View File</a></small>
+        {% endif %}
         {% if form.prescription.errors %}
           <div class="error-msg">{{ form.prescription.errors.0 }}</div>
         {% endif %}
@@ -307,23 +272,23 @@
       <div class="form-section-title mt-4">Admin / Employee Details</div>
       <div class="row">
         <div class="col-md-6 form-group-custom">
-          <label for="id_blood_type">Blood Group required <span class="text-danger">*</span></label>
-          <select name="blood_group" id="id_blood_type">
-            <option value="" disabled {% if not form.blood_group.value and not form.blood_type.value and not req.blood_group %}selected{% endif %}>Select Blood Group</option>
+          <label for="id_blood_group">Blood Group required <span class="text-danger">*</span></label>
+          <select name="blood_group" id="id_blood_group" required>
+            <option value="" disabled {% if not form.blood_group.value and not req.blood_group %}selected{% endif %}>Select Blood Group</option>
             {% for code, label in form.fields.blood_group.choices %}
               {% if code %}
-                <option value="{{ code }}" {% if form.blood_group.value == code or form.blood_type.value == code or req.blood_group == code or req.blood_type == code %}selected{% endif %}>{{ label }}</option>
+                <option value="{{ code }}" {% if form.blood_group.value == code or req.blood_group == code %}selected{% endif %}>{{ label }}</option>
               {% endif %}
             {% endfor %}
           </select>
-          {% if form.blood_group.errors or form.blood_type.errors %}
-            <div class="error-msg">{{ form.blood_group.errors.0|default:form.blood_type.errors.0 }}</div>
+          {% if form.blood_group.errors %}
+            <div class="error-msg">{{ form.blood_group.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
-          <label for="id_blood_component_admin">Blood Component</label>
-          <select name="blood_component" id="id_blood_component_admin">
-            <option value="" {% if not form.blood_component.value and not req.blood_component %}selected{% endif %}>Select Blood Component</option>
+          <label for="id_blood_component">Blood Component <span class="text-danger">*</span></label>
+          <select name="blood_component" id="id_blood_component" required>
+            <option value="" disabled {% if not form.blood_component.value and not req.blood_component %}selected{% endif %}>Select Blood Component</option>
             {% for code, label in form.fields.blood_component.choices %}
               {% if code %}
                 <option value="{{ code }}" {% if form.blood_component.value == code or req.blood_component == code %}selected{% endif %}>{{ label }}</option>
@@ -335,7 +300,6 @@
           {% endif %}
         </div>
       </div>
-
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_price">Price (₹)</label>
@@ -357,6 +321,14 @@
           {% if form.blood_bank.errors %}
             <div class="error-msg">{{ form.blood_bank.errors.0 }}</div>
           {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="row d-none">
+        <div class="col-md-6 form-group-custom">
+          <select name="blood_group" id="id_blood_group">
+            <option value="A+" selected>A+</option>
+          </select>
         </div>
       </div>
       {% endif %}

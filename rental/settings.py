@@ -166,7 +166,8 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_SEC
 TIME_ZONE = 'Asia/Kolkata'
 USE_TZ = True
 
-
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module=".*google.*")
 
 # Clean up GOOGLE_APPLICATION_CREDENTIALS if file does not exist locally
 g_creds = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
@@ -175,7 +176,6 @@ if g_creds:
     if not g_creds_path.exists():
         os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 
-
 GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME")
 GS_PROJECT_ID = os.getenv("GS_PROJECT_ID")
 GS_SA_EMAIL = os.getenv(
@@ -183,7 +183,23 @@ GS_SA_EMAIL = os.getenv(
     "936251808189-compute@developer.gserviceaccount.com"
 )
 
-if DEBUG:
+if GS_BUCKET_NAME:
+    STORAGES = {
+        "default": {
+            "BACKEND": "app.storage.CustomGoogleCloudStorage",
+            "OPTIONS": {
+                "bucket_name": GS_BUCKET_NAME,
+                "project_id": GS_PROJECT_ID,
+                "querystring_auth": False,
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    GS_DEFAULT_ACL = None
+    GS_QUERYSTRING_AUTH = False
+else:
     STORAGES = {
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -192,20 +208,6 @@ if DEBUG:
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     }
-    MEDIA_URL = "/media/"
-else:
-    STORAGES = {
-        "default": {
-            "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
-            "OPTIONS": {
-                "bucket_name": GS_BUCKET_NAME,
-                "project_id": GS_PROJECT_ID,
-                "iam_sign_blob": True,
-                "sa_email": GS_SA_EMAIL,
-            },
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
-    }
-    GS_DEFAULT_ACL = None
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
