@@ -8,3 +8,5 @@ echo *.env>> .gitignore
 __pycache__/
 .env
 db.sqlite3
+.env
+google-credentials/service-account.json
