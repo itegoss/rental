@@ -605,11 +605,11 @@ class BloodRequest(models.Model):
         ('Single Donor Platelets (SDP)', 'Single Donor Platelets (SDP)'),
         ('Random Donor Platelets (RDP)', 'Random Donor Platelets (RDP)')
     ]
-    blood_component = models.CharField(max_length=50, choices=BLOOD_COMPONENT_CHOICES, blank=True, null=True)
+    blood_component = models.CharField(max_length=50, choices=BLOOD_COMPONENT_CHOICES, blank=True, null=True, default='Whole Blood')
     patient_name = models.CharField(max_length=255)
     hospital_name = models.CharField(max_length=255)
     hospital_area = models.CharField(max_length=255)
-    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES)
+    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, blank=True, null=True, default='A+')
     units_required = models.PositiveIntegerField(default=1)
     coordinator_name = models.CharField(max_length=255)
     coordinator_contact = models.CharField(max_length=15)
@@ -651,6 +651,13 @@ class BloodRequest(models.Model):
     status_history = models.TextField(blank=True, null=True, help_text='JSON-like status history timeline')
     last_status_changed_at = models.DateTimeField(blank=True, null=True)
     last_status_changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='blood_requests_status_changed')
+
+    def save(self, *args, **kwargs):
+        if not self.blood_group:
+            self.blood_group = 'A+'
+        if not self.blood_component:
+            self.blood_component = 'Whole Blood'
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.patient_name} - {self.blood_group} ({self.status})"

@@ -44,8 +44,8 @@ class ContactForm(forms.Form):
 
 
 class BloodRequestForm(forms.ModelForm):
-    blood_group = forms.ChoiceField(choices=BloodRequest.BLOOD_GROUP_CHOICES, required=True, label='Blood Group')
-    blood_component = forms.ChoiceField(choices=BloodRequest.BLOOD_COMPONENT_CHOICES, required=True, label='Blood Component')
+    blood_group = forms.ChoiceField(choices=BloodRequest.BLOOD_GROUP_CHOICES, required=False, initial='A+', label='Blood Group')
+    blood_component = forms.ChoiceField(choices=BloodRequest.BLOOD_COMPONENT_CHOICES, required=False, initial='Whole Blood', label='Blood Component')
     prescription = forms.FileField(
         required=True,
         widget=forms.FileInput(attrs={'accept': '.jpg,.jpeg,.png,.pdf,.img,.webp'}),
@@ -67,6 +67,14 @@ class BloodRequestForm(forms.ModelForm):
             'reference_contact', 'prescription', 'consent',
             'price', 'blood_bank'
         ]
+
+    def clean_blood_group(self):
+        bg = self.cleaned_data.get('blood_group')
+        return bg if bg else 'A+'
+
+    def clean_blood_component(self):
+        bc = self.cleaned_data.get('blood_component')
+        return bc if bc else 'Whole Blood'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
