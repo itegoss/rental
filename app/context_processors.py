@@ -66,7 +66,7 @@ def rbac_context(request):
         "rbac_show_volunteer": user_has_permission(request.user, 'can_manage_volunteers'),
         "rbac_show_medical_services": user_has_permission(request.user, 'can_manage_services'),
         "rbac_show_about": False,
-        "rbac_show_cart": request.user.is_authenticated and user_has_permission(request.user, 'can_access_inventory'),
+        "rbac_show_cart": request.user.is_authenticated,
         "rbac_manage_users": user_has_permission(request.user, 'can_manage_users'),
         "rbac_manage_roles": user_has_permission(request.user, 'can_manage_roles'),
         "rbac_any_permission": user_has_any_permission(request.user),

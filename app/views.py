@@ -2382,9 +2382,18 @@ def request_blood(request):
 
 
 @login_required
-@user_passes_test(lambda u: user_has_permission(u, 'can_manage_blood_requests'))
 def edit_blood_request(request, request_id):
     req = get_object_or_404(BloodRequest, id=request_id)
+    is_allowed = (
+        request.user.is_superuser
+        or request.user.is_staff
+        or user_has_permission(request.user, 'can_manage_blood_requests')
+        or (req.assigned_employee_id and req.assigned_employee_id == request.user.id)
+    )
+    if not is_allowed:
+        messages.error(request, "You do not have permission to edit this request.")
+        return redirect('index')
+
     blood_banks = BloodBank.objects.all()
     if request.method == 'POST' and 'patient_name' in request.POST:
         form = BloodRequestForm(request.POST, request.FILES, instance=req)
@@ -2425,7 +2434,9 @@ def edit_blood_request(request, request_id):
                     pass
 
             messages.success(request, "Blood request updated successfully.")
-            return redirect('admin_view_blood_request', request_id=req.id)
+            if user_has_permission(request.user, 'can_manage_blood_requests'):
+                return redirect('request_blood')
+            return redirect('employee_blood_requests')
         return render(request, 'request_blood.html', {'form': form, 'is_edit': True, 'req': req, 'blood_banks': blood_banks})
     else:
         form = BloodRequestForm(instance=req)
@@ -2433,9 +2444,17 @@ def edit_blood_request(request, request_id):
 
 
 @login_required
-@user_passes_test(lambda u: user_has_permission(u, 'can_manage_blood_requests'))
 def admin_view_blood_request(request, request_id):
     req = get_object_or_404(BloodRequest, id=request_id)
+    is_allowed = (
+        request.user.is_superuser
+        or request.user.is_staff
+        or user_has_permission(request.user, 'can_manage_blood_requests')
+        or (req.assigned_employee_id and req.assigned_employee_id == request.user.id)
+    )
+    if not is_allowed:
+        messages.error(request, "You do not have permission to view this request.")
+        return redirect('index')
     return render(request, 'blood_request_detail.html', {'req': req})
 
 
@@ -2487,9 +2506,17 @@ def assign_blood_request_employee(request, request_id):
 
 
 @login_required
-@user_passes_test(lambda u: user_has_permission(u, 'can_manage_blood_requests'))
 def admin_edit_blood_request_status(request, request_id):
     req = get_object_or_404(BloodRequest, id=request_id)
+    is_allowed = (
+        request.user.is_superuser
+        or request.user.is_staff
+        or user_has_permission(request.user, 'can_manage_blood_requests')
+        or (req.assigned_employee_id and req.assigned_employee_id == request.user.id)
+    )
+    if not is_allowed:
+        messages.error(request, "You do not have permission to update status.")
+        return redirect('index')
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'accept':

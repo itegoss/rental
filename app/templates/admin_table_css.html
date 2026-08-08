@@ -452,29 +452,50 @@
   box-shadow: 0 14px 30px rgba(236, 36, 39, 0.28);
 }
 
-@media(max-width:640px) {
+@media(max-width:768px) {
   .inventory-page {
-    padding: 20px;
+    padding: 20px 12px;
+  }
+
+  .inventory-head {
+    margin-bottom: 24px;
   }
 
   .inventory-head h1 {
-    font-size: 1.7rem;
+    font-size: 1.75rem;
   }
 
   .items-toolbar {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .items-search {
+    max-width: 100%;
+    width: 100%;
   }
 
   .btn-add-item {
     width: 100%;
+    justify-content: center;
   }
 
   .item-add-form {
-    padding: 20px;
+    padding: 16px;
+    gap: 16px;
   }
 
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .item-drawer {
+    width: 100%;
+  }
+
+  .table-actions {
+    justify-content: flex-start;
   }
 }

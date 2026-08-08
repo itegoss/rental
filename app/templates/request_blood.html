@@ -183,6 +183,7 @@
             <div class="error-msg">{{ form.patient_name.errors.0 }}</div>
           {% endif %}
         </div>
+        {% if not is_edit %}
         <div class="col-md-6 form-group-custom">
           <label for="id_blood_group">Blood Group required <span class="text-danger">*</span></label>
           <select name="blood_group" id="id_blood_group" required>
@@ -197,21 +198,27 @@
             <div class="error-msg">{{ form.blood_group.errors.0 }}</div>
           {% endif %}
         </div>
+        {% endif %}
       </div>
-<div class="col-md-6 form-group-custom">
-    <label for="id_blood_component">Blood Component <span class="text-danger">*</span></label>
-    <select name="blood_component" id="id_blood_component" required>
-        <option value="" disabled {% if not form.blood_component.value %}selected{% endif %}>Select Blood Component</option>
-        {% for code, label in form.fields.blood_component.choices %}
-            {% if code %}
+
+      {% if not is_edit %}
+      <div class="row">
+        <div class="col-md-6 form-group-custom">
+          <label for="id_blood_component">Blood Component <span class="text-danger">*</span></label>
+          <select name="blood_component" id="id_blood_component" required>
+            <option value="" disabled {% if not form.blood_component.value %}selected{% endif %}>Select Blood Component</option>
+            {% for code, label in form.fields.blood_component.choices %}
+              {% if code %}
                 <option value="{{ code }}" {% if form.blood_component.value == code %}selected{% endif %}>{{ label }}</option>
-            {% endif %}
-        {% endfor %}
-    </select>
-    {% if form.blood_component.errors %}
-        <div class="error-msg">{{ form.blood_component.errors.0 }}</div>
-    {% endif %}
-</div>
+              {% endif %}
+            {% endfor %}
+          </select>
+          {% if form.blood_component.errors %}
+            <div class="error-msg">{{ form.blood_component.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
 
       <div class="row">
         <div class="col-md-6 form-group-custom">
@@ -301,25 +308,25 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_blood_type">Blood Group required <span class="text-danger">*</span></label>
-          <select name="blood_type" id="id_blood_type">
-            <option value="" disabled {% if not form.blood_type.value %}selected{% endif %}>Select Blood Group</option>
+          <select name="blood_group" id="id_blood_type">
+            <option value="" disabled {% if not form.blood_group.value and not form.blood_type.value and not req.blood_group %}selected{% endif %}>Select Blood Group</option>
             {% for code, label in form.fields.blood_group.choices %}
               {% if code %}
-                <option value="{{ code }}" {% if form.blood_type.value == code %}selected{% endif %}>{{ label }}</option>
+                <option value="{{ code }}" {% if form.blood_group.value == code or form.blood_type.value == code or req.blood_group == code or req.blood_type == code %}selected{% endif %}>{{ label }}</option>
               {% endif %}
             {% endfor %}
           </select>
-          {% if form.blood_type.errors %}
-            <div class="error-msg">{{ form.blood_type.errors.0 }}</div>
+          {% if form.blood_group.errors or form.blood_type.errors %}
+            <div class="error-msg">{{ form.blood_group.errors.0|default:form.blood_type.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_blood_component_admin">Blood Component</label>
           <select name="blood_component" id="id_blood_component_admin">
-            <option value="" {% if not form.blood_component.value %}selected{% endif %}>Select Blood Component</option>
+            <option value="" {% if not form.blood_component.value and not req.blood_component %}selected{% endif %}>Select Blood Component</option>
             {% for code, label in form.fields.blood_component.choices %}
               {% if code %}
-                <option value="{{ code }}" {% if form.blood_component.value == code %}selected{% endif %}>{{ label }}</option>
+                <option value="{{ code }}" {% if form.blood_component.value == code or req.blood_component == code %}selected{% endif %}>{{ label }}</option>
               {% endif %}
             {% endfor %}
           </select>

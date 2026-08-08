@@ -168,6 +168,14 @@ USE_TZ = True
 
 
 
+# Clean up GOOGLE_APPLICATION_CREDENTIALS if file does not exist locally
+g_creds = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+if g_creds:
+    g_creds_path = Path(g_creds) if os.path.isabs(g_creds) else BASE_DIR / g_creds
+    if not g_creds_path.exists():
+        os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
+
+
 GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME")
 GS_PROJECT_ID = os.getenv("GS_PROJECT_ID")
 GS_SA_EMAIL = os.getenv(
@@ -175,19 +183,29 @@ GS_SA_EMAIL = os.getenv(
     "936251808189-compute@developer.gserviceaccount.com"
 )
 
-STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
-        "OPTIONS": {
-            "bucket_name": GS_BUCKET_NAME,
-            "project_id": GS_PROJECT_ID,
-            "iam_sign_blob": True,
-            "sa_email": GS_SA_EMAIL,
+if DEBUG:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
         },
-    },
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
-}
-
-GS_DEFAULT_ACL = None
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    MEDIA_URL = "/media/"
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+            "OPTIONS": {
+                "bucket_name": GS_BUCKET_NAME,
+                "project_id": GS_PROJECT_ID,
+                "iam_sign_blob": True,
+                "sa_email": GS_SA_EMAIL,
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    GS_DEFAULT_ACL = None
