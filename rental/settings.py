@@ -170,10 +170,20 @@ USE_TZ = True
 
 GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME")
 GS_PROJECT_ID = os.getenv("GS_PROJECT_ID")
+GS_SA_EMAIL = os.getenv(
+    "GS_SA_EMAIL",
+    "936251808189-compute@developer.gserviceaccount.com"
+)
 
 STORAGES = {
     "default": {
         "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+        "OPTIONS": {
+            "bucket_name": GS_BUCKET_NAME,
+            "project_id": GS_PROJECT_ID,
+            "iam_sign_blob": True,
+            "sa_email": GS_SA_EMAIL,
+        },
     },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
@@ -181,4 +191,3 @@ STORAGES = {
 }
 
 GS_DEFAULT_ACL = None
-GS_IAM_SIGN_BLOB = True
