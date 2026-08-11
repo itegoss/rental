@@ -2351,6 +2351,14 @@ def request_blood(request):
     if user_has_permission(request.user, 'can_manage_blood_requests'):
         # Admin: show management table
         q = request.GET.get('q', '').strip()
+        page_size = request.GET.get('page_size', '20')
+        try:
+            page_size_int = int(page_size)
+            if page_size_int <= 0:
+                page_size_int = 20
+        except ValueError:
+            page_size_int = 20
+        page_size = str(page_size_int)
         qs = BloodRequest.objects.all().order_by('-created_at')
         if q:
             from django.db.models import Q
@@ -2365,13 +2373,14 @@ def request_blood(request):
                 Q(blood_group__icontains=q)
             )
 
-        paginator = Paginator(qs, 20)
+        paginator = Paginator(qs, page_size_int)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
 
         return render(request, 'blood_requests_admin.html', {
             'page_obj': page_obj,
             'search_query': q,
+            'page_size': page_size,
             'active_employees': User.objects.filter(is_active=True).order_by('username'),
         })
 
@@ -2761,6 +2770,14 @@ def organize_camp(request):
     # Admin: show management table
     if user_has_permission(request.user, 'can_manage_camps'):
         q = request.GET.get('q', '').strip()
+        page_size = request.GET.get('page_size', '10')
+        try:
+            page_size_int = int(page_size)
+            if page_size_int <= 0:
+                page_size_int = 10
+        except ValueError:
+            page_size_int = 10
+        page_size = str(page_size_int)
         qs = CampOrganizer.objects.all().order_by('-created_at')
         if q:
             from django.db.models import Q
@@ -2770,9 +2787,9 @@ def organize_camp(request):
                 Q(contact_number__icontains=q) |
                 Q(proposed_venue__icontains=q)
             )
-        paginator = Paginator(qs, 20)
+        paginator = Paginator(qs, page_size_int)
         page_obj = paginator.get_page(request.GET.get('page'))
-        return render(request, 'camps_admin.html', {'page_obj': page_obj, 'search_query': q})
+        return render(request, 'camps_admin.html', {'page_obj': page_obj, 'search_query': q, 'page_size': page_size})
 
     else:
         form = CampOrganizerForm()
@@ -2840,6 +2857,14 @@ def be_donor(request):
     # Admin: show management table
     if user_has_permission(request.user, 'can_manage_donors'):
         q = request.GET.get('q', '').strip()
+        page_size = request.GET.get('page_size', '10')
+        try:
+            page_size_int = int(page_size)
+            if page_size_int <= 0:
+                page_size_int = 10
+        except ValueError:
+            page_size_int = 10
+        page_size = str(page_size_int)
         qs = BloodDonor.objects.all().order_by('-created_at')
         if q:
             from django.db.models import Q
@@ -2850,9 +2875,9 @@ def be_donor(request):
                 Q(area_of_residence__icontains=q) |
                 Q(blood_group__icontains=q)
             )
-        paginator = Paginator(qs, 20)
+        paginator = Paginator(qs, page_size_int)
         page_obj = paginator.get_page(request.GET.get('page'))
-        return render(request, 'donors_admin.html', {'page_obj': page_obj, 'search_query': q})
+        return render(request, 'donors_admin.html', {'page_obj': page_obj, 'search_query': q, 'page_size': page_size})
 
     else:
         form = BloodDonorForm()
@@ -2864,6 +2889,14 @@ def medical_services(request):
     # Admin: show services management
     if user_has_permission(request.user, 'can_manage_services'):
         q = request.GET.get('q', '').strip()
+        page_size = request.GET.get('page_size', '10')
+        try:
+            page_size_int = int(page_size)
+            if page_size_int <= 0:
+                page_size_int = 10
+        except ValueError:
+            page_size_int = 10
+        page_size = str(page_size_int)
         qs = SupportService.objects.all().prefetch_related('contacts').order_by('name')
         if q:
             from django.db.models import Q
@@ -2873,9 +2906,9 @@ def medical_services(request):
                 Q(contacts__contact_name__icontains=q) |
                 Q(contacts__contact_number__icontains=q)
             ).distinct()
-        paginator = Paginator(qs, 20)
+        paginator = Paginator(qs, page_size_int)
         page_obj = paginator.get_page(request.GET.get('page'))
-        return render(request, 'services_admin.html', {'page_obj': page_obj, 'search_query': q})
+        return render(request, 'services_admin.html', {'page_obj': page_obj, 'search_query': q, 'page_size': page_size})
 
     active_services = SupportService.objects.filter(is_active=True).prefetch_related('contacts').order_by('name')
     return render(request, 'medical_services.html', {'services': active_services})
@@ -3035,6 +3068,14 @@ def volunteer_event(request):
     # Admin: show volunteers management
     if user_has_permission(request.user, 'can_manage_volunteers'):
         q = request.GET.get('q', '').strip()
+        page_size = request.GET.get('page_size', '10')
+        try:
+            page_size_int = int(page_size)
+            if page_size_int <= 0:
+                page_size_int = 10
+        except ValueError:
+            page_size_int = 10
+        page_size = str(page_size_int)
         qs = EventVolunteer.objects.all().order_by('-created_at')
         if q:
             from django.db.models import Q
@@ -3044,9 +3085,9 @@ def volunteer_event(request):
                 Q(email__icontains=q) |
                 Q(area_of_residence__icontains=q)
             )
-        paginator = Paginator(qs, 20)
+        paginator = Paginator(qs, page_size_int)
         page_obj = paginator.get_page(request.GET.get('page'))
-        return render(request, 'volunteers_admin.html', {'page_obj': page_obj, 'search_query': q})
+        return render(request, 'volunteers_admin.html', {'page_obj': page_obj, 'search_query': q, 'page_size': page_size})
 
     else:
         form = EventVolunteerForm()
