@@ -228,42 +228,64 @@
     padding: 14px 16px;
     border-top: 1px solid var(--border);
     flex-wrap: wrap;
+    width: 100%;
   }
 
   .page-info {
     color: var(--muted);
     font-size: 0.85rem;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    min-height: 38px;
   }
 
   .page-buttons {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
     flex-wrap: wrap;
+    margin-left: auto;
   }
 
   .page-btn {
-    min-width: 34px;
-    height: 34px;
-    border: none;
-    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 10px;
     background: #f3f4f6;
     color: var(--text);
     font-weight: 800;
     cursor: pointer;
+    text-decoration: none;
+    line-height: 1;
+    font-size: 0.95rem;
   }
 
-  .page-btn:hover,
+  .page-btn:hover:not(:disabled) {
+    background: #e5e7eb;
+    color: var(--text);
+  }
+
   .page-btn.active {
-    background: var(--primary);
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    border-color: #dc2626;
     color: #fff;
+    box-shadow: 0 8px 20px rgba(220, 38, 38, 0.18);
   }
 
   .page-btn:disabled {
-    opacity: 0.45;
+    opacity: 0.5;
     cursor: not-allowed;
     background: #f3f4f6;
-    color: var(--muted);
+    border-color: rgba(15, 23, 42, 0.08);
+    color: #9ca3af;
   }
 
   .no-results-row td {
@@ -1357,6 +1379,7 @@
       const prev = document.createElement('button');
       prev.type = 'button';
       prev.className = 'page-btn';
+      prev.setAttribute('aria-label', 'Previous page');
       prev.innerHTML = '<i class="fas fa-chevron-left"></i>';
       prev.disabled = currentPage === 1;
       prev.addEventListener('click', () => { currentPage--; renderTable(); });
@@ -1367,6 +1390,7 @@
         button.type = 'button';
         button.className = 'page-btn' + (page === currentPage ? ' active' : '');
         button.textContent = page;
+        button.setAttribute('aria-current', page === currentPage ? 'page' : 'false');
         button.addEventListener('click', () => { currentPage = page; renderTable(); });
         pageButtons.appendChild(button);
       }
@@ -1374,6 +1398,7 @@
       const next = document.createElement('button');
       next.type = 'button';
       next.className = 'page-btn';
+      next.setAttribute('aria-label', 'Next page');
       next.innerHTML = '<i class="fas fa-chevron-right"></i>';
       next.disabled = currentPage === totalPages;
       next.addEventListener('click', () => { currentPage++; renderTable(); });

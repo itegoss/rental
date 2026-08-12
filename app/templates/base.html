@@ -857,6 +857,42 @@
     @media (max-width: 768px) {
       .footer-grid {
         gap: 32px;
+        grid-template-columns: 1fr;
+      }
+
+      .footer-col {
+        text-align: center;
+      }
+
+      .footer-col h4 {
+        text-align: center;
+      }
+
+      .footer-col ul {
+        align-items: center;
+      }
+
+      .footer-col:nth-child(2),
+      .footer-col:nth-child(3),
+      .footer-col:nth-child(1) {
+        text-align: center;
+      }
+
+      .footer-col:nth-child(2) .footer-contact-row,
+      .footer-col:nth-child(3) .footer-contact-row,
+      .footer-col:nth-child(1) .footer-contact-row {
+        justify-content: center;
+        text-align: center;
+      }
+
+      .footer-col:nth-child(2) .footer-contact-row a,
+      .footer-col:nth-child(3) .footer-contact-row a,
+      .footer-col:nth-child(1) .footer-contact-row a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        text-align: center;
       }
     }
 
@@ -1029,10 +1065,13 @@
         color: rgba(255, 255, 255, 0.8);
       }
 
-      /* Make the "Request Blood" tint icon neutral: transparent background and black icon */
-      .fa-tint {
+      /* Keep the request-blood tint icon readable on red admin/menu backgrounds */
+      .mobile-nav-item .fa-tint,
+      .mobile-dropdown-btn .fa-tint,
+      .nav-dropdown-item .fa-tint,
+      .admin-nav-links a .fa-tint {
         background: transparent !important;
-        color: #111827 !important;
+        color: #ffffff !important;
         box-shadow: none !important;
         padding: 0 !important;
         border-radius: 0 !important;
