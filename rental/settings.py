@@ -180,7 +180,7 @@ GS_BUCKET_NAME = os.getenv("GS_BUCKET_NAME")
 GS_PROJECT_ID = os.getenv("GS_PROJECT_ID")
 GS_SA_EMAIL = os.getenv(
     "GS_SA_EMAIL",
-    "936251808189-compute@developer.gserviceaccount.com"
+    "319338334172-compute@developer.gserviceaccount.com"
 )
 
 if GS_BUCKET_NAME:
