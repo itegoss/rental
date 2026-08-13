@@ -10,10 +10,23 @@
     <div class="underline-bar"></div>
   </div>
 
-  <div class="items-toolbar">
+  <div class="table-tools">
     <form class="items-search" method="GET" action="{% url 'be_donor' %}">
-      <i class="fas fa-search"></i>
-      <input type="search" name="q" value="{{ search_query }}" placeholder="Search donors..." aria-label="Search donors">
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="search" name="q" value="{{ search_query }}" placeholder="Search donors..." aria-label="Search donors">
+      </div>
+      <label class="page-size">
+        Show
+        <select name="page_size" onchange="this.form.submit()">
+          <option value="5"{% if page_size == '5' %} selected{% endif %}>5</option>
+          <option value="10"{% if page_size == '10' %} selected{% endif %}>10</option>
+          <option value="20"{% if page_size == '20' %} selected{% endif %}>20</option>
+          <option value="25"{% if page_size == '25' %} selected{% endif %}>25</option>
+          <option value="50"{% if page_size == '50' %} selected{% endif %}>50</option>
+        </select>
+      </label>
+      <input type="hidden" name="page" value="1">
     </form>
   </div>
 
@@ -50,21 +63,44 @@
         </tbody>
       </table>
     </div>
-    {% if page_obj.has_other_pages %}
-    <div class="pagination-bar" style="margin-top:24px; justify-content:center;">
-      {% if page_obj.has_previous %}
-      <a class="page-btn" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Previous</a>
-      {% else %}
-      <button class="page-btn" disabled>Previous</button>
-      {% endif %}
-      <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-      {% if page_obj.has_next %}
-      <a class="page-btn" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Next</a>
-      {% else %}
-      <button class="page-btn" disabled>Next</button>
-      {% endif %}
+    <div class="pagination-bar" style="margin-top: 24px;">
+      <div class="page-info">
+        {% if page_obj.paginator.count %}
+          Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
+        {% else %}
+          Showing 0 records
+        {% endif %}
+      </div>
+      <div class="page-buttons">
+        {% if page_obj.has_previous %}
+        <a class="page-btn" aria-label="Previous page" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+          <i class="fas fa-chevron-left"></i>
+        </a>
+        {% else %}
+        <button class="page-btn" type="button" disabled aria-label="Previous page">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+          {% if num == page_obj.number %}
+            <span class="page-btn active" aria-current="page">{{ num }}</span>
+          {% else %}
+            <a class="page-btn" aria-label="Page {{ num }}" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <a class="page-btn" aria-label="Next page" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+          <i class="fas fa-chevron-right"></i>
+        </a>
+        {% else %}
+        <button class="page-btn" type="button" disabled aria-label="Next page">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+        {% endif %}
+      </div>
     </div>
-    {% endif %}
   </div>
 </div>
 

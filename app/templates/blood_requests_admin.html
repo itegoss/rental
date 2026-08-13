@@ -11,10 +11,23 @@
     <div class="underline-bar"></div>
   </div>
 
-  <div class="items-toolbar">
+  <div class="table-tools">
     <form class="items-search" method="GET" action="{% url 'request_blood' %}">
-      <i class="fas fa-search"></i>
-      <input type="search" name="q" value="{{ search_query }}" placeholder="Search blood requests..." aria-label="Search blood requests">
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="search" name="q" value="{{ search_query }}" placeholder="Search blood requests..." aria-label="Search blood requests">
+      </div>
+      <label class="page-size">
+        Show
+        <select name="page_size" onchange="this.form.submit()">
+          <option value="5"{% if page_size == '5' %} selected{% endif %}>5</option>
+          <option value="10"{% if page_size == '10' %} selected{% endif %}>10</option>
+          <option value="20"{% if page_size == '20' %} selected{% endif %}>20</option>
+          <option value="25"{% if page_size == '25' %} selected{% endif %}>25</option>
+          <option value="50"{% if page_size == '50' %} selected{% endif %}>50</option>
+        </select>
+      </label>
+      <input type="hidden" name="page" value="1">
     </form>
     <a class="btn-add-item" href="?export=csv{% if search_query %}&q={{ search_query }}{% endif %}">Export CSV</a>
   </div>
@@ -94,6 +107,74 @@
         </tbody>
       </table>
     </div>
+{% if page_obj.has_other_pages or page_obj.paginator.num_pages == 1 %}
+<div class="pagination-bar" style="
+    margin-top: 24px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+    padding-right: 24px;
+">
+
+    <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    ">
+
+        {% if page_obj.has_previous %}
+            <a class="page-btn"
+               href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}"
+               style="display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        {% else %}
+            <button class="page-btn"
+                    disabled
+                    style="display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if num == page_obj.number %}
+                <span class="page-btn active"
+                      style="
+                          display:flex;
+                          align-items:center;
+                          justify-content:center;
+                          text-align:center;
+                      ">
+                    {{ num }}
+                </span>
+            {% else %}
+                <a class="page-btn"
+                   href="?page={{ num }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}"
+                   style="display:flex; align-items:center; justify-content:center;">
+                    {{ num }}
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a class="page-btn"
+               href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}"
+               style="display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        {% else %}
+            <button class="page-btn"
+                    disabled
+                    style="display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        {% endif %}
+
+    </div>
+</div>
+{% endif %}
     {% for req in page_obj.object_list %}
     <!-- Dedicated Prescription Modal -->
     {% if req.prescription %}
@@ -335,24 +416,313 @@
     {% endfor %}
     </div>
 
-    {% if page_obj.has_other_pages %}
-    <div class="pagination-bar" style="margin-top:24px; justify-content:center;">
-      {% if page_obj.has_previous %}
-      <a class="page-btn" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Previous</a>
-      {% else %}
-      <button class="page-btn" disabled>Previous</button>
-      {% endif %}
-
-      <span class="page-info">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-
-      {% if page_obj.has_next %}
-      <a class="page-btn" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Next</a>
-      {% else %}
-      <button class="page-btn" disabled>Next</button>
-      {% endif %}
-    </div>
-    {% endif %}
+  
   </div>
 </div>
+<script>
+  const bookingsTable = document.getElementById('bookingsTable');
+  if (bookingsTable) {
+    const searchInput = document.getElementById('bookingSearch');
+    const pageSizeSelect = document.getElementById('pageSize');
+    const pageInfo = document.getElementById('pageInfo');
+    const pageButtons = document.getElementById('pageButtons');
+    const noResultsRow = document.getElementById('noResultsRow');
+    const tableBody = bookingsTable.querySelector('tbody');
+    const rows = Array.from(bookingsTable.querySelectorAll('tbody tr:not(.no-results-row)'));
+    let filteredRows = [...rows];
+    let currentPage = 1;
+    let sortColumn = null;
+    let sortDirection = 'asc';
+
+    function getCellValue(row, columnIndex) {
+      const cell = row.children[columnIndex];
+      return (cell.dataset.value || cell.textContent || '').trim();
+    }
+
+    function compareRows(a, b, columnIndex, type) {
+      let aValue = getCellValue(a, columnIndex);
+      let bValue = getCellValue(b, columnIndex);
+
+      if (type === 'number') {
+        aValue = parseFloat(aValue) || 0;
+        bValue = parseFloat(bValue) || 0;
+        return aValue - bValue;
+      }
+
+      if (type === 'date') {
+        return new Date(aValue) - new Date(bValue);
+      }
+
+      return aValue.localeCompare(bValue, undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    function applySearch() {
+      const query = searchInput.value.trim().toLowerCase();
+      filteredRows = rows.filter(row => row.textContent.toLowerCase().includes(query));
+      currentPage = 1;
+      if (sortColumn !== null) {
+        const header = bookingsTable.querySelectorAll('th')[sortColumn];
+        const type = header.dataset.sort || 'text';
+        filteredRows.sort((a, b) => compareRows(a, b, sortColumn, type) * (sortDirection === 'asc' ? 1 : -1));
+      }
+      renderTable();
+    }
+
+    function renderPagination(totalPages) {
+      pageButtons.innerHTML = '';
+      const prev = document.createElement('button');
+      prev.type = 'button';
+      prev.className = 'page-btn';
+      prev.innerHTML = '<i class="fas fa-chevron-left"></i>';
+      prev.disabled = currentPage === 1;
+      prev.addEventListener('click', () => { currentPage--; renderTable(); });
+      pageButtons.appendChild(prev);
+
+      for (let page = 1; page <= totalPages; page++) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'page-btn' + (page === currentPage ? ' active' : '');
+        button.textContent = page;
+        button.addEventListener('click', () => { currentPage = page; renderTable(); });
+        pageButtons.appendChild(button);
+      }
+
+      const next = document.createElement('button');
+      next.type = 'button';
+      next.className = 'page-btn';
+      next.innerHTML = '<i class="fas fa-chevron-right"></i>';
+      next.disabled = currentPage === totalPages;
+      next.addEventListener('click', () => { currentPage++; renderTable(); });
+      pageButtons.appendChild(next);
+    }
+
+    function renderTable() {
+      const pageSize = parseInt(pageSizeSelect.value, 10);
+      const totalRows = filteredRows.length;
+      const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+      currentPage = Math.min(currentPage, totalPages);
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+      const visibleRows = filteredRows.slice(start, end);
+
+      rows.forEach(row => row.style.display = 'none');
+      noResultsRow.style.display = totalRows === 0 ? '' : 'none';
+      visibleRows.forEach(row => {
+        row.style.display = '';
+        tableBody.appendChild(row);
+      });
+      tableBody.appendChild(noResultsRow);
+
+      if (totalRows === 0) {
+        pageInfo.textContent = 'Showing 0 bookings';
+        pageButtons.innerHTML = '';
+      } else {
+        pageInfo.textContent = `Showing ${start + 1}-${Math.min(end, totalRows)} of ${totalRows} booking row(s)`;
+        renderPagination(totalPages);
+      }
+    }
+
+    bookingsTable.querySelectorAll('th:not(.no-sort)').forEach(header => {
+      header.addEventListener('click', () => {
+        const columnIndex = header.cellIndex;
+        sortDirection = sortColumn === columnIndex && sortDirection === 'asc' ? 'desc' : 'asc';
+        sortColumn = columnIndex;
+        const type = header.dataset.sort || 'text';
+        filteredRows.sort((a, b) => compareRows(a, b, columnIndex, type) * (sortDirection === 'asc' ? 1 : -1));
+        bookingsTable.querySelectorAll('.sort-icon').forEach(icon => icon.className = 'fas fa-sort sort-icon');
+        const icon = header.querySelector('.sort-icon');
+        if (icon) icon.className = `fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'} sort-icon`;
+        renderTable();
+      });
+    });
+
+    searchInput.addEventListener('input', applySearch);
+    pageSizeSelect.addEventListener('change', () => { currentPage = 1; renderTable(); });
+    renderTable();
+  }
+
+  let depositReturnHref = null;
+  let depositTotal = 0;
+  let donationStepOpen = false;
+  function openDepositModal(event, href, deposit) {
+    event.preventDefault();
+    depositReturnHref = href;
+    depositTotal = parseFloat(deposit || '0') || 0;
+    donationStepOpen = false;
+    document.getElementById('donationAmount').value = '';
+    document.getElementById('donationComment').value = '';
+    document.getElementById('donationError').textContent = 'Please enter a valid donation amount.';
+    document.getElementById('donationError').classList.remove('open');
+    document.getElementById('donateFields').classList.remove('open');
+    document.getElementById('currentDepositAmount').textContent = depositTotal.toFixed(2);
+    
+    // Reset return delivery selection and styles
+    returnDeliveryRequested = false;
+    const toggle = document.getElementById('returnDeliveryToggle');
+    const knob = document.getElementById('returnDeliveryKnob');
+    const container = document.getElementById('returnDeliveryChargeContainer');
+    if (toggle) toggle.style.backgroundColor = '#cbd5e1';
+    if (knob) knob.style.left = '3px';
+    if (container) {
+      container.style.maxHeight = '0';
+      container.style.opacity = '0';
+    }
+    const chargeInput = document.getElementById('returnDeliveryCharge');
+    if (chargeInput) chargeInput.value = '500';
+
+    document.getElementById('depositModal').classList.add('open');
+  }
+  let returnDeliveryRequested = false;
+  function toggleReturnDelivery(event) {
+    if (event) event.preventDefault();
+    returnDeliveryRequested = !returnDeliveryRequested;
+    
+    const toggle = document.getElementById('returnDeliveryToggle');
+    const knob = document.getElementById('returnDeliveryKnob');
+    const container = document.getElementById('returnDeliveryChargeContainer');
+    
+    if (returnDeliveryRequested) {
+      if (toggle) toggle.style.backgroundColor = 'var(--primary)';
+      if (knob) knob.style.left = '23px';
+      if (container) {
+        container.style.maxHeight = '100px';
+        container.style.opacity = '1';
+      }
+    } else {
+      if (toggle) toggle.style.backgroundColor = '#cbd5e1';
+      if (knob) knob.style.left = '3px';
+      if (container) {
+        container.style.maxHeight = '0';
+        container.style.opacity = '0';
+      }
+    }
+  }
+
+  function closeDepositModal() {
+    document.getElementById('depositModal').classList.remove('open');
+    depositReturnHref = null;
+    donationStepOpen = false;
+    
+    // Reset return delivery selection
+    returnDeliveryRequested = false;
+    const toggle = document.getElementById('returnDeliveryToggle');
+    const knob = document.getElementById('returnDeliveryKnob');
+    const container = document.getElementById('returnDeliveryChargeContainer');
+    if (toggle) toggle.style.backgroundColor = '#cbd5e1';
+    if (knob) knob.style.left = '3px';
+    if (container) {
+      container.style.maxHeight = '0';
+      container.style.opacity = '0';
+    }
+    const chargeInput = document.getElementById('returnDeliveryCharge');
+    if (chargeInput) chargeInput.value = '500';
+  }
+
+  function submitDepositChoice(donate) {
+    if (!depositReturnHref) { closeDepositModal(); return; }
+    if (donate && !donationStepOpen) {
+      donationStepOpen = true;
+      document.getElementById('donateFields').classList.add('open');
+      return;
+    }
+    
+    // Validate return delivery charge if requested
+    let chargeVal = '500';
+    if (returnDeliveryRequested) {
+      const chargeInput = document.getElementById('returnDeliveryCharge');
+      chargeVal = chargeInput ? chargeInput.value.trim() : '500';
+      if (chargeVal === '' || parseFloat(chargeVal) < 0 || isNaN(parseFloat(chargeVal))) {
+        const errorDiv = document.getElementById('donationError');
+        if (errorDiv) {
+          errorDiv.textContent = 'Please enter a valid return delivery charge (0 or higher).';
+          errorDiv.classList.add('open');
+        }
+        return;
+      }
+    }
+
+    const sep = depositReturnHref.includes('?') ? '&' : '?';
+    let url = depositReturnHref + sep + 'donate_deposit=' + (donate ? 'true' : 'false');
+    if (returnDeliveryRequested) {
+      url += '&return_delivery=true';
+      url += '&return_delivery_charge=' + encodeURIComponent(chargeVal);
+    }
+    if (donate) {
+      const amount = document.getElementById('donationAmount').value;
+      const comment = document.getElementById('donationComment').value;
+      if (!amount || parseFloat(amount) <= 0) {
+        const errorDiv = document.getElementById('donationError');
+        if (errorDiv) {
+          errorDiv.textContent = 'Please enter a valid donation amount.';
+          errorDiv.classList.add('open');
+        }
+        return;
+      }
+      if (parseFloat(amount) > depositTotal) {
+        const errorDiv = document.getElementById('donationError');
+        if (errorDiv) {
+          errorDiv.textContent = 'Donation amount cannot be more than current deposit.';
+          errorDiv.classList.add('open');
+        }
+        return;
+      }
+      url += '&donation_amount=' + encodeURIComponent(amount);
+      url += '&donation_comment=' + encodeURIComponent(comment);
+    }
+    window.location.href = url;
+  }
+  document.getElementById('depositModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('depositModal')) closeDepositModal();
+  });
+
+  // Add Item Modal Functions
+  function openAddItemModal() {
+    document.getElementById('addItemModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeAddItemModal() {
+    document.getElementById('addItemModal').classList.remove('open');
+    document.body.style.overflow = 'auto';
+    document.getElementById('addItemForm').reset();
+  }
+
+  function saveNewItem() {
+    const form = document.getElementById('addItemForm');
+    const formData = new FormData(form);
+
+    const itemData = {
+      item_name: document.getElementById('itemName').value,
+      description: document.getElementById('description').value,
+      rent_per_day: document.getElementById('rentPerDay').value,
+      deposit: document.getElementById('deposit').value,
+      total_quantity: document.getElementById('totalQuantity').value,
+      available_quantity: document.getElementById('availableQuantity').value,
+      booked_quantity: document.getElementById('bookedQuantity').value,
+      next_available_date: document.getElementById('nextAvailableDate').value,
+      available_for_rent: document.getElementById('availableForRent').checked,
+      item_image: document.getElementById('itemImage').files[0]
+    };
+
+    console.log('Item saved:', itemData);
+    alert('Item saved successfully!');
+    closeAddItemModal();
+  }
+
+  // Handle modal overlay click to close
+  document.getElementById('addItemModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('addItemModal')) {
+      closeAddItemModal();
+    }
+  });
+
+  // Update booked quantity when available quantity changes
+  document.getElementById('availableQuantity').addEventListener('change', function () {
+    const total = parseInt(document.getElementById('totalQuantity').value) || 0;
+    const available = parseInt(this.value) || 0;
+    const booked = Math.max(0, total - available);
+    document.getElementById('bookedQuantity').value = booked;
+  });
+</script>
 
 {% endblock %}

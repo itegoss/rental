@@ -1,0 +1,95 @@
+<script>
+  const bookingsTable = document.getElementById('bookingsTable');
+  if (bookingsTable) {
+    const searchInput = document.getElementById('bookingSearch');
+    const pageSizeSelect = document.getElementById('pageSize');
+    const pageInfoTop = document.getElementById('pageInfoTop');
+    const pageInfoBottom = document.getElementById('pageInfoBottom');
+    const pageButtonsTop = document.getElementById('pageButtonsTop');
+    const pageButtonsBottom = document.getElementById('pageButtonsBottom');
+    const noResultsRow = document.getElementById('noResultsRow');
+    const tableBody = bookingsTable.querySelector('tbody');
+    const rows = Array.from(tableBody.querySelectorAll('tr:not(.no-results-row)'));
+    let filteredRows = [...rows];
+    let currentPage = 1;
+
+    function renderPagination(totalPages) {
+      const paginationContainers = [
+        { info: pageInfoTop, buttons: pageButtonsTop },
+        { info: pageInfoBottom, buttons: pageButtonsBottom },
+      ];
+
+      paginationContainers.forEach(container => {
+        container.buttons.innerHTML = '';
+
+        const prev = document.createElement('button');
+        prev.type = 'button';
+        prev.className = 'page-btn';
+        prev.innerHTML = '<i class="fas fa-chevron-left"></i>';
+        prev.disabled = currentPage === 1;
+        prev.addEventListener('click', () => { currentPage--; renderTable(); });
+        container.buttons.appendChild(prev);
+
+        for (let page = 1; page <= totalPages; page++) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'page-btn' + (page === currentPage ? ' active' : '');
+          button.textContent = page;
+          button.addEventListener('click', () => { currentPage = page; renderTable(); });
+          container.buttons.appendChild(button);
+        }
+
+        const next = document.createElement('button');
+        next.type = 'button';
+        next.className = 'page-btn';
+        next.innerHTML = '<i class="fas fa-chevron-right"></i>';
+        next.disabled = currentPage === totalPages;
+        next.addEventListener('click', () => { currentPage++; renderTable(); });
+        container.buttons.appendChild(next);
+      });
+    }
+
+    function renderTable() {
+      const pageSize = parseInt(pageSizeSelect.value, 10);
+      const totalRows = filteredRows.length;
+      const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+      currentPage = Math.min(currentPage, totalPages);
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+      const visibleRows = filteredRows.slice(start, end);
+
+      rows.forEach(row => row.style.display = 'none');
+      visibleRows.forEach(row => row.style.display = '');
+      tableBody.appendChild(noResultsRow);
+      noResultsRow.style.display = totalRows === 0 ? '' : 'none';
+
+      const infoText = totalRows === 0
+        ? 'Showing 0 records'
+        : `Showing ${start + 1}-${Math.min(end, totalRows)} of ${totalRows} record(s)`;
+      pageInfoTop.textContent = infoText;
+      pageInfoBottom.textContent = infoText;
+
+      if (totalRows === 0) {
+        pageButtonsTop.innerHTML = '';
+        pageButtonsBottom.innerHTML = '';
+      } else {
+        renderPagination(totalPages);
+      }
+    }
+
+    function applySearch() {
+      const query = searchInput.value.trim().toLowerCase();
+      filteredRows = rows.filter(row => row.textContent.toLowerCase().includes(query));
+      currentPage = 1;
+      renderTable();
+    }
+
+    searchInput.addEventListener('input', applySearch);
+    pageSizeSelect.addEventListener('change', () => {
+      currentPage = 1;
+      renderTable();
+    });
+
+    renderTable();
+  }
+</script>
