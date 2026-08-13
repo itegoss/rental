@@ -770,6 +770,13 @@
       margin-bottom: 44px;
     }
 
+    .footer-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+    }
+
     .footer-col h4 {
       font-size: 1.5rem;
       font-weight: 700;
@@ -777,39 +784,45 @@
       text-transform: uppercase;
       margin-bottom: 20px;
       color: rgba(255, 255, 255, 0.6);
+      text-align: left;
+      width: 100%;
     }
 
-    .footer-col ul {
-      list-style: none;
+    .footer-contact-list {
       display: flex;
       flex-direction: column;
+      align-items: flex-start;
       gap: 10px;
-    }
-
-    .footer-col ul li a {
-      color: rgba(255, 255, 255, 0.85);
-      text-decoration: none;
-      font-size: 0.9rem;
-      transition: color var(--transition), padding-left var(--transition);
-      display: inline-block;
-    }
-
-    .footer-col ul li a:hover {
-      color: #fff;
-      padding-left: 4px;
+      width: 100%;
+      margin: 0;
     }
 
     .footer-contact-row {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 10px;
-      font-size: 0.9rem;
+      width: 100%;
+      font-size: 0.88rem;
       color: rgba(255, 255, 255, 0.85);
     }
 
+    .footer-contact-row a {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: rgba(255, 255, 255, 0.85);
+      text-decoration: none;
+      transition: color var(--transition);
+      font-size: 0.88rem;
+    }
+
+    .footer-contact-row a:hover {
+      color: #fff;
+    }
+
     .footer-contact-row i {
-      width: 16px;
+      width: 20px;
+      text-align: center;
       flex-shrink: 0;
     }
 
@@ -854,45 +867,51 @@
       overflow: hidden;
     }
 
+    .mobile-email-br {
+      display: none !important;
+    }
+
     @media (max-width: 768px) {
       .footer-grid {
-        gap: 32px;
+        gap: 36px;
         grid-template-columns: 1fr;
       }
 
       .footer-col {
+        align-items: center;
         text-align: center;
       }
 
       .footer-col h4 {
-        text-align: center;
+        width: 190px;
+        max-width: 100%;
+        margin: 0 auto 16px auto;
+        text-align: left;
       }
 
-      .footer-col ul {
-        align-items: center;
+      .footer-contact-list {
+        width: 190px;
+        max-width: 100%;
+        margin: 0 auto;
+        align-items: flex-start;
       }
 
-      .footer-col:nth-child(2),
-      .footer-col:nth-child(3),
-      .footer-col:nth-child(1) {
-        text-align: center;
+      .mobile-email-br {
+        display: inline !important;
       }
 
-      .footer-col:nth-child(2) .footer-contact-row,
-      .footer-col:nth-child(3) .footer-contact-row,
-      .footer-col:nth-child(1) .footer-contact-row {
-        justify-content: center;
-        text-align: center;
+      .email-link {
+        align-items: flex-start !important;
       }
 
-      .footer-col:nth-child(2) .footer-contact-row a,
-      .footer-col:nth-child(3) .footer-contact-row a,
-      .footer-col:nth-child(1) .footer-contact-row a {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        text-align: center;
+      .email-link i {
+        margin-top: 3px;
+      }
+
+      .email-text {
+        display: inline-block;
+        vertical-align: top;
+        text-align: left;
       }
     }
 
@@ -1195,7 +1214,9 @@
           </button>
           <div class="nav-dropdown-menu" id="adminEqDropMenu">
             <a href="{% url 'items' %}" class="nav-dropdown-item"><i class="fas fa-th-large"></i> Items</a>
+            {% if user.is_superuser %}
             <a href="{% url 'inventory' %}" class="nav-dropdown-item"><i class="fas fa-boxes"></i> Inventory</a>
+            {% endif %}
             <a href="{% url 'bookingsammry' %}" class="nav-dropdown-item"><i class="fas fa-list-alt"></i> My
               Bookings</a>
           </div>
@@ -1323,7 +1344,9 @@
             </button>
             <div class="mobile-dropdown-content">
               <a href="{% url 'items' %}"><i class="fas fa-th-large"></i> Items</a>
+              {% if user.is_superuser %}
               <a href="{% url 'inventory' %}"><i class="fas fa-boxes"></i> Inventory</a>
+              {% endif %}
               <a href="{% url 'bookingsammry' %}"><i class="fas fa-list-alt"></i> My Bookings</a>
             </div>
           </div>
@@ -1397,7 +1420,9 @@
           </button>
           <div class="nav-dropdown-menu" id="equipmentDropdownMenu">
             <a href="{% url 'items' %}" class="nav-dropdown-item"><i class="fas fa-th-large"></i> Items</a>
+            {% if user.is_superuser %}
             <a href="{% url 'inventory' %}" class="nav-dropdown-item"><i class="fas fa-boxes"></i> Inventory</a>
+            {% endif %}
             <a href="{% url 'bookingsammry' %}" class="nav-dropdown-item"><i class="fas fa-list-alt"></i> My
               Bookings</a>
           </div>
@@ -1525,7 +1550,9 @@
             </button>
             <div class="mobile-dropdown-content">
               <a href="{% url 'items' %}"><i class="fas fa-th-large"></i> Items</a>
+              {% if user.is_superuser %}
               <a href="{% url 'inventory' %}"><i class="fas fa-boxes"></i> Inventory</a>
+              {% endif %}
               <a href="{% url 'bookingsammry' %}"><i class="fas fa-list-alt"></i> My Bookings</a>
             </div>
           </div>
@@ -1626,60 +1653,70 @@
       <div class="footer-grid">
         <div class="footer-col">
           <h4>Quick Links</h4>
-          <ul>
-            <li><a href="{% url 'index' %}">Home</a></li>
-            <li><a href="{% url 'services' %}">Services</a></li>
-            <li><a href="{% url 'items' %}">Rental Items</a></li>
-            <li><a href="{% url 'terms' %}">Terms & Conditions</a></li>
-          </ul>
+          <div class="footer-contact-list">
+            <div class="footer-contact-row">
+              <a href="{% url 'index' %}"><i class="fas fa-chevron-right"></i> Home</a>
+            </div>
+            <div class="footer-contact-row">
+              <a href="{% url 'services' %}"><i class="fas fa-chevron-right"></i> Services</a>
+            </div>
+            <div class="footer-contact-row">
+              <a href="{% url 'items' %}"><i class="fas fa-chevron-right"></i> Rental Items</a>
+            </div>
+            <div class="footer-contact-row">
+              <a href="{% url 'terms' %}"><i class="fas fa-chevron-right"></i> Terms & Conditions</a>
+            </div>
+          </div>
         </div>
         <div class="footer-col">
           <h4>Contact Us</h4>
-          <div class="footer-contact-row"> <a href="tel:9867348169" style="color: white;"><i
-                class="fas fa-phone"></i>9867348169</a></div>
-          <div class="footer-contact-row"><a href="tel:9820247550" style="color: white;"><i class="fas fa-phone"></i>
-              9820247550</a></div>
-          <div class="footer-contact-row">
-            <a href="mailto:bhayander@kutchyuvaksangh.org" style="color:white; text-decoration:none;">
-              <i class="fas fa-envelope"></i> bhayander@kutchyuvaksangh.org
-            </a>
+          <div class="footer-contact-list">
+            <div class="footer-contact-row">
+              <a href="tel:9867348169"><i class="fas fa-phone"></i> 9867348169</a>
+            </div>
+            <div class="footer-contact-row">
+              <a href="tel:9820247550"><i class="fas fa-phone"></i> 9820247550</a>
+            </div>
+            <div class="footer-contact-row">
+              <a href="mailto:bhayander@kutchyuvaksangh.org" class="email-link">
+                <i class="fas fa-envelope"></i><span class="email-text">bhayander@<br class="mobile-email-br">kutchyuvaksangh.org</span>
+              </a>
+            </div>
+            <div class="footer-contact-row">
+              <a href="https://www.kutchyuvaksangh.org" target="_blank">
+                <i class="fas fa-globe"></i> kutchyuvaksangh.org
+              </a>
+            </div>
           </div>
-          <div class="footer-contact-row"><i class="fas fa-globe"></i><a href="https://www.kutchyuvaksangh.org"
-              target="_blank" style="color:rgba(255,255,255,0.85); text-decoration:none;">kutchyuvaksangh.org</a></div>
         </div>
         <div class="footer-col">
           <h4>Social Links</h4>
-
-          <div class="footer-contact-row">
-            <a href="https://www.facebook.com/kysBhayander/" target="_blank" style="color:white; text-decoration:none;">
-              <i class="fab fa-facebook-f"></i> Facebook
-            </a>
-          </div>
-
-          <div class="footer-contact-row">
-            <a href="https://www.instagram.com/kysbhayander" target="_blank" style="color:white; text-decoration:none;">
-              <i class="fab fa-instagram"></i> Instagram
-            </a>
-          </div>
-
-          <div class="footer-contact-row">
-            <a href="https://www.youtube.com/@bhayanderkys4491" target="_blank"
-              style="color:white; text-decoration:none;">
-              <i class="fab fa-youtube"></i> YouTube
-            </a>
-          </div>
-
-          <div class="footer-contact-row">
-            <a href="https://sites.google.com/kutchyuvaksangh.org/kysbhayander/home" target="_blank"
-              style="color:white; text-decoration:none;">
-              <i class="fab fa-google"></i> Google
-            </a>
+          <div class="footer-contact-list">
+            <div class="footer-contact-row">
+              <a href="https://www.facebook.com/kysBhayander/" target="_blank">
+                <i class="fab fa-facebook-f"></i> Facebook
+              </a>
+            </div>
+            <div class="footer-contact-row">
+              <a href="https://www.instagram.com/kysbhayander" target="_blank">
+                <i class="fab fa-instagram"></i> Instagram
+              </a>
+            </div>
+            <div class="footer-contact-row">
+              <a href="https://www.youtube.com/@bhayanderkys4491" target="_blank">
+                <i class="fab fa-youtube"></i> YouTube
+              </a>
+            </div>
+            <div class="footer-contact-row">
+              <a href="https://sites.google.com/kutchyuvaksangh.org/kysbhayander/home" target="_blank">
+                <i class="fab fa-google"></i> Google
+              </a>
+            </div>
           </div>
         </div>
       </div>
-      <div class="footer-bottom">© 2026 Kutch Yuvak Sangh. All Rights Reserved | Powered and Managed by <a
-          href="https://www.itegoss.in/" target="_blank" style="color: rgba(255, 255, 255, 0.6);"> Itegoss
-          Technology.</a></p>
+      <div class="footer-bottom">
+        <p>© 2026 Kutch Yuvak Sangh. All Rights Reserved | Powered and Managed by <a href="https://www.itegoss.in/" target="_blank">Itegoss Technology.</a></p>
       </div>
     </div>
   </footer>

@@ -348,7 +348,7 @@
 <section class="featured-sec">
   <div class="section-head">
     <h2>Featured <span>Medical Equipments</span></h2>
-    <p>Most popular rental equipment available right now</p>
+    <p>Most popular rental equipments</p>
   </div>
   <div class="feat-grid">
     {% for item in featured_items %}
@@ -390,7 +390,7 @@
     <h2>You can contribute for a cause</h2>
     <p>Every single drop of blood or resource counts. By choosing to stand with us, you can register to become a regular donor, sponsor medical equipments, or volunteer in our community outreach camps. Discover the different ways you can create a positive impact today.</p>
     <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
-      <a href="{% url 'be_donor' %}" class="btn-primary-red">Be a Donor <i class="fas fa-heart"></i></a>
+      <a href="{% url 'organize_camp' %}" class="btn-primary-red">Organize Camp <i class="fas fa-heart"></i></a>
       <a href="{% url 'volunteer_event' %}" class="btn-primary-red">Volunteer for Event <i class="fas fa-hands-helping"></i></a>
     </div>
   </div>
