@@ -454,8 +454,6 @@ def add_inventory_item(request):
         price_per_day = request.POST.get('price_per_day', 0)
         deposit = request.POST.get('deposit', 0)
         total_quantity = int(request.POST.get('total_quantity', 1) or 1)
-        available_quantity = total_quantity
-        booked_quantity = 0
         next_available_date = request.POST.get('next_available_date') or None
         available = request.POST.get('available') == 'on'
         item_qty = int(request.POST.get('item_qty', 1) or 1)
@@ -463,26 +461,54 @@ def add_inventory_item(request):
         donation = request.POST.get('donation') == 'on'
         donor_name = request.POST.get('donor_name', '').strip()
         donor_contact = request.POST.get('donor_contact', '').strip()
+        uploaded_image = request.FILES.get('image')
 
-        item = Inventory.objects.create(
-            title=title,
-            description=description,
-            price_per_day=price_per_day,
-            deposit=deposit,
-            total_quantity=total_quantity,
-            available_quantity=available_quantity,
-            booked_quantity=booked_quantity,
-            available=available,
-            next_available_date=next_available_date,
-            image=request.FILES.get('image'),
-            item_qty=item_qty,
-            price=price,
-            donation=donation,
-            donor_name=donor_name,
-            donor_contact=donor_contact,
-        )
-        item.update_availability()
-        messages.success(request, "New rental item added successfully.")
+        existing_item = Inventory.objects.filter(title__iexact=title).first()
+
+        if existing_item:
+            existing_item.total_quantity += total_quantity
+            existing_item.item_qty += item_qty
+            if description:
+                existing_item.description = description
+            if price_per_day:
+                existing_item.price_per_day = price_per_day
+            if deposit:
+                existing_item.deposit = deposit
+            if price:
+                existing_item.price = price
+            if donor_name:
+                existing_item.donor_name = donor_name
+            if donor_contact:
+                existing_item.donor_contact = donor_contact
+            if uploaded_image:
+                existing_item.image = uploaded_image
+            existing_item.donation = donation or existing_item.donation
+            existing_item.save()
+            existing_item.update_availability()
+            messages.success(
+                request,
+                f"Item '{existing_item.title}' already exists. Added +{total_quantity} quantity to the existing item record."
+            )
+        else:
+            item = Inventory.objects.create(
+                title=title,
+                description=description,
+                price_per_day=price_per_day,
+                deposit=deposit,
+                total_quantity=total_quantity,
+                available_quantity=total_quantity,
+                booked_quantity=0,
+                available=available,
+                next_available_date=next_available_date,
+                image=uploaded_image,
+                item_qty=item_qty,
+                price=price,
+                donation=donation,
+                donor_name=donor_name,
+                donor_contact=donor_contact,
+            )
+            item.update_availability()
+            messages.success(request, f"New rental item '{item.title}' added successfully.")
         return redirect('inventory')
 
     return redirect('inventory')
