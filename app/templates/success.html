@@ -236,11 +236,21 @@
   .delivery-summary {
     display: flex;
     justify-content: space-between;
+    align-items: stretch;
     margin: 4px 0;
+  }
+
+  .delivery-info {
+    flex: 1;
+    margin-right: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
   }
 
   .delivery-info p {
     font-size: 11px;
+    margin: 2px 0 8px;
   }
 
   .total-info {
@@ -488,8 +498,15 @@
 
     <div class="delivery-summary">
       <div class="delivery-info">
-        <h3 class="section-title">Delivery Address</h3>
-        <p>{{ rental.address|default:"Take Away – Nearest Hub" }}</p>
+        <div>
+          <h3 class="section-title">Delivery Address</h3>
+          <p>{{ rental.address|default:"Take Away – Nearest Hub" }}</p>
+        </div>
+        <div style="margin-top:auto; padding-top:10px;">
+          <div style="font-size:11px;text-align:center;margin-bottom:4px;color:#555;">You hereby agree to all terms &amp;
+            conditions mentioned on our booking portal</div>
+          <div class="thank-you">Thank you for booking with us.</div>
+        </div>
       </div>
       <div class="total-info">
         <table class="summary-table">
@@ -509,11 +526,11 @@
               <td class="text-right">
                 {% if rental.delivery_option|lower == "delivery" %}
                 ₹{{ delivery_charge }}
-                {% if rental.is_delivery_paid or delivery_paid == delivery_charge %}
+                <!-- {% if rental.is_delivery_paid or delivery_paid == delivery_charge %}
                 <span style="color:green;font-weight:bold;">(Paid)</span>
                 {% elif delivery_paid %}
                 <span style="color:green;font-weight:bold;">(₹{{ delivery_paid }} Paid)</span>
-                {% endif %}
+                {% endif %} -->
                 {% else %}
                 ₹0
                 {% endif %}
@@ -553,9 +570,6 @@
         </table>
       </div>
     </div>
-    <div style="font-size:11px;text-align:center;margin-top:4px;color:#555;">You hereby agree to all terms &amp;
-      conditions mentioned on our booking portal</div>
-    <div class="thank-you">Thank you for booking with us.</div>
   </div>
 </div>
 

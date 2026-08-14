@@ -348,7 +348,7 @@ def generate_receipt(order):
     if getattr(order, 'is_delivery_paid', False) or (delivery_charge > 0 and delivery_paid >= delivery_charge):
         del_paid_status = " (Paid)"
     elif delivery_paid > 0:
-        del_paid_status = f" (Rs. {delivery_paid:.2f} Paid)"
+        del_paid_status = f" (Rs. {delivery_paid:.2f})"
     else:
         del_paid_status = ""
     del_charge_text = f"Rs. {delivery_charge:.2f}{del_paid_status if order.delivery_option == 'delivery' else ''}"
