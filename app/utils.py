@@ -49,7 +49,8 @@ def build_booking_receipt_breakdown(rental, related_rentals):
 
     for rr in rental_rows:
         original_days = (rr.end_date - rr.start_date).days + 1 if rr.start_date and rr.end_date else 0
-        rent_per_day_total = rr.rental_item.price_per_day * rr.quantity
+        rent_rate = rr.rent if rr.rent is not None else (rr.rental_item.price_per_day if rr.rental_item else Decimal("0"))
+        rent_per_day_total = rent_rate * rr.quantity
         deposit_total = rr.deposit * rr.quantity
         rent_amount = rent_per_day_total * original_days
 
@@ -57,7 +58,7 @@ def build_booking_receipt_breakdown(rental, related_rentals):
             "title": rr.rental_item.title,
             "quantity": rr.quantity,
             "deposit": deposit_total,
-            "price_per_day": rr.rental_item.price_per_day,
+            "price_per_day": rent_rate,
             "days": original_days,
             "rent_amount": rent_amount,
             "total": rent_amount + deposit_total,
@@ -95,7 +96,7 @@ def build_booking_receipt_breakdown(rental, related_rentals):
 
     if not grouped_extensions and rental.extended_end_date and rental.extended_end_date > rental.end_date:
         extra_days = (rental.extended_end_date - rental.end_date).days
-        rent_per_day = sum((rr.rental_item.price_per_day * rr.quantity for rr in rental_rows), Decimal("0"))
+        rent_per_day = sum(((rr.rent if rr.rent is not None else (rr.rental_item.price_per_day if rr.rental_item else Decimal("0"))) * rr.quantity for rr in rental_rows), Decimal("0"))
         additional_rent = rent_per_day * extra_days
         grouped_extensions[1] = {
             "extension_no": 1,
@@ -400,7 +401,7 @@ def generate_receipt(order):
     elements.append(Spacer(1, 15))
 
     # Terms agreement & Thank you
-    elements.append(Paragraph("You hereby agree to all terms & conditions mentioned on our booking portal", 
+    elements.append(Paragraph("You hereby agree to all terms &amp; conditions mentioned on our booking portal <a href='https://sickbed.itegoss.in' color='#1b8a4b'>Sickbed</a>", 
                               ParagraphStyle('Terms', parent=normal_style, fontSize=8, alignment=1, textColor=HexColor('#7f8c8d'))))
     elements.append(Spacer(1, 5))
     elements.append(Paragraph("Thank you for booking with us.", 

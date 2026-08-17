@@ -657,6 +657,34 @@ class DynamicReturnDeliveryChargeTests(TestCase):
         self.assertEqual(response_receipt.context['refund_amount'], Decimal("1150.00"))
         self.assertEqual(response_receipt.context['amount_remaining'], Decimal("0.00"))
 
+    def test_history_rent_field_edit(self):
+        from datetime import date
+        from decimal import Decimal
+        from app.models import History
+        rental = History.objects.create(
+            user=self.admin,
+            rental_item=self.item,
+            start_date=date(2026, 8, 1),
+            end_date=date(2026, 8, 5),
+            quantity=1,
+            rent=Decimal("75.00"),
+            deposit=Decimal("100.00"),
+            payment_method="cod",
+            order_id="ORD202608999"
+        )
+        self.assertEqual(rental.rent, Decimal("75.00"))
+        # 5 days * 75 rent + 100 deposit = 375 + 100 = 475
+        self.assertEqual(rental.total_rent, Decimal("375.00"))
+        self.assertEqual(rental.total_amount, Decimal("475.00"))
+
+        # Edit rent field
+        rental.rent = Decimal("60.00")
+        rental.save()
+        # 5 days * 60 rent + 100 deposit = 300 + 100 = 400
+        self.assertEqual(rental.total_rent, Decimal("300.00"))
+        self.assertEqual(rental.total_amount, Decimal("400.00"))
+
+
 
 
 

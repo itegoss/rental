@@ -145,6 +145,7 @@ class History(models.Model):
     delivery_charge = models.DecimalField( max_digits=10, decimal_places=2, default=0)
     return_pickup_charge = models.DecimalField( max_digits=10, decimal_places=2, default=0)
     payment_method = models.CharField(max_length=50,choices=[('online', 'Online'), ('cod', 'Cash on Delivery')])
+    rent = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Rent (per day)")
     deposit = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     deposit_donated = models.BooleanField(default=False)
     donation_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -180,7 +181,9 @@ class History(models.Model):
 
     @property
     def total_rent(self):
-        return self.rental_days * self.rental_item.price_per_day * self.quantity
+        from decimal import Decimal
+        rent_rate = self.rent if self.rent is not None else (self.rental_item.price_per_day if self.rental_item else Decimal('0'))
+        return Decimal(str(self.rental_days)) * Decimal(str(rent_rate)) * Decimal(str(self.quantity))
 
     @property
     def refund_amount(self):
@@ -207,6 +210,11 @@ class History(models.Model):
 
     def save(self, *args, **kwargs):
         from decimal import Decimal
+        if self.rent is None and self.rental_item_id:
+            try:
+                self.rent = self.rental_item.price_per_day
+            except Exception:
+                pass
         rent_dec = Decimal(str(self.total_rent or '0'))
         deposit_dec = Decimal(str(self.deposit or '0'))
         delivery_dec = Decimal(str(self.delivery_charge or '0'))

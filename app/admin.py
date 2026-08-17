@@ -180,7 +180,7 @@ class HistoryAdmin(admin.ModelAdmin):
 
     fields = (
         'id','user','rental_item','renter_name','email','phone','address', 'patient_name','start_date','end_date',
-        'extended_end_date','actual_return_date','quantity','payment_method',
+        'extended_end_date','actual_return_date','quantity','rent','payment_method',
         'deposit','delivery_option','delivery_charge','is_delivery_paid','status',
         'total_amount','amount_paid','amount_remaining','id_proof_type','id_proof_number',
         'is_return_requested','is_returned','deposit_donated',
@@ -195,6 +195,8 @@ class HistoryAdmin(admin.ModelAdmin):
             obj._amount_remaining_manually_changed = True
         if 'total_amount' in form.changed_data:
             obj._total_amount_manually_changed = True
+        if 'rent' in form.changed_data and 'total_amount' not in form.changed_data:
+            obj._total_amount_manually_changed = False
         super().save_model(request, obj, form, change)
 
         # Sync ID proof fields to all items in the same order
@@ -291,7 +293,8 @@ class HistoryAdmin(admin.ModelAdmin):
     get_rental_days.short_description = "Rental Days"
 
     def get_per_day_rent(self, obj):
-        return f"₹{obj.rental_item.price_per_day}" if obj.rental_item else "—"
+        rent_val = obj.rent if obj.rent is not None else (obj.rental_item.price_per_day if obj.rental_item else None)
+        return f"₹{rent_val}" if rent_val is not None else "—"
     get_per_day_rent.short_description = "Per Day Rent"
 
     def stock_status(self, obj):
