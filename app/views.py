@@ -1046,72 +1046,122 @@ def about(request):
 
 
 def send_reminder_email(user, rental):
-    subject = 'Reminder: Your Rental Ends Tomorrow - Sick Bed Services'
+    order_id = getattr(rental, 'order_id', None) or 'N/A'
+    subject = f"{order_id} Rental Reminder"
     recipient_email = user.email
     renter_name = rental.renter_name or (user.get_full_name() or user.username)
+    user_detail = UserDetail.objects.filter(user=user).first() if user else None
+    patient_name = rental.patient_name or (user_detail.patient_name if user_detail else None) or "N/A"
 
-    message = f"""
-    <html>
-    <body>
-        <p>Dear {renter_name},</p>
-        <p>This is a reminder that your rental item <b>{rental.rental_item.title}</b> 
-        is ending on <b>{rental.end_date}</b>.</p>
-        <p>Please make sure to return it on time.</p>
-        <br>
-        <p>Regards,<br>Sick Bed Services Team</p>
-    </body>
-    </html>
-    """
-    print(f"[email suppressed] Reminder for {recipient_email} Subject: {subject}")
+    related_rentals = History.objects.filter(order_id=rental.order_id).select_related('rental_item') if rental.order_id else [rental]
+    items_str = ", ".join(f"{rr.rental_item.title} (Qty: {rr.quantity})" for rr in related_rentals if rr.rental_item)
+    
+    total_rent = sum((rr.total_rent for rr in related_rentals), Decimal("0"))
+    total_deposit = sum((rr.deposit * rr.quantity for rr in related_rentals), Decimal("0"))
+
+    body_lines = [
+        f"* Renter Name: {renter_name}",
+        f"* Patient Name: {patient_name}",
+        f"* Item(s): {items_str}",
+        f"* From Date: {rental.start_date}",
+        f"* To Date: {rental.billing_end_date or rental.end_date}",
+    ]
+    if total_rent > 0:
+        body_lines.append(f"* Rent Amount: Rs. {total_rent:.2f}")
+    if total_deposit > 0:
+        body_lines.append(f"* Deposit: Rs. {total_deposit:.2f}")
+
+    message = (
+        f"{subject}\n\n"
+        f"Dear {renter_name},\n\n"
+        f"This is a reminder that your rental order {order_id} is ending soon.\n\n" +
+        "\n".join(body_lines) +
+        "\n\nFor any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in\n\n"
+        "Thank you"
+    )
+
+    from django.core.mail import EmailMessage
+    email_msg = EmailMessage(
+        subject=subject,
+        body=message,
+        from_email=getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
+        to=[recipient_email],
+    )
+    try:
+        pdf_file = generate_receipt(rental)
+        pdf_content = pdf_file.read()
+        pdf_name = receipt_filename(rental)
+        email_msg.attach(pdf_name, pdf_content, "application/pdf")
+    except Exception as ex:
+        print(f"[send_reminder_email pdf attachment error] {ex}")
+
+    try:
+        email_msg.send(fail_silently=False)
+    except Exception as e:
+        print(f"[send_reminder_email error] {e}")
+
     rental.is_reminder_sent = True
     rental.save()
 
 
 def send_today_reminder_email(user, rental):
-    from django.core.mail import send_mail
-    from django.conf import settings
-    
-    subject = 'Reminder: Your Rental Ends TODAY - Sick Bed Services'
+    order_id = getattr(rental, 'order_id', None) or 'N/A'
+    subject = f"{order_id} Rental Reminder"
     recipient_email = user.email
     renter_name = rental.renter_name or (user.get_full_name() or user.username)
+    user_detail = UserDetail.objects.filter(user=user).first() if user else None
+    patient_name = rental.patient_name or (user_detail.patient_name if user_detail else None) or "N/A"
 
-    message = f"""
-    <html>
-    <body>
-        <p>Dear {renter_name},</p>
-        <p>This is a reminder that today is the end date for your rental item <b>{rental.rental_item.title}</b>.</p>
-        <p>Please return it today to avoid extra charges.</p>
-        <br>
-        <p>Regards,<br>Sick Bed Services Team</p>
-    </body>
-    </html>
-    """
+    related_rentals = History.objects.filter(order_id=rental.order_id).select_related('rental_item') if rental.order_id else [rental]
+    items_str = ", ".join(f"{rr.rental_item.title} (Qty: {rr.quantity})" for rr in related_rentals if rr.rental_item)
+    
+    total_rent = sum((rr.total_rent for rr in related_rentals), Decimal("0"))
+    total_deposit = sum((rr.deposit * rr.quantity for rr in related_rentals), Decimal("0"))
+
+    body_lines = [
+        f"* Renter Name: {renter_name}",
+        f"* Patient Name: {patient_name}",
+        f"* Item(s): {items_str}",
+        f"* From Date: {rental.start_date}",
+        f"* To Date: {rental.billing_end_date or rental.end_date}",
+    ]
+    if total_rent > 0:
+        body_lines.append(f"* Rent Amount: Rs. {total_rent:.2f}")
+    if total_deposit > 0:
+        body_lines.append(f"* Deposit: Rs. {total_deposit:.2f}")
+
+    message = (
+        f"{subject}\n\n"
+        f"Dear {renter_name},\n\n"
+        f"This is a reminder that today is the return date for your rental order {order_id}.\n\n" +
+        "\n".join(body_lines) +
+        "\n\nFor any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in\n\n"
+        "Thank you"
+    )
+
+    from django.core.mail import EmailMessage
+    email_msg = EmailMessage(
+        subject=subject,
+        body=message,
+        from_email=getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
+        to=[recipient_email],
+    )
     try:
-        send_mail(
-            subject,
-            '',
-            getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
-            [recipient_email],
-            html_message=message,
-            fail_silently=False
-        )
-        print(f"[SUCCESS] End date notification email sent to {recipient_email} for {rental.rental_item.title}")
+        pdf_file = generate_receipt(rental)
+        pdf_content = pdf_file.read()
+        pdf_name = receipt_filename(rental)
+        email_msg.attach(pdf_name, pdf_content, "application/pdf")
+    except Exception as ex:
+        print(f"[send_today_reminder_email pdf attachment error] {ex}")
+
+    try:
+        email_msg.send(fail_silently=False)
     except Exception as e:
-        print(f"[ERROR] Failed to send today's reminder email to {recipient_email}: {e}")
+        print(f"[send_today_reminder_email error] {e}")
 
 
 def send_overdue_emails(user, rental):
-    subject = 'Overdue Rental Notice - Sick Bed Services'
-    recipient_email = user.email
-
-    context = {
-        'user': user,
-        'rental_item': rental.rental_item,
-        'end_date': rental.end_date
-    }
-
-    message = render_to_string('emails/overdue.html', context)
-    print(f"[email suppressed] Overdue notice for {recipient_email} Subject: {subject}")
+    send_overdue_email(user, rental)
     rental.is_overdue_email_sent = True
     rental.save()
 
@@ -1121,58 +1171,49 @@ def send_notify_emails(item, user_email, user_mobile):
     from django.conf import settings
     
     user_subject = f'Notification Request Received - {item.title}'
-    user_message = f"""
-    <html>
-    <body>
-        <p>Hi,</p>
-        <p>Thank you for your interest in <b>{item.title}</b>.</p>
-        <p>We have received your notification request and will email you as soon as this item becomes available , on First Come First Serve basis .</p>
-        <p>Item Details:</p>
-        <ul>
-            <li>Price per day: ₹{item.price_per_day}</li>
-            <li>Deposit: ₹{item.deposit}</li>
-        </ul>
-        <br>
-        <p>Regards,<br>Kutch Yuvak Sangh Team</p>
-    </body>
-    </html>
-    """
+    item_lines = [f"* Item: {item.title}"]
+    if item.price_per_day and item.price_per_day > 0:
+        item_lines.append(f"* Price per day: Rs. {item.price_per_day:.2f}")
+    if item.deposit and item.deposit > 0:
+        item_lines.append(f"* Deposit: Rs. {item.deposit:.2f}")
+
+    user_message = (
+        f"{user_subject}\n\n"
+        "Thank you for your interest. We have received your notification request and will inform you as soon as this item becomes available.\n\n" +
+        "\n".join(item_lines) +
+        "\n\nFor any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in\n\n"
+        "Thank you"
+    )
     
     admin_subject = f'New Notify Request - {item.title}'
-    admin_message = f"""
-    <html>
-    <body>
-        <p>New notification request received.</p>
-        <p>Item: {item.title}</p>
-        <p>User Email: {user_email}</p>
-        <p>User Mobile: {user_mobile}</p>
-        <br>
-        <p>Please restock this item soon.</p>
-    </body>
-    </html>
-    """
+    admin_message = (
+        f"{admin_subject}\n\n"
+        f"* Item: {item.title}\n"
+        f"* User Email: {user_email or 'N/A'}\n"
+        f"* User Mobile: {user_mobile or 'N/A'}\n\n"
+        "Please restock this item soon.\n\n"
+        "Thank you"
+    )
     
     try:
         send_mail(
             user_subject,
-            '',
+            user_message,
             getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
             [user_email],
-            html_message=user_message
+            fail_silently=False
         )
-        print(f"✅ Notification email sent to user: {user_email}")
     except Exception as e:
         print(f"❌ Failed to send user email: {e}")
     
     try:
         send_mail(
             admin_subject,
-            '',
+            admin_message,
             getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
             [settings.ADMIN_EMAIL],
-            html_message=admin_message
+            fail_silently=False
         )
-        print(f"✅ Notification email sent to admin: {settings.ADMIN_EMAIL}")
     except Exception as e:
         print(f"❌ Failed to send admin email: {e}")
 
@@ -2274,27 +2315,54 @@ def return_receipt(request, order_id):
     return render(request, "return_receipt.html", context)
 
 
-def send_submission_email(subject, details_dict):
+def send_submission_email(subject, details_dict, attachment=None):
     """
     Safely sends email to ADMIN_EMAIL with full submission details.
+    Omits zero amounts, empty strings, None, and N/A values.
+    Supports optional file attachments.
     """
-    from django.core.mail import send_mail
+    from django.core.mail import EmailMessage
+    import os
     admin_email = getattr(settings, 'ADMIN_EMAIL', 'bhayander@kutchyuvaksangh.org')
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'bhayander@kutchyuvaksangh.org')
     
-    body = "New Submission Details:\n\n"
+    body_lines = [f"{subject}\n"]
     for key, value in details_dict.items():
-        body += f"{key}: {value}\n"
-    body += "\nRegards,\nKYS Bhayander Portal"
+        if value is None:
+            continue
+        val_str = str(value).strip()
+        if not val_str or val_str.lower() == 'n/a':
+            continue
+        if val_str in ("0", "0.0", "0.00", "Rs. 0", "Rs. 0.00", "₹0", "₹0.00"):
+            continue
+        body_lines.append(f"* {key}: {val_str}")
+        
+    body_lines.append("\nFor any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in\n\nThank you")
+    body = "\n".join(body_lines)
     
     try:
-        send_mail(
+        email_msg = EmailMessage(
             subject=subject,
-            message=body,
+            body=body,
             from_email=from_email,
-            recipient_list=[admin_email],
-            fail_silently=False
+            to=[admin_email],
         )
+        if attachment:
+            try:
+                if hasattr(attachment, 'file'):
+                    attachment_file = attachment.file
+                else:
+                    attachment_file = attachment
+                if hasattr(attachment_file, 'read'):
+                    filename = os.path.basename(attachment.name if hasattr(attachment, 'name') else 'attachment')
+                    content = attachment_file.read()
+                    if hasattr(attachment_file, 'seek'):
+                        attachment_file.seek(0)
+                    email_msg.attach(filename, content)
+            except Exception as att_err:
+                print(f"[send_submission_email attachment error] {att_err}")
+
+        email_msg.send(fail_silently=False)
         print(f"Submission email sent to {admin_email}")
     except Exception as e:
         print(f"Error sending submission email: {e}")
@@ -2336,7 +2404,7 @@ def request_blood(request):
             "Submission Date": blood_request.created_at,
         }
 
-        send_submission_email("New Blood Request Received", details)
+        send_submission_email("New Blood Request Received", details, attachment=blood_request.prescription if blood_request.prescription else None)
 
         whatsapp_msg = (
             f"Hello {blood_request.coordinator_name},\n\n"

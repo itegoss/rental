@@ -23,22 +23,59 @@ def receipt_filename(order):
     return f"{filename or 'receipt'}.pdf"
 
 def send_overdue_email(user, rental):
-    subject = "Rental Overdue Notice"
+    order_id = getattr(rental, 'order_id', None) or 'N/A'
+    subject = f"{order_id} Overdue Notice"
     renter_name = rental.renter_name or (user.get_full_name() or user.username)
+    user_detail = UserDetail.objects.filter(user=user).first() if user else None
+    patient_name = rental.patient_name or (user_detail.patient_name if user_detail else None) or "N/A"
+    
+    related_rentals = History.objects.filter(order_id=rental.order_id).select_related('rental_item') if rental.order_id else [rental]
+    items_str = ", ".join(f"{rr.rental_item.title} (Qty: {rr.quantity})" for rr in related_rentals)
+    
+    total_rent = sum((rr.total_rent for rr in related_rentals), Decimal("0"))
+    total_deposit = sum((rr.deposit * rr.quantity for rr in related_rentals), Decimal("0"))
+
+    body_lines = [
+        f"* Renter Name: {renter_name}",
+        f"* Patient Name: {patient_name}",
+        f"* Item(s): {items_str}",
+        f"* From Date: {rental.start_date}",
+        f"* To Date: {rental.billing_end_date or rental.end_date}",
+    ]
+
+    if total_rent > 0:
+        body_lines.append(f"* Rent Amount: Rs. {total_rent:.2f}")
+    if total_deposit > 0:
+        body_lines.append(f"* Deposit: Rs. {total_deposit:.2f}")
+
     message = (
         f"Dear {renter_name},\n\n"
-        f"Your rental order {rental.order_id} was due on {rental.end_date} "
-        "and is now overdue.\n\n"
-        "QuickNest Team"
+        f"Your rental order {order_id} is overdue.\n\n" +
+        "\n".join(body_lines) +
+        "\n\nFor any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in\n\n"
+        "Thank you"
     )
 
-    send_mail(
-        subject,
-        message,
-        getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
-        [user.email],
-        fail_silently=False
+    from django.core.mail import EmailMessage
+    email_msg = EmailMessage(
+        subject=subject,
+        body=message,
+        from_email=getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
+        to=[user.email],
     )
+
+    try:
+        pdf_file = generate_receipt(rental)
+        pdf_content = pdf_file.read()
+        pdf_name = receipt_filename(rental)
+        email_msg.attach(pdf_name, pdf_content, "application/pdf")
+    except Exception as ex:
+        print(f"[send_overdue_email pdf attachment error] {ex}")
+
+    try:
+        email_msg.send(fail_silently=False)
+    except Exception as e:
+        print(f"[send_overdue_email error] {e}")
 
 def build_booking_receipt_breakdown(rental, related_rentals):
     rental_rows = list(related_rentals)
@@ -457,25 +494,108 @@ def send_notification(title, message, notification_type='info', link=None, order
     if rental and not order_id:
         order_id = getattr(rental, 'order_id', None)
 
-    # Fetch and append item details if order_id is available
+    # Resolve target rental record if available
+    target_rental = rental
+    if not target_rental and order_id:
+        try:
+            target_rental = History.objects.filter(order_id=order_id).select_related('rental_item', 'user').first()
+        except Exception:
+            pass
+
+    # Determine renter's email
+    renter_email = None
+    if target_rental:
+        renter_email = getattr(target_rental, 'email', None) or (target_rental.user.email if hasattr(target_rental, 'user') and target_rental.user else None)
+
+    # Fetch all related rentals if order_id exists
+    related_rentals = []
     if order_id:
         try:
-            related_rentals = History.objects.filter(order_id=order_id).select_related('rental_item')
-            if related_rentals.exists():
-                details_list = []
-                for rr in related_rentals:
-                    details_list.append(
-                        f"- {rr.rental_item.title} (Qty: {rr.quantity}) | Rent: ₹{rr.total_rent} (₹{rr.rental_item.price_per_day}/day) | Deposit: ₹{rr.deposit * rr.quantity} (₹{rr.deposit} each)"
-                    )
-                item_details_str = "\n".join(details_list)
-                message = f"{message}\n\nItem Details:\n{item_details_str}"
+            related_rentals = list(History.objects.filter(order_id=order_id).select_related('rental_item', 'user'))
         except Exception as e:
-            print(f"[send_notification append items error] {e}")
+            print(f"[send_notification fetch related rentals error] {e}")
 
+    if not related_rentals and target_rental:
+        related_rentals = [target_rental]
+
+    # Format email subject line cleanly
+    title_lower = (title or "").lower()
+    is_return_type = (notification_type == 'return') or ("return" in title_lower)
+    is_booking_type = (notification_type == 'booking') or ("booking" in title_lower) or ("payment" in title_lower) or ("approved" in title_lower)
+
+    if order_id:
+        if is_return_type:
+            email_subject = f"{order_id} Returned"
+        elif "extended" in title_lower:
+            email_subject = f"{order_id} Return Date Extended"
+        elif "cancelled" in title_lower or notification_type == 'cancelled':
+            email_subject = f"{order_id} Booking Cancelled"
+        elif is_booking_type:
+            email_subject = f"{order_id} New Booking"
+        else:
+            email_subject = f"{order_id} {title}"
+    else:
+        email_subject = title
+
+    # Build structured email message body
+    if related_rentals and target_rental:
+        renter_name = getattr(target_rental, 'renter_name', None) or (target_rental.user.get_full_name() or target_rental.user.username if hasattr(target_rental, 'user') and target_rental.user else "N/A")
+        
+        user_detail = UserDetail.objects.filter(user=target_rental.user).first() if hasattr(target_rental, 'user') and target_rental.user else None
+        patient_name = getattr(target_rental, 'patient_name', None) or (user_detail.patient_name if user_detail else None) or "N/A"
+        
+        items_str = ", ".join(f"{rr.rental_item.title} (Qty: {rr.quantity})" for rr in related_rentals if rr.rental_item)
+        
+        from_date = target_rental.start_date
+        to_date = target_rental.actual_return_date or target_rental.billing_end_date or target_rental.end_date
+
+        total_rent = sum((rr.total_rent for rr in related_rentals), Decimal("0"))
+        total_deposit = sum((rr.deposit * rr.quantity for rr in related_rentals), Decimal("0"))
+        total_deposit_returned = sum((rr.refund_amount for rr in related_rentals), Decimal("0"))
+        total_donation = sum((rr.donation_amount for rr in related_rentals), Decimal("0"))
+
+        body_lines = [
+            f"* Renter Name: {renter_name}",
+            f"* Patient Name: {patient_name}",
+            f"* Item(s): {items_str}",
+            f"* From Date: {from_date}",
+            f"* To Date: {to_date}",
+        ]
+
+        if is_return_type:
+            if total_rent > 0:
+                body_lines.append(f"* Rent Amount: Rs. {total_rent:.2f}")
+            if total_deposit_returned > 0:
+                body_lines.append(f"* Deposit Returned: Rs. {total_deposit_returned:.2f}")
+            if total_donation > 0:
+                body_lines.append(f"* Donation: Rs. {total_donation:.2f}")
+        else:
+            if total_deposit > 0:
+                body_lines.append(f"* Deposit: Rs. {total_deposit:.2f}")
+            if total_rent > 0:
+                body_lines.append(f"* Rent Amount: Rs. {total_rent:.2f}")
+
+        formatted_email_body = (
+            f"{email_subject}\n\n" +
+            "\n".join(body_lines) +
+            "\n\nFor any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in\n\n"
+            "Thank you"
+        )
+        db_notification_msg = f"{raw_message}\n\n" + "\n".join(body_lines)
+    else:
+        formatted_email_body = (
+            f"{email_subject}\n\n"
+            f"{raw_message}\n\n"
+            "For any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in\n\n"
+            "Thank you"
+        )
+        db_notification_msg = raw_message
+
+    # Save Notification record in DB
     try:
         Notification.objects.create(
             title=title,
-            message=message,
+            message=db_notification_msg,
             type=notification_type,
             link=link,
             recipient=recipient,
@@ -483,114 +603,24 @@ def send_notification(title, message, notification_type='info', link=None, order
     except Exception as e:
         print(f"[notification db error] {e}")
 
-    # Determine renter's email first to prevent duplicate standalone admin notifications
-    renter_email = None
-    if rental:
-        renter_email = getattr(rental, 'email', None) or (rental.user.email if hasattr(rental, 'user') else None)
-    elif order_id:
-        try:
-            first_rr = History.objects.filter(order_id=order_id).first()
-            if first_rr:
-                renter_email = getattr(first_rr, 'email', None) or (first_rr.user.email if hasattr(first_rr, 'user') else None)
-        except Exception:
-            pass
-
     admin_email = getattr(settings, 'ADMIN_EMAIL', 'bhayander@kutchyuvaksangh.org') or 'bhayander@kutchyuvaksangh.org'
-    # Standalone admin email notification is sent if:
-    # 1. Renter copy will not be sent (because renter_email is not present)
-    # 2. OR if it is a system/admin notification type (not in 'booking', 'payment', 'return')
-    should_send_admin_standalone = False
-    if admin_email:
-        if not renter_email:
-            should_send_admin_standalone = True
-        elif notification_type not in ('booking', 'payment', 'return'):
-            should_send_admin_standalone = True
+    recipients_list = []
+    if renter_email:
+        recipients_list.append(renter_email)
+    if admin_email and admin_email not in recipients_list:
+        recipients_list.append(admin_email)
 
-    if should_send_admin_standalone:
-        try:
-            send_mail(
-                subject=f"Admin Notification: {title}",
-                message=message,
-                from_email=getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
-                recipient_list=[admin_email],
-                fail_silently=False,
-            )
-            print(f"[email notification] sent to admin {admin_email}")
-        except Exception as e:
-            print(f"[email notification error] {e}")
-
-    if renter_email and notification_type in ('booking', 'payment', 'return'):
-        # Determine customer name
-        customer_name = "Customer"
-        target_rental = rental
-        if not target_rental and order_id:
-            try:
-                target_rental = History.objects.filter(order_id=order_id).first()
-            except Exception:
-                pass
-        
-        # Build the detailed receipt section in email if target_rental is available
-        action_message = raw_message
-        if target_rental:
-            try:
-                customer_name = getattr(target_rental, 'renter_name', None) or (target_rental.user.get_full_name() or target_rental.user.username if hasattr(target_rental, 'user') else "Customer")
-                is_non_superuser = hasattr(target_rental, 'user') and target_rental.user and not target_rental.user.is_superuser
-                related_rentals = History.objects.filter(order_id=target_rental.order_id).select_related('rental_item')
-                
-                # Format custom action prefix message based on title and initiator
-                items_names = ", ".join(rr.rental_item.title for rr in related_rentals)
-                title_lower = title.lower()
-                message_lower = message.lower()
-                is_by_admin = ("by kys" in message_lower or "user kys" in message_lower or "admin kys" in message_lower)
-
-                if "return request submitted" in title_lower or "request to return" in title_lower:
-                    if is_by_admin:
-                        action_message = f"Your order id is : {target_rental.order_id} for {items_names} is return successfully."
-                    else:
-                        if is_non_superuser:
-                            action_message = f"Your order id is : {target_rental.order_id} for {items_names} your return request successfully sent to admin."
-                        else:
-                            action_message = f"Your order id is : {target_rental.order_id} for {items_names} is request to return."
-                elif "return approved" in title_lower or "order returned" in title_lower:
-                    action_message = f"Your order id is : {target_rental.order_id} for {items_names} is return successfully."
-                elif "return date extended" in title_lower or "extended" in title_lower:
-                    action_message = f"Your order id is : {target_rental.order_id} for {items_names} your return date is extended."
-                elif "order approved" in title_lower or "approved" in title_lower:
-                    action_message = f"Your order id is : {target_rental.order_id} for {items_names} is approve."
-                elif "new booking" in title_lower or "booking created" in title_lower or "payment successful" in title_lower:
-                    if is_by_admin or target_rental.status == "approved" or "payment successful" in title_lower:
-                        action_message = f"Your order id is : {target_rental.order_id} for {items_names} is approve."
-                    else:
-                        if is_non_superuser:
-                            action_message = f"Your order id is : {target_rental.order_id} for {items_names} your request successfully sent to admin."
-                        else:
-                            action_message = f"Your order id is : {target_rental.order_id} for {items_names} is request for approve."
-            except Exception as e:
-                print(f"[send_notification customer details formatting error] {e}")
-
-        # Format custom customer message body
-        custom_body = (
-            f"Dear {customer_name},\n\n"
-            f"{action_message}\n\n"
-            "For any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in\n\n"
-            "Thank you"
-        )
-
+    if recipients_list:
         try:
             from django.core.mail import EmailMessage
             
-            # Send to renter, CC to admin (unless they are the same address)
-            cc_list = [admin_email] if admin_email and admin_email != renter_email else []
-            
             email_msg = EmailMessage(
-                subject="Sickbed service notifications",
-                body=custom_body,
+                subject=email_subject,
+                body=formatted_email_body,
                 from_email=getattr(settings, 'EMAIL_HOST_USER', settings.DEFAULT_FROM_EMAIL),
-                to=[renter_email],
-                cc=cc_list,
+                to=recipients_list,
             )
             
-            # Generate and attach the receipt PDF
             if target_rental:
                 try:
                     pdf_file = generate_receipt(target_rental)
@@ -599,14 +629,14 @@ def send_notification(title, message, notification_type='info', link=None, order
                     email_msg.attach(pdf_name, pdf_content, "application/pdf")
                 except Exception as ex:
                     print(f"[send_notification pdf attachment error] {ex}")
-                    
+
             email_msg.send(fail_silently=False)
-            print(f"[email notification] sent renter copy and cc admin for {renter_email}")
+            print(f"[email notification] sent subject '{email_subject}' to {recipients_list}")
         except Exception as e:
-            print(f"[email notification renter error] {e}")
+            print(f"[email notification error] {e}")
 
     try:
-        send_telegram_message(f"<b>{title}</b>\n{message}")
+        send_telegram_message(f"<b>{email_subject}</b>\n{formatted_email_body}")
     except Exception as e:
         print(f"[telegram notification error] {e}")
 

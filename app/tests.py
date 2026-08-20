@@ -329,8 +329,9 @@ class NonSuperuserNotificationEmailTests(TestCase):
         renter_emails = [m for m in mail.outbox[initial_mail_count:] if 'varsha@client.com' in m.to]
         self.assertEqual(len(renter_emails), 1)
         email = renter_emails[0]
-        self.assertIn("Dear varsha_client,", email.body)
-        self.assertIn("Your order id is : ORD202607004 for Walker your request successfully sent to admin.", email.body)
+        self.assertEqual(email.subject, "ORD202607004 New Booking")
+        self.assertIn("* Renter Name: varsha_client", email.body)
+        self.assertIn("* Item(s): Walker (Qty: 1)", email.body)
         self.assertIn("For any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in", email.body)
         self.assertIn("Thank you", email.body)
 
@@ -346,8 +347,9 @@ class NonSuperuserNotificationEmailTests(TestCase):
         renter_emails = [m for m in mail.outbox[initial_mail_count:] if 'varsha@client.com' in m.to]
         self.assertEqual(len(renter_emails), 1)
         email = renter_emails[0]
-        self.assertIn("Dear varsha_client,", email.body)
-        self.assertIn("Your order id is : ORD202607004 for Walker your return request successfully sent to admin.", email.body)
+        self.assertEqual(email.subject, "ORD202607004 Returned")
+        self.assertIn("* Renter Name: varsha_client", email.body)
+        self.assertIn("* Item(s): Walker (Qty: 1)", email.body)
         self.assertIn("For any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in", email.body)
         self.assertIn("Thank you", email.body)
 
@@ -364,8 +366,9 @@ class NonSuperuserNotificationEmailTests(TestCase):
         renter_emails = [m for m in mail.outbox[initial_mail_count:] if 'varsha@client.com' in m.to]
         self.assertEqual(len(renter_emails), 1)
         email = renter_emails[0]
-        self.assertIn("Dear varsha_client,", email.body)
-        self.assertIn("Your order id is : ORD202607004 for Walker your return date is extended.", email.body)
+        self.assertEqual(email.subject, "ORD202607004 Return Date Extended")
+        self.assertIn("* Renter Name: varsha_client", email.body)
+        self.assertIn("* Item(s): Walker (Qty: 1)", email.body)
         self.assertIn("For any further assistance call 9867348169 / 9820247550 or login to sickbed.itegoss.in", email.body)
         self.assertIn("Thank you", email.body)
         self.assertEqual(email.cc, [settings.ADMIN_EMAIL])

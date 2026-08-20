@@ -14,8 +14,8 @@
         
         <div style="background: #f9f9f9; padding: 15px; margin: 20px 0; border-radius: 5px;">
             <h3 style="margin-top: 0; color: #e50914;">{{ item.title }}</h3>
-            <p><strong>Price per day:</strong> ₹{{ item.price_per_day }}</p>
-            <p><strong>Deposit:</strong> ₹{{ item.deposit }}</p>
+            {% if item.price_per_day and item.price_per_day > 0 %}<p><strong>Price per day:</strong> Rs. {{ item.price_per_day }}</p>{% endif %}
+            {% if item.deposit and item.deposit > 0 %}<p><strong>Deposit:</strong> Rs. {{ item.deposit }}</p>{% endif %}
             <p><strong>Available Quantity:</strong> {{ item.available_quantity }}</p>
         </div>
         
