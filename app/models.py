@@ -604,14 +604,14 @@ class BloodRequest(models.Model):
         ('Rejected', 'Rejected'),
     ]
     BLOOD_COMPONENT_CHOICES = [
-        ('Whole Blood', 'Whole Blood'),
-        ('Packed Red Blood Cells (PRBC)', 'Packed Red Blood Cells (PRBC)'),
-        ('Platelets', 'Platelets'),
-        ('Fresh Frozen Plasma (FFP)', 'Fresh Frozen Plasma (FFP)'),
-        ('Plasma', 'Plasma'),
-        ('Cryoprecipitate', 'Cryoprecipitate'),
-        ('Single Donor Platelets (SDP)', 'Single Donor Platelets (SDP)'),
-        ('Random Donor Platelets (RDP)', 'Random Donor Platelets (RDP)')
+        ('PLASMA (C.C.P)', 'PLASMA (C.C.P)'),
+        ('PLASMA (F.F.P)', 'PLASMA (F.F.P)'),
+        ('PCV/PRBC', 'PCV/PRBC'),
+        ('Whole Blood (W.B.)', 'Whole Blood (W.B.)'),
+        ('Platelets (PLT.)', 'Platelets (PLT.)'),
+        ('SDP', 'SDP'),
+        ('RDP', 'RDP'),
+        ('Cryoprecipitate (CYRO.)', 'Cryoprecipitate (CYRO.)'),
     ]
     blood_component = models.CharField(max_length=50, choices=BLOOD_COMPONENT_CHOICES, blank=True, null=True, default='Whole Blood')
     patient_name = models.CharField(max_length=255)
