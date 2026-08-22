@@ -119,6 +119,7 @@
           placeholder="Search users..."
           aria-label="Search users"
         >
+        <input type="hidden" name="page_size" value="{{ page_size }}">
       </div>
 
     </form>
@@ -422,7 +423,7 @@
         <a
           class="page-btn"
           aria-label="Previous page"
-          href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}"
+          href="?{% for key, value in request.GET.items %}{% if key != 'page' and key != 'page_size' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page_size={{ page_size }}&page={{ page_obj.previous_page_number }}"
           style="
             display:flex;
             align-items:center;
@@ -477,7 +478,7 @@
           <a
             class="page-btn"
             aria-label="Page {{ num }}"
-            href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ num }}"
+            href="?{% for key, value in request.GET.items %}{% if key != 'page' and key != 'page_size' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page_size={{ page_size }}&page={{ num }}"
             style="
               display:flex;
               align-items:center;
@@ -500,7 +501,7 @@
         <a
           class="page-btn"
           aria-label="Next page"
-          href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}"
+          href="?{% for key, value in request.GET.items %}{% if key != 'page' and key != 'page_size' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page_size={{ page_size }}&page={{ page_obj.next_page_number }}"
           style="
             display:flex;
             align-items:center;

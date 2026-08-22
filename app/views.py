@@ -2066,13 +2066,23 @@ def users(request):
                 messages.error(request, "Role assignment not found.")
         return redirect('users')
 
-    paginator = Paginator(users, 20)
+    page_size = request.GET.get('page_size', '10')
+    try:
+        page_size_int = int(page_size)
+        if page_size_int <= 0:
+            page_size_int = 10
+    except ValueError:
+        page_size_int = 10
+    page_size = str(page_size_int)
+
+    paginator = Paginator(users, page_size_int)
     page_obj = paginator.get_page(request.GET.get('page'))
     roles = Role.objects.all().order_by('name')
 
     return render(request, 'users.html', {
         'page_obj': page_obj,
         'search_query': q,
+        'page_size': page_size,
         'roles': roles,
     })
 
@@ -2082,6 +2092,15 @@ def roles(request):
         return redirect('index')
 
     q = request.GET.get('q', '').strip()
+    page_size = request.GET.get('page_size', '10')
+    try:
+        page_size_int = int(page_size)
+        if page_size_int <= 0:
+            page_size_int = 10
+    except ValueError:
+        page_size_int = 10
+    page_size = str(page_size_int)
+
     roles = Role.objects.all().order_by('name')
     edit_role = None
     edit_role_id = request.GET.get('edit')
@@ -2139,7 +2158,7 @@ def roles(request):
     if q:
         roles = roles.filter(name__icontains=q)
 
-    paginator = Paginator(roles, 20)
+    paginator = Paginator(roles, page_size_int)
     page_obj = paginator.get_page(request.GET.get('page'))
     permission_fields = [
         ('can_access_inventory', 'Inventory Access'),
@@ -2161,6 +2180,7 @@ def roles(request):
     return render(request, 'roles.html', {
         'page_obj': page_obj,
         'search_query': q,
+        'page_size': page_size,
         'edit_role': edit_role,
         'permission_fields': permission_fields,
         'edit_role_permissions': edit_role_permissions,
@@ -2872,6 +2892,10 @@ def organize_camp(request):
         except ValueError:
             page_size_int = 10
         page_size = str(page_size_int)
+        from django.utils import timezone
+        today = timezone.now().date()
+        CampOrganizer.objects.filter(proposed_date__lte=today, status='Pending').update(status='Completed')
+
         qs = CampOrganizer.objects.all().order_by('-created_at')
         if q:
             from django.db.models import Q

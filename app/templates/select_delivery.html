@@ -28,7 +28,7 @@
       <p>Choose how you'd like to receive your equipment</p>
     </div>
     <div class="del-card-body">
-      <form method="post" action="{% url 'select_delivery' pk=rental_id %}">
+      <form method="post" action="{% url 'select_delivery' pk=rental_id %}" data-no-auto-disable>
         {% csrf_token %}
         <label class="del-option-label" onclick="selectOption(this, 'delivery')">
           <input type="radio" name="delivery_option" value="delivery" required>

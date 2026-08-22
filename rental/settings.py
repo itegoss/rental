@@ -96,6 +96,7 @@ else:
      }
      }
 
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -135,7 +136,7 @@ EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "bhayander@kutchyuvaksangh.org")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "vuyx siqh uvvh rfjd")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "bhayander@kutchyuvaksangh.org")
-ADMIN_EMAIL = "bhayander@kutchyuvaksangh.org"
+ADMIN_EMAIL = "varsha@itegoss.in"
 
 RAZORPAY_API_KEY = os.environ.get("RAZORPAY_API_KEY")
 RAZORPAY_API_SECRET = os.environ.get("RAZORPAY_API_SECRET")

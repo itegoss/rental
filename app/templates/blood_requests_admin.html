@@ -249,7 +249,7 @@
                 <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.92rem; color: #334155;">
                   <div><strong>Blood Group:</strong> <span class="text-danger fw-bold">{{ req.blood_group }}</span></div>
                   <div><strong>Blood Component:</strong> {{ req.blood_component|default:'-' }}</div>
-                  <div><strong>Blood Type:</strong> {{ req.blood_type|default:'-' }}</div>
+                  <!-- <div><strong>Blood Type:</strong> {{ req.blood_type|default:'-' }}</div> -->
                   <div><strong>Price:</strong> {% if req.price %}₹{{ req.price }}{% else %}-{% endif %}</div>
                   <div><strong>Blood Bank:</strong> {{ req.blood_bank|default:'-' }}</div>
                 </div>

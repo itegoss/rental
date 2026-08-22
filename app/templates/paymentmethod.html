@@ -34,7 +34,7 @@
       <p>Choose your preferred payment option</p>
     </div>
     <div class="pm-body">
-      <form method="POST" id="pmForm">
+      <form method="POST" id="pmForm" data-no-auto-disable>
         {% csrf_token %}
         <div class="pm-option" onclick="selectPayment(this)">
           <input type="radio" name="payment_method" value="online" required>

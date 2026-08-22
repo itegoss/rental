@@ -268,8 +268,8 @@
         {% endif %}
       </div>
 
-      {% if user.is_staff or user.is_superuser or rbac_manage_blood_requests or req.assigned_employee == user %}
-      <div class="form-section-title mt-4">Admin / Employee Details</div>
+      {% if is_edit or user.is_staff or user.is_superuser or rbac_manage_blood_requests or req.assigned_employee == user %}
+      <div class="form-section-title mt-4">Admin / Volunteer Details</div>
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_blood_group">Blood Group required <span class="text-danger">*</span></label>
@@ -324,13 +324,8 @@
         </div>
       </div>
       {% else %}
-      <div class="row d-none">
-        <div class="col-md-6 form-group-custom">
-          <select name="blood_group" id="id_blood_group">
-            <option value="A+" selected>A+</option>
-          </select>
-        </div>
-      </div>
+      <input type="hidden" name="blood_group" value="">
+      <input type="hidden" name="blood_component" value="">
       {% endif %}
 
       <div class="form-actions-wrapper">

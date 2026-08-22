@@ -613,11 +613,11 @@ class BloodRequest(models.Model):
         ('RDP', 'RDP'),
         ('Cryoprecipitate (CYRO.)', 'Cryoprecipitate (CYRO.)'),
     ]
-    blood_component = models.CharField(max_length=50, choices=BLOOD_COMPONENT_CHOICES, blank=True, null=True, default='Whole Blood')
+    blood_component = models.CharField(max_length=50, choices=BLOOD_COMPONENT_CHOICES, blank=True, null=True)
     patient_name = models.CharField(max_length=255)
     hospital_name = models.CharField(max_length=255)
     hospital_area = models.CharField(max_length=255)
-    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, blank=True, null=True, default='A+')
+    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, blank=True, null=True)
     units_required = models.PositiveIntegerField(default=1)
     coordinator_name = models.CharField(max_length=255)
     coordinator_contact = models.CharField(max_length=15)
@@ -661,10 +661,6 @@ class BloodRequest(models.Model):
     last_status_changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='blood_requests_status_changed')
 
     def save(self, *args, **kwargs):
-        if not self.blood_group:
-            self.blood_group = 'A+'
-        if not self.blood_component:
-            self.blood_component = 'Whole Blood'
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -761,6 +757,7 @@ class CampOrganizer(models.Model):
         ('Approved', 'Approved'),
         ('Cancelled', 'Cancelled'),
         ('Fulfilled', 'Fulfilled'),
+        ('Completed', 'Completed'),
     ]
     organizer_name = models.CharField(max_length=255)
     organization_name = models.CharField(max_length=255)
@@ -778,6 +775,14 @@ class CampOrganizer(models.Model):
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='camps_updated')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     remarks = models.TextField(blank=True, null=True)
+
+    @property
+    def display_status(self):
+        from django.utils import timezone
+        if self.proposed_date and self.proposed_date <= timezone.now().date():
+            if self.status == 'Pending':
+                return 'Completed'
+        return self.status or 'Pending'
 
     def __str__(self):
         return f"{self.organization_name} - {self.proposed_date} ({self.status})"

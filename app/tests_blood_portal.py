@@ -1,12 +1,14 @@
 import datetime
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.core.files.uploadedfile import SimpleUploadedFile
 from app.models import BloodRequest, CampOrganizer, BloodDonor, EventVolunteer, Notification
 from app.forms import BloodRequestForm, CampOrganizerForm, BloodDonorForm, EventVolunteerForm
 
 
+@override_settings(STORAGES={'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'}, 'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
 class BloodRequestWorkflowTests(TestCase):
     def setUp(self):
         self.admin = User.objects.create_user(username='admin', password='password123', is_staff=True)
@@ -79,6 +81,7 @@ class BloodRequestWorkflowTests(TestCase):
         self.assertContains(response, 'Edit Blood Request')
 
     def test_edit_blood_request_post(self):
+        prescription_file = SimpleUploadedFile("prescription.jpg", b"file_content", content_type="image/jpeg")
         req = BloodRequest.objects.create(
             patient_name='Original Patient',
             hospital_name='Original Hospital',
@@ -88,6 +91,7 @@ class BloodRequestWorkflowTests(TestCase):
             coordinator_contact='9876543210',
             consent=True,
             status='Pending',
+            prescription=prescription_file,
         )
         data = {
             'patient_name': 'Updated Patient',
@@ -120,12 +124,14 @@ class BloodRequestWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Generic Action Patient')
 
+@override_settings(STORAGES={'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'}, 'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
 class BloodPortalTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='password123')
         self.client = Client()
 
     def test_blood_request_form_valid(self):
+        prescription_file = SimpleUploadedFile("prescription.jpg", b"file_content", content_type="image/jpeg")
         data = {
             'patient_name': 'John Doe',
             'hospital_name': 'City Hospital',
@@ -137,7 +143,7 @@ class BloodPortalTests(TestCase):
             'reference_contact': '9123456789',
             'consent': True,
         }
-        form = BloodRequestForm(data=data)
+        form = BloodRequestForm(data=data, files={'prescription': prescription_file})
         self.assertTrue(form.is_valid(), form.errors)
 
     def test_blood_request_form_invalid_phone(self):
@@ -155,6 +161,7 @@ class BloodPortalTests(TestCase):
         self.assertIn('coordinator_contact', form.errors)
 
     def test_request_blood_form_renders_units_required_field(self):
+        self.client.force_login(self.user)
         response = self.client.get(reverse('request_blood'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'name="units_required"')
@@ -255,6 +262,7 @@ class BloodPortalTests(TestCase):
 
     def test_blood_request_view_submission(self):
         self.client.force_login(self.user)
+        prescription_file = SimpleUploadedFile("prescription.jpg", b"file_content", content_type="image/jpeg")
         data = {
             'patient_name': 'Test Patient',
             'hospital_name': 'Test Hospital',
@@ -263,6 +271,7 @@ class BloodPortalTests(TestCase):
             'units_required': 1,
             'coordinator_name': 'Test Coordinator',
             'coordinator_contact': '9988776655',
+            'prescription': prescription_file,
             'consent': True,
         }
         response = self.client.post(reverse('request_blood'), data=data)
@@ -307,6 +316,7 @@ class BloodPortalTests(TestCase):
             'full_name': 'Volunteer Hero',
             'contact_number': '9876543210',
             'email': 'volunteer@test.com',
+            'date_of_birth': timezone.localdate() - datetime.timedelta(days=20 * 365),
             'area_of_residence': 'Bhayander West',
             'event_interest': 'Blood Camp Support',
         }
@@ -319,4 +329,4 @@ class BloodPortalTests(TestCase):
         response = self.client.get(reverse('medical_services'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'medical_services.html')
-        self.assertContains(response, 'Coming Soon')
+        self.assertContains(response, 'Services')

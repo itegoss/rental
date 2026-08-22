@@ -39,6 +39,24 @@
       --font: 'Inter', sans-serif;
     }
 
+    /* Disabled / Greyed out submit buttons until form is correctly filled */
+    button[type="submit"]:disabled,
+    input[type="submit"]:disabled,
+    .btn-signin:disabled,
+    .btn-signup:disabled,
+    .btn-primary-red:disabled,
+    .btn-disabled-grey {
+      background: #9ca3af !important;
+      background-color: #9ca3af !important;
+      border-color: #9ca3af !important;
+      color: #ffffff !important;
+      opacity: 0.65 !important;
+      cursor: not-allowed !important;
+      box-shadow: none !important;
+      transform: none !important;
+      filter: grayscale(100%) !important;
+    }
+
     *,
     *::before,
     *::after {
@@ -1876,6 +1894,65 @@
           setTimeout(() => el.remove(), 400);
         }, 5000);
       });
+
+      // ── GLOBAL FORM SUBMIT BUTTON GREYOUT & ENABLEMENT ──
+      function initFormSubmitButtonState() {
+        const forms = document.querySelectorAll('form');
+
+        forms.forEach(function (form) {
+          const submitBtns = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+          if (!submitBtns.length) return;
+          if (form.hasAttribute('data-no-auto-disable')) return;
+
+          function checkFormValidity() {
+            // 1. Native HTML5 form validity
+            let isValid = form.checkValidity();
+
+            // 2. Check 10-digit mobile/contact inputs if present and required or typed
+            const phoneInputs = form.querySelectorAll('input[type="tel"], input[name*="contact"], input[name*="mobile"], input[name*="phone"]');
+            phoneInputs.forEach(function (input) {
+              if (input.hasAttribute('required') || input.value.trim().length > 0) {
+                const digits = input.value.trim().replace(/\D/g, '');
+                if (digits.length < 10) {
+                  isValid = false;
+                }
+              }
+            });
+
+            // 3. Password matching check for password & confirm_password fields
+            const pwd = form.querySelector('input[name="password"], input[name="new_password"]');
+            const confirmPwd = form.querySelector('input[name="confirm_password"], input[name="confirm_new_password"]');
+            if (pwd && confirmPwd) {
+              if (!confirmPwd.value || pwd.value !== confirmPwd.value) {
+                isValid = false;
+              }
+            }
+
+            // 4. Update submit buttons state
+            submitBtns.forEach(function (btn) {
+              btn.disabled = !isValid;
+              if (!isValid) {
+                btn.classList.add('btn-disabled-grey');
+              } else {
+                btn.classList.remove('btn-disabled-grey');
+              }
+            });
+          }
+
+          // Run immediately on page load
+          checkFormValidity();
+
+          // Re-evaluate on user interaction
+          form.addEventListener('input', checkFormValidity);
+          form.addEventListener('change', checkFormValidity);
+          form.addEventListener('keyup', checkFormValidity);
+          form.addEventListener('paste', function () {
+            setTimeout(checkFormValidity, 50);
+          });
+        });
+      }
+
+      initFormSubmitButtonState();
     });
   </script>
 

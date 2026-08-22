@@ -3,73 +3,83 @@
 {% block title %}About Us — KYS Bhayander{% endblock %}
 {% block content %}
 <style>
-.about-banner {
-  background-color: var(--primary-dark);
-  color: #fff;
-  padding: 60px 24px;
-  text-align: center;
-}
-.about-banner h1 {
-  font-size: 2.6rem;
-  font-weight: 800;
-  margin-bottom: 12px;
-}
-.about-banner p {
-  font-size: 1.1rem;
-  opacity: 0.9;
-  max-width: 600px;
-  margin: 0 auto;
-}
-.about-container {
-  max-width: 1000px;
-  margin: 40px auto 80px;
-  padding: 0 24px;
-}
-.about-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: var(--shadow);
-  margin-bottom: 40px;
-}
-.about-card h2 {
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: var(--text);
-  margin-bottom: 20px;
-  border-left: 4px solid var(--primary);
-  padding-left: 12px;
-}
-.about-card p {
-  color: #4b5563;
-  line-height: 1.8;
-  font-size: 1rem;
-  margin-bottom: 20px;
-}
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 24px;
-  margin-top: 30px;
-}
-.stat-box {
-  background: var(--bg);
-  padding: 24px;
-  border-radius: 12px;
-  text-align: center;
-  border-bottom: 3px solid var(--primary);
-}
-.stat-num {
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: var(--primary);
-  margin-bottom: 6px;
-}
-.stat-lbl {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--muted);
-}
+  .about-banner {
+    background-color: var(--primary-dark);
+    color: #fff;
+    padding: 60px 24px;
+    text-align: center;
+  }
+
+  .about-banner h1 {
+    font-size: 2.6rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+
+  .about-banner p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .about-container {
+    max-width: 1000px;
+    margin: 40px auto 80px;
+    padding: 0 24px;
+  }
+
+  .about-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: var(--shadow);
+    margin-bottom: 40px;
+  }
+
+  .about-card h2 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 20px;
+    border-left: 4px solid var(--primary);
+    padding-left: 12px;
+  }
+
+  .about-card p {
+    color: #4b5563;
+    line-height: 1.8;
+    font-size: 1rem;
+    margin-bottom: 20px;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px;
+    margin-top: 30px;
+  }
+
+  .stat-box {
+    background: var(--bg);
+    padding: 24px;
+    border-radius: 12px;
+    text-align: center;
+    border-bottom: 3px solid var(--primary);
+  }
+
+  .stat-num {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 6px;
+  }
+
+  .stat-lbl {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
 </style>
 
 <div class="about-banner">
@@ -80,25 +90,32 @@
 <div class="about-container">
   <div class="about-card">
     <h2>Who We Are</h2>
-    <p><strong>KYS (Bhayander)</strong>, a unit of Kutch Yuvak Sangh, is a registered non-governmental organization (NGO) dedicated to empowering communities and transforming lives through its multiple humanitarian, social, educational, and cultural initiatives.</p>
-    <p>We are driven by the spirit of selfless service and responsibility towards society. Our membership is inclusive and welcomes anyone regardless of caste, gender, or religion. Our volunteers work diligently to ensure we remain a reliable pillar of support for everyone in times of need.</p>
+    <p><strong>KYS (Bhayander)</strong>, a unit of Kutch Yuvak Sangh, is a registered non-governmental organization
+      (NGO) dedicated to empowering communities and transforming lives through its multiple humanitarian, social,
+      educational, and cultural initiatives.</p>
+    <p>We are driven by the spirit of selfless service and responsibility towards society. Our membership is inclusive
+      and welcomes anyone regardless of caste, gender, or religion. Our volunteers work diligently to ensure we remain a
+      reliable pillar of support for everyone in times of need.</p>
   </div>
 
   <div class="about-card">
     <h2>How we do it and Why?</h2>
-    <p>We facilitate medical equipment rentals at low-cost deposits, organize free blood donation camps, manage critical blood requirements, and connect matching donors with hospitals. We believe healthcare support should be accessible and affordable for all families.</p>
-    
+    <p>We facilitate medical equipment rentals at low-cost deposits, organize free blood donation camps, manage critical
+      blood requirements, and connect matching donors with hospitals. We believe healthcare support should be accessible
+      and affordable for all families.</p>
+
+
     <div class="stat-grid">
       <div class="stat-box">
-        <div class="stat-num">450+</div>
-        <div class="stat-lbl">Equipments Handed Over</div>
+        <div class="stat-num">100+</div>
+        <div class="stat-lbl">Medical Equipments rental</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num">1,200+</div>
-        <div class="stat-lbl">Blood Units Collected</div>
+        <div class="stat-num">246776+</div>
+        <div class="stat-lbl">Blood units</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num">50+</div>
+        <div class="stat-num">2500+</div>
         <div class="stat-lbl">Healthcare Volunteers</div>
       </div>
       <div class="stat-box">
