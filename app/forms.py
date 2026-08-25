@@ -52,14 +52,14 @@ class BloodRequestForm(forms.ModelForm):
     blood_component = forms.ChoiceField(choices=BloodRequest.BLOOD_COMPONENT_CHOICES, required=False, initial='', label='Blood Component')
     prescription = forms.FileField(
         required=True,
-        widget=forms.FileInput(attrs={'accept': '.jpg,.jpeg,.png,.pdf,.img,.webp'}),
+        widget=forms.FileInput(attrs={'accept': '.jpg,.jpeg,.png,.pdf,.img'}),
         error_messages={'required': "Doctor's prescription image/document is mandatory. Please upload a file."}
     )
     consent = forms.BooleanField(
         required=True,
         error_messages={'required': 'You must consent to the terms before submitting.'}
     )
-    units_required = forms.IntegerField(required=False, initial=1, min_value=1)
+    units_required = forms.IntegerField(required=False, min_value=1)
     price = forms.DecimalField(required=False, min_value=0, max_digits=10, decimal_places=2, label='Price')
     blood_bank = forms.CharField(required=False, label='Blood Bank')
 

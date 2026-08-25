@@ -41,6 +41,7 @@ urlpatterns = [
     path('request-blood/delete/<int:request_id>/', views.delete_blood_request, name='delete_blood_request'),
     path('blood-requests/employee/', views.employee_blood_requests, name='employee_blood_requests'),
     path('organize-camp/', views.organize_camp, name='organize_camp'),
+    path('organize-camp/status/<int:camp_id>/', views.update_camp_status, name='update_camp_status'),
     path('be-donor/', views.be_donor, name='be_donor'),
     path('volunteer/', views.volunteer_event, name='volunteer_event'),
     path('medical-services/', views.medical_services, name='medical_services'),

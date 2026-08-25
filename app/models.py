@@ -618,8 +618,8 @@ class BloodRequest(models.Model):
     patient_name = models.CharField(max_length=255)
     hospital_name = models.CharField(max_length=255)
     hospital_area = models.CharField(max_length=255)
-    blood_group = models.CharField(max_length=20, choices=BLOOD_GROUP_CHOICES, blank=True, null=True)
-    units_required = models.PositiveIntegerField(default=1)
+    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, blank=True, null=True)
+    units_required = models.PositiveIntegerField(default=1, blank=True, null=True)
     coordinator_name = models.CharField(max_length=255)
     coordinator_contact = models.CharField(max_length=15)
     reference_name = models.CharField(max_length=255, blank=True, null=True)
@@ -628,7 +628,7 @@ class BloodRequest(models.Model):
         upload_to='prescriptions/',
         blank=True,
         null=True,
-        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'pdf', 'img', 'webp'])]
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'pdf', 'img'])]
     )
     consent = models.BooleanField(default=False)
     
@@ -636,11 +636,13 @@ class BloodRequest(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0, blank=True, null=True)
     blood_bank = models.CharField(max_length=255, blank=True, null=True)
 
+    request_id = models.CharField(max_length=30, blank=True, null=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='blood_requests_created')
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='blood_requests_updated')
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Pending')
+    cancellation_reason = models.TextField(blank=True, null=True, help_text='Reason for cancellation')
     remarks = models.TextField(blank=True, null=True)
     assigned_employee = models.ForeignKey(
         User,
@@ -661,22 +663,47 @@ class BloodRequest(models.Model):
     last_status_changed_at = models.DateTimeField(blank=True, null=True)
     last_status_changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='blood_requests_status_changed')
 
-    def get_assigned_employee_phone(self):
-        if not self.assigned_employee:
-            return "-"
-        try:
-            ud = getattr(self.assigned_employee, 'userdetail', None)
-            if ud and ud.phone:
-                return ud.phone
-        except Exception:
-            pass
-        return self.coordinator_contact or "-"
+    def generate_request_id(self):
+        dt = self.created_at or timezone.now()
+        prefix = f"BR{dt.strftime('%Y%m')}"
+        last_req = (
+            BloodRequest.objects
+            .filter(request_id__startswith=prefix)
+            .exclude(id=self.id if self.id else None)
+            .order_by("-request_id")
+            .first()
+        )
+        if last_req and last_req.request_id and len(last_req.request_id) >= len(prefix) + 3:
+            try:
+                last_number = int(last_req.request_id[-3:])
+                new_number = str(last_number + 1).zfill(3)
+            except (ValueError, IndexError):
+                new_number = "001"
+        else:
+            new_number = "001"
+        
+        gen_id = f"{prefix}{new_number}"
+        while BloodRequest.objects.filter(request_id=gen_id).exclude(id=self.id if self.id else None).exists():
+            last_number = int(gen_id[-3:]) + 1
+            new_number = str(last_number).zfill(3)
+            gen_id = f"{prefix}{new_number}"
+        return gen_id
 
     def save(self, *args, **kwargs):
+        if not self.request_id:
+            self.request_id = self.generate_request_id()
         super().save(*args, **kwargs)
 
+    @property
+    def formatted_request_id(self):
+        if self.request_id:
+            return self.request_id
+        dt = self.created_at or timezone.now()
+        return f"BR{dt.strftime('%Y%m')}{str(self.id or 1).zfill(3)}"
+
     def __str__(self):
-        return f"{self.patient_name} - {self.blood_group} ({self.status})"
+        req_id = self.request_id or self.formatted_request_id
+        return f"{req_id} - {self.patient_name} - {self.blood_group} ({self.status})"
 
     @property
     def is_terminal(self):
@@ -765,11 +792,9 @@ class BloodBank(models.Model):
 
 class CampOrganizer(models.Model):
     STATUS_CHOICES = [
-        ('Pending', 'Pending'),
-        ('Approved', 'Approved'),
-        ('Cancelled', 'Cancelled'),
-        ('Fulfilled', 'Fulfilled'),
         ('Completed', 'Completed'),
+        ('Pending', 'Pending'),
+        ('Cancelled', 'Cancelled'),
     ]
     organizer_name = models.CharField(max_length=255)
     organization_name = models.CharField(max_length=255)
@@ -790,10 +815,6 @@ class CampOrganizer(models.Model):
 
     @property
     def display_status(self):
-        from django.utils import timezone
-        if self.proposed_date and self.proposed_date <= timezone.now().date():
-            if self.status == 'Pending':
-                return 'Completed'
         return self.status or 'Pending'
 
     def __str__(self):

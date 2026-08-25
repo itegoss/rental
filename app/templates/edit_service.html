@@ -65,16 +65,22 @@
       <p class="text-muted">Update service details and contacts</p>
     </div>
 
-    <form method="POST">
+    <form method="POST" novalidate>
       {% csrf_token %}
       <div class="mb-3">
         <label for="name" class="form-label font-weight-bold">Service Category / Title *</label>
-        <input type="text" class="form-control" id="name" name="name" value="{{ service.name }}" required>
+        <input type="text" class="form-control {% if field_errors.name %}is-invalid{% endif %}" id="name" name="name" value="{{ service.name }}" required>
+        {% if field_errors.name %}
+          <div class="field-error-msg"><i class="fas fa-exclamation-circle"></i> <span>{{ field_errors.name }}</span></div>
+        {% endif %}
       </div>
 
       <div class="mb-3">
         <label for="description" class="form-label font-weight-bold">Description *</label>
-        <textarea class="form-control" id="description" name="description" rows="3" required>{{ service.description }}</textarea>
+        <textarea class="form-control {% if field_errors.description %}is-invalid{% endif %}" id="description" name="description" rows="3" required>{{ service.description }}</textarea>
+        {% if field_errors.description %}
+          <div class="field-error-msg"><i class="fas fa-exclamation-circle"></i> <span>{{ field_errors.description }}</span></div>
+        {% endif %}
       </div>
 
       <div class="form-check mb-4">

@@ -97,7 +97,7 @@
 <div class="donor-banner">
   <h1>Congratulations on Stepping Up!</h1>
   <p>Thank you for making the noble decision to give the gift of blood. You are the hero of your life, and your incredible generosity has the power to save others!</p>
-  <p style="margin-top: 10px; opacity: 0.9;">Please fill out the details below to register with us. Once you are in our system, you will be notified of all the upcoming blood donation camps we conduct so that you can choose to donate as per your convenience.</p>
+  <p style="margin-top: 10px; opacity: 0.9;">Please fill out the details below to register with us. </p>
 </div>
 
 <div class="container">
@@ -115,27 +115,36 @@
 
       <div class="form-section-title">Personal Details</div>
       
-      <div class="form-group-custom">
-        <label for="id_full_name">Full Name <span class="text-danger">*</span></label>
-        <input type="text" name="full_name" id="id_full_name" required placeholder="Enter full name" value="{{ form.full_name.value|default_if_none:'' }}">
-        {% if form.full_name.errors %}
-          <div class="error-msg">{{ form.full_name.errors.0 }}</div>
-        {% endif %}
+      <div class="row">
+        <div class="col-md-6 form-group-custom">
+          <label for="id_first_name">First Name <span class="text-danger">*</span></label>
+          <input type="text" name="first_name" id="id_first_name" required placeholder="Enter first name" value="{{ form.first_name.value|default_if_none:'' }}" class="{% if form.first_name.errors %}is-invalid{% endif %}">
+          {% if form.first_name.errors %}
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.first_name.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6 form-group-custom">
+          <label for="id_last_name">Last Name <span class="text-danger">*</span></label>
+          <input type="text" name="last_name" id="id_last_name" required placeholder="Enter last name" value="{{ form.last_name.value|default_if_none:'' }}" class="{% if form.last_name.errors %}is-invalid{% endif %}">
+          {% if form.last_name.errors %}
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.last_name.errors.0 }}</div>
+          {% endif %}
+        </div>
       </div>
 
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_contact_number">Contact number <span class="text-danger">*</span></label>
-          <input type="tel" name="contact_number" id="id_contact_number" required placeholder="10-digit mobile number" value="{{ form.contact_number.value|default_if_none:'' }}">
+          <input type="tel" name="contact_number" id="id_contact_number" required placeholder="10-digit mobile number" value="{{ form.contact_number.value|default_if_none:'' }}" class="{% if form.contact_number.errors %}is-invalid{% endif %}">
           {% if form.contact_number.errors %}
-            <div class="error-msg">{{ form.contact_number.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.contact_number.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_date_of_birth">DOB <span class="text-danger">*</span></label>
-          <input type="date" name="date_of_birth" id="id_date_of_birth" max="{% now 'Y-m-d' %}" required value="{{ form.date_of_birth.value|default_if_none:'' }}">
+          <input type="date" name="date_of_birth" id="id_date_of_birth" required value="{{ form.date_of_birth.value|default_if_none:'' }}" class="{% if form.date_of_birth.errors %}is-invalid{% endif %}">
           {% if form.date_of_birth.errors %}
-            <div class="error-msg">{{ form.date_of_birth.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.date_of_birth.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -143,7 +152,7 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_gender">Gender <span class="text-danger">*</span></label>
-          <select name="gender" id="id_gender" required>
+          <select name="gender" id="id_gender" required class="{% if form.gender.errors %}is-invalid{% endif %}">
             <option value="" disabled {% if not form.gender.value %}selected{% endif %}>Select Gender</option>
             {% for code, label in form.fields.gender.choices %}
               {% if code %}
@@ -152,12 +161,12 @@
             {% endfor %}
           </select>
           {% if form.gender.errors %}
-            <div class="error-msg">{{ form.gender.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.gender.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_blood_group">Blood group <span class="text-danger">*</span></label>
-          <select name="blood_group" id="id_blood_group" required>
+          <select name="blood_group" id="id_blood_group" required class="{% if form.blood_group.errors %}is-invalid{% endif %}">
             <option value="" disabled {% if not form.blood_group.value %}selected{% endif %}>Select Blood Group</option>
             {% for code, label in form.fields.blood_group.choices %}
               {% if code %}
@@ -166,16 +175,16 @@
             {% endfor %}
           </select>
           {% if form.blood_group.errors %}
-            <div class="error-msg">{{ form.blood_group.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.blood_group.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
 
       <div class="form-group-custom">
         <label for="id_area_of_residence">Area of Residence <span class="text-danger">*</span></label>
-        <input type="text" name="area_of_residence" id="id_area_of_residence" required placeholder="e.g. Bhayander West" value="{{ form.area_of_residence.value|default_if_none:'' }}">
+        <input type="text" name="area_of_residence" id="id_area_of_residence" required placeholder="e.g. Bhayander West" value="{{ form.area_of_residence.value|default_if_none:'' }}" class="{% if form.area_of_residence.errors %}is-invalid{% endif %}">
         {% if form.area_of_residence.errors %}
-          <div class="error-msg">{{ form.area_of_residence.errors.0 }}</div>
+          <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.area_of_residence.errors.0 }}</div>
         {% endif %}
       </div>
 
@@ -184,16 +193,16 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_reference_name">Reference Name (if any)</label>
-          <input type="text" name="reference_name" id="id_reference_name" placeholder="Enter reference name" value="{{ form.reference_name.value|default_if_none:'' }}">
+          <input type="text" name="reference_name" id="id_reference_name" placeholder="Enter reference name" value="{{ form.reference_name.value|default_if_none:'' }}" class="{% if form.reference_name.errors %}is-invalid{% endif %}">
           {% if form.reference_name.errors %}
-            <div class="error-msg">{{ form.reference_name.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.reference_name.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_reference_contact">Reference contact</label>
-          <input type="tel" name="reference_contact" id="id_reference_contact" placeholder="10-digit contact number" value="{{ form.reference_contact.value|default_if_none:'' }}">
+          <input type="tel" name="reference_contact" id="id_reference_contact" placeholder="10-digit contact number" value="{{ form.reference_contact.value|default_if_none:'' }}" class="{% if form.reference_contact.errors %}is-invalid{% endif %}">
           {% if form.reference_contact.errors %}
-            <div class="error-msg">{{ form.reference_contact.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.reference_contact.errors.0 }}</div>
           {% endif %}
         </div>
       </div>

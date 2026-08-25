@@ -37,18 +37,14 @@
       <table class="items-table">
         <thead>
           <tr>
+            <th>ID</th>
             <th>Patient Name</th>
-            <th>Blood Group</th>
-            <th>Blood Component</th>
-            <th>Blood Type</th>
+            <th> Group</th>
+            <th> Component</th>
             <th class="price-col">Price</th>
             <th>Blood Bank</th>
             <th>Hospital Name</th>
             <th>Hospital Area</th>
-            <th>Coordinator Name</th>
-            <th>Coordinator Contact</th>
-            <th>Reference Name</th>
-            <th>Reference Contact</th>
             <th>Prescription</th>
             <th>Status</th>
             <th>Submitted Date</th>
@@ -58,18 +54,14 @@
         <tbody>
           {% for req in page_obj.object_list %}
           <tr style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#viewModal{{ req.id }}">
+            <td style="font-weight: 700; color: #dc2626; white-space: nowrap;">{{ req.request_id|default:req.formatted_request_id }}</td>
             <td class="item-name-cell">{{ req.patient_name }}</td>
             <td class="price-cell">{{ req.blood_group }}</td>
             <td>{{ req.blood_component|default:"-" }}</td>
-            <td>{{ req.blood_type|default:"-" }}</td>
-            <td class="price-col">{% if req.price is not None %}₹{{ req.price }}{% else %}-{% endif %}</td>
+            <td class="price-col">{% if req.price %}₹{{ req.price }}{% else %}-{% endif %}</td>
             <td>{{ req.blood_bank|default:"-" }}</td>
             <td>{{ req.hospital_name }}</td>
             <td>{{ req.hospital_area }}</td>
-            <td>{{ req.coordinator_name }}</td>
-            <td>{{ req.coordinator_contact }}</td>
-            <td>{{ req.reference_name|default:'-' }}</td>
-            <td>{{ req.reference_contact|default:'-' }}</td>
             <td onclick="event.stopPropagation();">
               {% if req.prescription %}
                 <button type="button" class="btn btn-sm btn-link p-0 text-decoration-underline" data-bs-toggle="modal" data-bs-target="#prescriptionModal{{ req.id }}" style="color:#3b82f6; font-weight:600; border:none; background:none;">
@@ -101,7 +93,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="16" style="text-align:center;padding:40px;color:var(--muted);">No blood requests found</td>
+            <td colspan="12" style="text-align:center;padding:40px;color:var(--muted);">No blood requests found</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -213,7 +205,7 @@
         <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden; box-shadow: 0 24px 48px rgba(0,0,0,0.18);">
           <div class="modal-header" style="background: #B84A5A; color: #fff; padding: 18px 24px;">
             <h5 class="modal-title" style="font-weight: 800; color: #fff; font-size: 1.2rem;">
-              <i class="fas fa-clipboard-list me-2"></i> Request Details — {{ req.patient_name }}
+              <i class="fas fa-clipboard-list me-2"></i> Request Details — {{ req.patient_name }} ({{ req.request_id|default:req.formatted_request_id }})
             </h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
@@ -222,7 +214,7 @@
             <!-- Summary Header Card -->
             <div style="background: #ffffff; border-radius: 12px; padding: 16px 20px; border: 1px solid #e2e8f0; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
               <div>
-                <h3 style="margin: 0; font-size: 1.3rem; font-weight: 800; color: #0f172a;">{{ req.patient_name }}</h3>
+                <h3 style="margin: 0; font-size: 1.3rem; font-weight: 800; color: #0f172a;">{{ req.patient_name }} <span style="font-size: 0.95rem; color: #dc2626; font-weight: 700; margin-left: 6px;">({{ req.request_id|default:req.formatted_request_id }})</span></h3>
                 <span style="color: #64748b; font-size: 0.88rem;">Submitted: {{ req.created_at|date:'d M, Y H:i' }}</span>
               </div>
               <div>
@@ -344,6 +336,11 @@
                     {% endif %}
                   </div>
                   <div><strong>Remarks:</strong> {{ req.remarks|default:'None' }}</div>
+                  {% if req.status == 'Cancelled' and req.cancellation_reason %}
+                  <div style="margin-top:8px; padding:10px 14px; border-radius:8px; background:#fef2f2; border:1px solid #fecaca; color:#991b1b;">
+                    <strong style="color:#dc2626;">Cancellation Reason:</strong> {{ req.cancellation_reason }}
+                  </div>
+                  {% endif %}
                 </div>
               </div>
 
@@ -418,13 +415,9 @@
               {% endif %}
 
               {% if req.status != 'Completed' and req.status != 'Cancelled' and req.status != 'Rejected' %}
-              <form method="POST" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="cancel">
-                <button class="btn btn-warning text-dark" type="submit" title="Cancel Request" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;" onclick="return confirm('Cancel this blood request (Blood not available anywhere)?');">
-                  <i class="fas fa-ban"></i>
-                </button>
-              </form>
+              <button type="button" class="btn btn-warning text-dark" onclick="adminOpenCancelModal('{{ req.id }}'); return false;" style="font-weight: 700; border-radius: 8px;">
+                <i class="fas fa-ban me-1"></i> Cancel Request
+              </button>
               {% endif %}
 
               {% if req.status != 'Pending' %}
@@ -447,7 +440,85 @@
   
   </div>
 </div>
+
+<!-- Cancel Request Modal (shared across all requests) -->
+<div id="adminCancelModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:99999; justify-content:center; align-items:center;" role="dialog" aria-modal="true">
+  <div style="background:#fff; border-radius:20px; max-width:440px; width:92%; padding:28px; box-shadow:0 24px 48px rgba(0,0,0,0.2); position:relative;">
+    <button type="button" id="adminCancelCloseX" style="position:absolute; top:14px; right:16px; border:none; background:none; font-size:1.5rem; color:#9ca3af; cursor:pointer; line-height:1;" aria-label="Close">&times;</button>
+    <h2 style="margin:0 0 6px; font-size:1.35rem; font-weight:800; color:#0f172a;">Cancel Blood Request</h2>
+    <p style="margin:0 0 18px; color:#64748b; font-size:0.92rem;">This action cannot be undone. Please provide a reason.</p>
+    <form method="POST" id="adminCancelForm" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="cancel" />
+      <label for="adminCancelReason" style="display:block; font-weight:700; color:#0f172a; margin-bottom:6px; font-size:0.95rem;">Cancellation Reason</label>
+      <textarea name="cancellation_reason" id="adminCancelReason" rows="4" style="width:100%; padding:10px 12px; border:1.5px solid #d1d5db; border-radius:10px; resize:vertical; font-family:inherit; font-size:0.95rem; transition:border-color 0.2s;" placeholder="Enter reason for cancellation..."></textarea>
+      <div id="adminCancelError" style="color:#dc2626; font-size:0.84rem; margin-top:5px; display:none;"><i class="fas fa-exclamation-circle"></i> Please enter a cancellation reason.</div>
+      <div style="margin-top:18px; display:flex; gap:10px; justify-content:flex-end;">
+        <button type="button" id="adminCancelCloseBtn" style="padding:10px 20px; border-radius:10px; border:1.5px solid #d1d5db; background:#f9fafb; color:#374151; font-weight:600; font-size:0.92rem; cursor:pointer;">Close</button>
+        <button type="submit" style="padding:10px 20px; border-radius:10px; border:none; background:linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color:#fff; font-weight:700; font-size:0.92rem; cursor:pointer; box-shadow:0 4px 12px rgba(220,38,38,0.3);">Confirm Cancellation</button>
+      </div>
+    </form>
+  </div>
+</div>
 <script>
+  // *** Cancel Request Modal — defined FIRST so onclick always works ***
+  window.adminOpenCancelModal = function(reqId) {
+    var modal = document.getElementById('adminCancelModal');
+    var form  = document.getElementById('adminCancelForm');
+    var textarea = document.getElementById('adminCancelReason');
+    var errorDiv = document.getElementById('adminCancelError');
+    if (!modal || !form || !textarea) return;
+
+    // --- Hide active Bootstrap modal + backdrop so they don't intercept events ---
+    var activeBsModal = document.querySelector('.modal.show');
+    modal._prevBsModal = activeBsModal || null;
+    if (activeBsModal) {
+      activeBsModal.style.visibility = 'hidden';
+      activeBsModal.style.pointerEvents = 'none';
+    }
+    // Hide ALL Bootstrap backdrops
+    document.querySelectorAll('.modal-backdrop').forEach(function(bd) {
+      bd.style.visibility = 'hidden';
+      bd.style.pointerEvents = 'none';
+    });
+
+    // Set form target and reset state
+    form.action = '/request-blood/status/' + reqId + '/';
+    textarea.value = '';
+    if (errorDiv) errorDiv.style.display = 'none';
+    textarea.style.borderColor = '#d1d5db';
+
+    // Show cancel modal
+    modal.style.display = 'flex';
+
+    // Focus after paint, without delay tricks that lose focus back to Bootstrap
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        textarea.focus();
+      });
+    });
+  };
+
+  window.adminCloseCancelModal = function() {
+    var modal = document.getElementById('adminCancelModal');
+    if (!modal) return;
+
+    // Restore Bootstrap modal + backdrops
+    var prevBsModal = modal._prevBsModal;
+    if (prevBsModal) {
+      prevBsModal.style.visibility = '';
+      prevBsModal.style.pointerEvents = '';
+    }
+    document.querySelectorAll('.modal-backdrop').forEach(function(bd) {
+      bd.style.visibility = '';
+      bd.style.pointerEvents = '';
+    });
+    modal._prevBsModal = null;
+
+    modal.style.display = 'none';
+  };
+  // *** End Cancel Modal globals ***
+
   const bookingsTable = document.getElementById('bookingsTable');
   if (bookingsTable) {
     const searchInput = document.getElementById('bookingSearch');
@@ -699,9 +770,12 @@
     }
     window.location.href = url;
   }
-  document.getElementById('depositModal').addEventListener('click', e => {
-    if (e.target === document.getElementById('depositModal')) closeDepositModal();
-  });
+  var _depositModal = document.getElementById('depositModal');
+  if (_depositModal) {
+    _depositModal.addEventListener('click', function(e) {
+      if (e.target === _depositModal) closeDepositModal();
+    });
+  }
 
   // Add Item Modal Functions
   function openAddItemModal() {
@@ -738,19 +812,54 @@
   }
 
   // Handle modal overlay click to close
-  document.getElementById('addItemModal').addEventListener('click', e => {
-    if (e.target === document.getElementById('addItemModal')) {
-      closeAddItemModal();
-    }
-  });
+  var _addItemModal = document.getElementById('addItemModal');
+  if (_addItemModal) {
+    _addItemModal.addEventListener('click', function(e) {
+      if (e.target === _addItemModal) closeAddItemModal();
+    });
+  }
 
   // Update booked quantity when available quantity changes
-  document.getElementById('availableQuantity').addEventListener('change', function () {
-    const total = parseInt(document.getElementById('totalQuantity').value) || 0;
-    const available = parseInt(this.value) || 0;
-    const booked = Math.max(0, total - available);
-    document.getElementById('bookedQuantity').value = booked;
-  });
+  var _availableQty = document.getElementById('availableQuantity');
+  if (_availableQty) {
+    _availableQty.addEventListener('change', function () {
+      const total = parseInt((document.getElementById('totalQuantity') || {}).value) || 0;
+      const available = parseInt(this.value) || 0;
+      const booked = Math.max(0, total - available);
+      var bq = document.getElementById('bookedQuantity');
+      if (bq) bq.value = booked;
+    });
+  }
+
+  // Cancel modal close-button / overlay / keyboard listeners
+  (function() {
+    var modal = document.getElementById('adminCancelModal');
+    var form = document.getElementById('adminCancelForm');
+    var textarea = document.getElementById('adminCancelReason');
+    var errorDiv = document.getElementById('adminCancelError');
+    var closeX = document.getElementById('adminCancelCloseX');
+    var closeBtn = document.getElementById('adminCancelCloseBtn');
+    if (!modal) return;
+
+    if (closeX) closeX.addEventListener('click', adminCloseCancelModal);
+    if (closeBtn) closeBtn.addEventListener('click', adminCloseCancelModal);
+    modal.addEventListener('click', function(e) { if (e.target === modal) adminCloseCancelModal(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && modal.style.display === 'flex') adminCloseCancelModal(); });
+
+    if (form) form.addEventListener('submit', function(e) {
+      if (!textarea || !textarea.value.trim()) {
+        e.preventDefault();
+        if (errorDiv) errorDiv.style.display = 'block';
+        if (textarea) { textarea.style.borderColor = '#dc2626'; textarea.focus(); }
+      }
+    });
+    if (textarea) textarea.addEventListener('input', function() {
+      if (textarea.value.trim()) {
+        if (errorDiv) errorDiv.style.display = 'none';
+        textarea.style.borderColor = '#d1d5db';
+      }
+    });
+  })();
 </script>
 
 {% endblock %}

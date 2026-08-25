@@ -483,6 +483,7 @@ class NotifyRequestAdmin(admin.ModelAdmin):
 @admin.register(BloodRequest)
 class BloodRequestAdmin(admin.ModelAdmin):
     list_display = (
+        'request_id',
         'created_at',
         'patient_name',
         'hospital_name',
@@ -495,8 +496,8 @@ class BloodRequestAdmin(admin.ModelAdmin):
         'action_buttons',
     )
     list_filter = ('status', 'blood_group', 'created_at')
-    search_fields = ('patient_name', 'hospital_name', 'coordinator_name', 'coordinator_contact')
-    readonly_fields = ('created_at', 'updated_at')
+    search_fields = ('request_id', 'patient_name', 'hospital_name', 'coordinator_name', 'coordinator_contact')
+    readonly_fields = ('request_id', 'created_at', 'updated_at')
     
     actions = ['mark_cancelled', 'mark_fulfilled']
 

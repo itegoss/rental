@@ -116,16 +116,16 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_organizer_name">Full Name: <span class="text-danger">*</span></label>
-          <input type="text" name="organizer_name" id="id_organizer_name" required placeholder="Enter full name" value="{{ form.organizer_name.value|default_if_none:'' }}">
+          <input type="text" name="organizer_name" id="id_organizer_name" required placeholder="Enter full name" value="{{ form.organizer_name.value|default_if_none:'' }}" class="{% if form.organizer_name.errors %}is-invalid{% endif %}">
           {% if form.organizer_name.errors %}
-            <div class="error-msg">{{ form.organizer_name.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.organizer_name.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_organization_name">Organization/Group Name (if applicable): <span class="text-danger">*</span></label>
-          <input type="text" name="organization_name" id="id_organization_name" required placeholder="e.g. RWA, College, Society" value="{{ form.organization_name.value|default_if_none:'' }}">
+          <input type="text" name="organization_name" id="id_organization_name" required placeholder="e.g. RWA, College, Society" value="{{ form.organization_name.value|default_if_none:'' }}" class="{% if form.organization_name.errors %}is-invalid{% endif %}">
           {% if form.organization_name.errors %}
-            <div class="error-msg">{{ form.organization_name.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.organization_name.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -133,16 +133,16 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_contact_number">Contact Number: <span class="text-danger">*</span></label>
-          <input type="tel" name="contact_number" id="id_contact_number" required placeholder="10-digit mobile number" value="{{ form.contact_number.value|default_if_none:'' }}">
+          <input type="tel" name="contact_number" id="id_contact_number" required placeholder="10-digit mobile number" value="{{ form.contact_number.value|default_if_none:'' }}" class="{% if form.contact_number.errors %}is-invalid{% endif %}">
           {% if form.contact_number.errors %}
-            <div class="error-msg">{{ form.contact_number.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.contact_number.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_email">Email Address: <span class="text-danger">*</span></label>
-          <input type="email" name="email" id="id_email" required placeholder="Enter email address" value="{{ form.email.value|default_if_none:'' }}">
+          <input type="email" name="email" id="id_email" required placeholder="Enter email address" value="{{ form.email.value|default_if_none:'' }}" class="{% if form.email.errors %}is-invalid{% endif %}">
           {% if form.email.errors %}
-            <div class="error-msg">{{ form.email.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.email.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -152,47 +152,47 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_proposed_date">Proposed Date for the Camp: <span class="text-danger">*</span></label>
-          <input type="date" name="proposed_date" id="id_proposed_date" required value="{{ form.proposed_date.value|default_if_none:'' }}">
+          <input type="date" name="proposed_date" id="id_proposed_date" required value="{{ form.proposed_date.value|default_if_none:'' }}" class="{% if form.proposed_date.errors %}is-invalid{% endif %}">
           {% if form.proposed_date.errors %}
-            <div class="error-msg">{{ form.proposed_date.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.proposed_date.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_expected_donors">Expected Number of Donors: <span class="text-danger">*</span></label>
-          <input type="number" name="expected_donors" id="id_expected_donors" required min="1" placeholder="Estimated donor count" value="{{ form.expected_donors.value|default_if_none:'' }}">
+          <input type="number" name="expected_donors" id="id_expected_donors" required min="1" placeholder="Estimated donor count" value="{{ form.expected_donors.value|default_if_none:'' }}" class="{% if form.expected_donors.errors %}is-invalid{% endif %}">
           {% if form.expected_donors.errors %}
-            <div class="error-msg">{{ form.expected_donors.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.expected_donors.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
 
       <div class="form-group-custom">
         <label for="id_proposed_venue">Proposed Venue/Location: <span class="text-danger">*</span></label>
-        <input type="text" name="proposed_venue" id="id_proposed_venue" required placeholder="Detailed address of camp venue" value="{{ form.proposed_venue.value|default_if_none:'' }}">
+        <input type="text" name="proposed_venue" id="id_proposed_venue" required placeholder="Detailed address of camp venue" value="{{ form.proposed_venue.value|default_if_none:'' }}" class="{% if form.proposed_venue.errors %}is-invalid{% endif %}">
         {% if form.proposed_venue.errors %}
-          <div class="error-msg">{{ form.proposed_venue.errors.0 }}</div>
+          <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.proposed_venue.errors.0 }}</div>
         {% endif %}
       </div>
 
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_mobile_van_required">Is mobile van required (Y/N): <span class="text-danger">*</span></label>
-          <select name="mobile_van_required" id="id_mobile_van_required">
+          <select name="mobile_van_required" id="id_mobile_van_required" class="{% if form.mobile_van_required.errors %}is-invalid{% endif %}">
             <option value="False" {% if form.mobile_van_required.value == 'False' or not form.mobile_van_required.value %}selected{% endif %}>No</option>
             <option value="True" {% if form.mobile_van_required.value == 'True' or form.mobile_van_required.value == True %}selected{% endif %}>Yes</option>
           </select>
           {% if form.mobile_van_required.errors %}
-            <div class="error-msg">{{ form.mobile_van_required.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.mobile_van_required.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_volunteers_available">Do you have volunteers to support (Y/N): <span class="text-danger">*</span></label>
-          <select name="volunteers_available" id="id_volunteers_available">
+          <select name="volunteers_available" id="id_volunteers_available" class="{% if form.volunteers_available.errors %}is-invalid{% endif %}">
             <option value="False" {% if form.volunteers_available.value == 'False' or not form.volunteers_available.value %}selected{% endif %}>No</option>
             <option value="True" {% if form.volunteers_available.value == 'True' or form.volunteers_available.value == True %}selected{% endif %}>Yes</option>
           </select>
           {% if form.volunteers_available.errors %}
-            <div class="error-msg">{{ form.volunteers_available.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.volunteers_available.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
