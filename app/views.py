@@ -2459,7 +2459,7 @@ def request_blood(request):
             pass
 
         messages.success(request, "Your request for blood has been submitted successfully! We will coordinate shortly.")
-        return redirect('request_blood')
+        return redirect('index')
 
     # GET handling
     if user_has_permission(request.user, 'can_manage_blood_requests'):
@@ -2475,7 +2475,6 @@ def request_blood(request):
         page_size = str(page_size_int)
         qs = BloodRequest.objects.all().order_by('-created_at')
         if q:
-            from django.db.models import Q
             qs = qs.filter(
                 Q(patient_name__icontains=q) |
                 Q(hospital_name__icontains=q) |
@@ -2495,7 +2494,10 @@ def request_blood(request):
             'page_obj': page_obj,
             'search_query': q,
             'page_size': page_size,
-            'active_employees': User.objects.filter(is_active=True).order_by('username'),
+            'active_employees': User.objects.filter(
+                Q(role_assignments__isnull=False) | Q(is_staff=True) | Q(is_superuser=True),
+                is_active=True
+            ).distinct().order_by('username'),
         })
 
     # Regular user: show submission form
@@ -2589,28 +2591,26 @@ def assign_blood_request_employee(request, request_id):
         messages.error(request, 'Invalid assignment request.')
         return redirect('request_blood')
 
-    if req.status != 'Accepted':
-        messages.error(request, 'Only accepted requests can be assigned.')
-        return redirect('request_blood')
-
     form = AssignEmployeeForm(request.POST)
     if not form.is_valid():
         messages.error(request, 'Please select a valid active user.')
         return redirect('request_blood')
 
     employee = form.cleaned_data['assigned_employee']
-    if req.assigned_employee_id:
-        messages.error(request, 'This request already has an assigned employee.')
-        return redirect('request_blood')
+    prev_employee = req.assigned_employee
 
     req.assigned_employee = employee
     req.assigned_by = request.user
     req.assigned_at = timezone.now()
-    req.status = 'Assigned'
+    if req.status in {'Pending', 'Accepted'}:
+        req.status = 'Assigned'
     req.updated_by = request.user
-    req.remarks = form.cleaned_data.get('remarks') or req.remarks
+    if form.cleaned_data.get('remarks'):
+        req.remarks = form.cleaned_data.get('remarks')
     req.save()
-    req.append_status_history('Assigned', changed_by=request.user, note=f'Assigned to {employee.username}')
+
+    note_text = f'Reassigned to {employee.username}' if prev_employee else f'Assigned to {employee.username}'
+    req.append_status_history('Assigned', changed_by=request.user, note=note_text)
     try:
         send_notification(
             title='Blood Request Assigned',
@@ -2618,13 +2618,12 @@ def assign_blood_request_employee(request, request_id):
                 f'You have been assigned to blood request for {req.patient_name} '
                 f'({req.blood_group}) at {req.hospital_name}. Please review the request.'
             ),
-            notification_type='info',
-            link=f'/request-blood/view/{req.id}/',
             recipient=employee,
+            link=f'/request-blood/view/{req.id}/',
         )
     except Exception:
         pass
-    messages.success(request, 'Employee assigned successfully.')
+    messages.success(request, f'Successfully assigned blood request to {employee.get_full_name() or employee.username}.')
     return redirect('request_blood')
 
 
@@ -2931,7 +2930,7 @@ def be_donor(request):
 
             # Send Email to Admin
             details = {
-                "Donor Name": f"{donor.first_name} {donor.last_name}",
+                "Donor Name": donor.get_full_name(),
                 "Contact Number": donor.contact_number,
                 "DOB": donor.date_of_birth,
                 "Gender": donor.gender,
@@ -2946,7 +2945,7 @@ def be_donor(request):
 
             # Send WhatsApp notification
             whatsapp_msg = (
-                f"Hello {donor.first_name} {donor.last_name},\n\n"
+                f"Hello {donor.get_full_name()},\n\n"
                 f"Congratulations on registering as a blood donor! You are a hero. "
                 f"We will contact you whenever there is a requirement matching your blood group ({donor.blood_group}).\n\n"
                 f"Regards,\nKYS Bhayander Team"
@@ -2985,8 +2984,8 @@ def be_donor(request):
         page_size = str(page_size_int)
         qs = BloodDonor.objects.all().order_by('-created_at')
         if q:
-            from django.db.models import Q
             qs = qs.filter(
+                Q(full_name__icontains=q) |
                 Q(first_name__icontains=q) |
                 Q(last_name__icontains=q) |
                 Q(contact_number__icontains=q) |

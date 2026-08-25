@@ -15,7 +15,7 @@ urlpatterns = [
     path(
         'favicon.ico',
         RedirectView.as_view(
-            url=settings.STATIC_URL + 'images/favicon.ico',
+            url=settings.STATIC_URL + 'images/Hemoaid_logo1.png',
             permanent=True
         ),
     ),

@@ -2,6 +2,7 @@
 
 from django import forms
 from django.contrib.auth.models import User
+from django.db.models import Q
 import re
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
@@ -11,7 +12,10 @@ from .models import BloodRequest, CampOrganizer, BloodDonor, EventVolunteer, Rol
 
 class AssignEmployeeForm(forms.Form):
     assigned_employee = forms.ModelChoiceField(
-        queryset=User.objects.filter(is_active=True).order_by('username'),
+        queryset=User.objects.filter(
+            Q(role_assignments__isnull=False) | Q(is_staff=True) | Q(is_superuser=True),
+            is_active=True
+        ).distinct().order_by('username'),
         required=True,
         label='Employee / Volunteer'
     )
@@ -143,10 +147,12 @@ class CampOrganizerForm(forms.ModelForm):
 
 
 class BloodDonorForm(forms.ModelForm):
+    full_name = forms.CharField(max_length=255, required=True, label='Full Name')
+
     class Meta:
         model = BloodDonor
         fields = [
-            'first_name', 'last_name', 'contact_number', 'date_of_birth',
+            'full_name', 'contact_number', 'date_of_birth',
             'gender', 'blood_group', 'area_of_residence',
             'reference_name', 'reference_contact'
         ]
@@ -171,9 +177,6 @@ class BloodDonorForm(forms.ModelForm):
     def clean_date_of_birth(self):
         dob = self.cleaned_data.get('date_of_birth')
         if dob:
-            age = (timezone.localdate() - dob).days // 365
-            if age < 18:
-                raise ValidationError("You must be at least 18 years old to register as a donor.")
             if dob > timezone.localdate():
                 raise ValidationError("Date of birth cannot be in the future.")
         return dob

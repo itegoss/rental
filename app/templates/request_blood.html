@@ -4,190 +4,219 @@
 
 {% block content %}
 <style>
-.blood-banner {
-  background-color: #ec2427;
-  color: #fff;
-  padding: 60px 24px;
-  text-align: center;
-}
-.blood-banner h1 {
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin-bottom: 12px;
-}
-.blood-banner p {
-  font-size: 1.1rem;
-  opacity: 0.9;
-  max-width: 600px;
-  margin: 0 auto;
-}
-.form-container {
-  max-width: 960px;
-  margin: -40px auto 60px;
-  background: #ffffff;
-  padding: 40px;
-  border-radius: 16px;
-  box-shadow: var(--shadow-lg);
-  position: relative;
-  z-index: 10;
-}
-.form-section-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text);
-  border-bottom: 2px solid var(--border);
-  padding-bottom: 10px;
-  margin-bottom: 24px;
-}
-.form-group-custom {
-  margin-bottom: 22px;
-}
-.form-group-custom label {
-  display: block;
-  font-weight: 600;
-  font-size: 0.9rem;
-  margin-bottom: 8px;
-  color: #374151;
-}
-.form-group-custom input, .form-group-custom select, .form-group-custom textarea {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  font-size: 0.95rem;
-  transition: all 0.22s;
-  background: #fafafa;
-  outline: none;
-}
-.form-group-custom input:focus, .form-group-custom select:focus {
-  border-color: var(--primary);
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(236,36,39,0.1);
-}
-.consent-box {
-  background: #f9fafb;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 24px;
-}
-.consent-box h5 {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 12px;
-}
-.consent-box ol {
-  padding-left: 20px;
-  font-size: 0.88rem;
-  color: var(--muted);
-  line-height: 1.6;
-}
-.consent-checkbox-wrapper {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-top: 14px;
-}
-.consent-checkbox-wrapper input {
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
-  cursor: pointer;
-}
-.consent-checkbox-wrapper label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text);
-  cursor: pointer;
-  user-select: none;
-}
-.error-msg {
-  color: var(--danger);
-  font-size: 0.82rem;
-  margin-top: 5px;
-  font-weight: 600;
-}
-.btn-signin {
-  width: 100%;
-  padding: 14px;
-  background: #ec2427;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.22s;
-  box-shadow: 0 4px 14px rgba(236,36,39,0.3);
-  text-align: center;
-}
-.btn-signin:hover {
-  background: #c0181b;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(236,36,39,0.4);
-}
-.form-actions-wrapper {
-  display: flex;
-  gap: 16px;
-  margin-top: 28px;
-}
-.btn-cancel-custom {
-  flex: 1;
-  padding: 14px;
-  background: #f3f4f6;
-  color: #374151;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.22s;
-  text-align: center;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-cancel-custom:hover {
-  background: #e5e7eb;
-  color: #111827;
-  transform: translateY(-1px);
-}
+  .blood-banner {
+    background: linear-gradient(135deg, #FDF2F4 0%, #FAF4E6 100%);
+    color: #1e293b;
+    padding: 60px 24px;
+    text-align: center;
+    border-bottom: 3px solid var(--accent-gold);
+  }
+
+  .blood-banner h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #A83D4D;
+    margin-bottom: 12px;
+  }
+
+  .blood-banner p {
+    font-size: 1.1rem;
+    color: #475569;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .form-container {
+    max-width: 960px;
+    margin: -40px auto 60px;
+    background: #ffffff;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    z-index: 10;
+  }
+
+  .form-section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 10px;
+    margin-bottom: 24px;
+  }
+
+  .form-group-custom {
+    margin-bottom: 22px;
+  }
+
+  .form-group-custom label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    color: #374151;
+  }
+
+  .form-group-custom input,
+  .form-group-custom select,
+  .form-group-custom textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    transition: all 0.22s;
+    background: #fafafa;
+    outline: none;
+  }
+
+  .form-group-custom input:focus,
+  .form-group-custom select:focus {
+    border-color: var(--primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(107, 15, 36, 0.1);
+  }
+
+  .consent-box {
+    background: #f9fafb;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .consent-box h5 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .consent-box ol {
+    padding-left: 20px;
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .consent-checkbox-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .consent-checkbox-wrapper input {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    cursor: pointer;
+  }
+
+  .consent-checkbox-wrapper label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .error-msg {
+    color: var(--danger);
+    font-size: 0.82rem;
+    margin-top: 5px;
+    font-weight: 600;
+  }
+
+  .btn-signin {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #B84A5A 0%, #A83D4D 100%);
+    color: #fff;
+    border: 1.5px solid #D4AF37;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.22s;
+    box-shadow: 0 4px 14px rgba(184, 74, 90, 0.25);
+    text-align: center;
+  }
+
+  .btn-signin:hover {
+    background: linear-gradient(135deg, #A83D4D 0%, #962E3E 100%);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(168, 61, 77, 0.35);
+  }
+
+  .form-actions-wrapper {
+    display: flex;
+    gap: 16px;
+    margin-top: 28px;
+  }
+
+  .btn-cancel-custom {
+    flex: 1;
+    padding: 14px;
+    background: #f3f4f6;
+    color: #374151;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.22s;
+    text-align: center;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-cancel-custom:hover {
+    background: #e5e7eb;
+    color: #111827;
+    transform: translateY(-1px);
+  }
 </style>
 
 <div class="blood-banner">
   <h1>{% if is_edit %}Edit Blood Request{% else %}Request a Blood component for your patient{% endif %}</h1>
-  <p>{% if is_edit %}Update the blood request details below.{% else %}Please fill and submit the below form and keep track of messages on your whatsapp.{% endif %}</p>
+  <p>{% if is_edit %}Update the blood request details below.{% else %}Please fill and submit the below form and keep
+    track of messages on your whatsapp.{% endif %}</p>
 </div>
 
 <div class="container">
   <div class="form-container">
     <form method="POST" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
-      
+
       {% if form.non_field_errors %}
-        <div class="alert alert-danger mb-4">
-          {% for error in form.non_field_errors %}
-            <p class="mb-0">{{ error }}</p>
-          {% endfor %}
-        </div>
+      <div class="alert alert-danger mb-4">
+        {% for error in form.non_field_errors %}
+        <p class="mb-0">{{ error }}</p>
+        {% endfor %}
+      </div>
       {% endif %}
 
       <div class="form-section-title">Patient & Hospital Information</div>
-      
+
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_patient_name">Patient’s Full Name <span class="text-danger">*</span></label>
-          <input type="text" name="patient_name" id="id_patient_name" required placeholder="Enter patient's full name" value="{{ form.patient_name.value|default_if_none:'' }}">
+          <input type="text" name="patient_name" id="id_patient_name" required placeholder="Enter patient's full name"
+            value="{{ form.patient_name.value|default_if_none:'' }}">
           {% if form.patient_name.errors %}
-            <div class="error-msg">{{ form.patient_name.errors.0 }}</div>
+          <div class="error-msg">{{ form.patient_name.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_hospital_name">Hospital Name <span class="text-danger">*</span></label>
-          <input type="text" name="hospital_name" id="id_hospital_name" required placeholder="Enter hospital name" value="{{ form.hospital_name.value|default_if_none:'' }}">
+          <input type="text" name="hospital_name" id="id_hospital_name" required placeholder="Enter hospital name"
+            value="{{ form.hospital_name.value|default_if_none:'' }}">
           {% if form.hospital_name.errors %}
-            <div class="error-msg">{{ form.hospital_name.errors.0 }}</div>
+          <div class="error-msg">{{ form.hospital_name.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -195,35 +224,40 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_hospital_area">Hospital Area <span class="text-danger">*</span></label>
-          <input type="text" name="hospital_area" id="id_hospital_area" required placeholder="e.g. Bhayander West" value="{{ form.hospital_area.value|default_if_none:'' }}">
+          <input type="text" name="hospital_area" id="id_hospital_area" required placeholder="e.g. Bhayander West"
+            value="{{ form.hospital_area.value|default_if_none:'' }}">
           {% if form.hospital_area.errors %}
-            <div class="error-msg">{{ form.hospital_area.errors.0 }}</div>
+          <div class="error-msg">{{ form.hospital_area.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_units_required">Units Required <span class="text-danger">*</span></label>
-          <input type="number" name="units_required" id="id_units_required" min="1" required value="{{ form.units_required.value|default_if_none:'1' }}">
+          <input type="number" name="units_required" id="id_units_required" min="1" required
+            value="{{ form.units_required.value|default_if_none:'1' }}">
           {% if form.units_required.errors %}
-            <div class="error-msg">{{ form.units_required.errors.0 }}</div>
+          <div class="error-msg">{{ form.units_required.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
 
       <div class="form-section-title mt-4">Relative / Coordinator Information</div>
-      
+
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_coordinator_name">Relative/Coordinator Full name <span class="text-danger">*</span></label>
-          <input type="text" name="coordinator_name" id="id_coordinator_name" required placeholder="Enter coordinator's full name" value="{{ form.coordinator_name.value|default_if_none:'' }}">
+          <input type="text" name="coordinator_name" id="id_coordinator_name" required
+            placeholder="Person who is directly co-ordinating with Doctor"
+            value="{{ form.coordinator_name.value|default_if_none:'' }}">
           {% if form.coordinator_name.errors %}
-            <div class="error-msg">{{ form.coordinator_name.errors.0 }}</div>
+          <div class="error-msg">{{ form.coordinator_name.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_coordinator_contact">Coordinator’s Contact number <span class="text-danger">*</span></label>
-          <input type="tel" name="coordinator_contact" id="id_coordinator_contact" required placeholder="10-digit mobile number" value="{{ form.coordinator_contact.value|default_if_none:'' }}">
+          <input type="tel" name="coordinator_contact" id="id_coordinator_contact" required
+            placeholder="10-digit mobile number" value="{{ form.coordinator_contact.value|default_if_none:'' }}">
           {% if form.coordinator_contact.errors %}
-            <div class="error-msg">{{ form.coordinator_contact.errors.0 }}</div>
+          <div class="error-msg">{{ form.coordinator_contact.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -231,16 +265,18 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_reference_name">Reference Name (if any)</label>
-          <input type="text" name="reference_name" id="id_reference_name" placeholder="Enter reference name" value="{{ form.reference_name.value|default_if_none:'' }}">
+          <input type="text" name="reference_name" id="id_reference_name" placeholder="Enter reference name"
+            value="{{ form.reference_name.value|default_if_none:'' }}">
           {% if form.reference_name.errors %}
-            <div class="error-msg">{{ form.reference_name.errors.0 }}</div>
+          <div class="error-msg">{{ form.reference_name.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_reference_contact">Reference contact number</label>
-          <input type="tel" name="reference_contact" id="id_reference_contact" placeholder="10-digit reference contact" value="{{ form.reference_contact.value|default_if_none:'' }}">
+          <input type="tel" name="reference_contact" id="id_reference_contact" placeholder="10-digit reference contact"
+            value="{{ form.reference_contact.value|default_if_none:'' }}">
           {% if form.reference_contact.errors %}
-            <div class="error-msg">{{ form.reference_contact.errors.0 }}</div>
+          <div class="error-msg">{{ form.reference_contact.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -249,10 +285,10 @@
         <label for="id_prescription">Upload Doctor’s prescription image (jpg, jpeg, png, pdf, img) <span class="text-danger">*</span></label>
         <input type="file" name="prescription" id="id_prescription" {% if not is_edit or not req.prescription %}required{% endif %} accept=".jpg,.jpeg,.png,.pdf,.img,.webp">
         {% if req.prescription %}
-          <small class="text-muted d-block mt-1">Current prescription: <a href="{{ req.prescription.url }}" target="_blank" style="color:#3b82f6;text-decoration:underline;">View File</a></small>
+        <small class="text-muted d-block mt-1">Current prescription: <a href="{{ req.prescription.url }}" target="_blank" style="color:#3b82f6;text-decoration:underline;">View File</a></small>
         {% endif %}
         {% if form.prescription.errors %}
-          <div class="error-msg">{{ form.prescription.errors.0 }}</div>
+        <div class="error-msg">{{ form.prescription.errors.0 }}</div>
         {% endif %}
       </div>
 
@@ -264,7 +300,7 @@
           </label>
         </div>
         {% if form.consent.errors %}
-          <div class="error-msg">{{ form.consent.errors.0 }}</div>
+        <div class="error-msg">{{ form.consent.errors.0 }}</div>
         {% endif %}
       </div>
 
@@ -276,13 +312,13 @@
           <select name="blood_group" id="id_blood_group" required>
             <option value="" disabled {% if not form.blood_group.value and not req.blood_group %}selected{% endif %}>Select Blood Group</option>
             {% for code, label in form.fields.blood_group.choices %}
-              {% if code %}
-                <option value="{{ code }}" {% if form.blood_group.value == code or req.blood_group == code %}selected{% endif %}>{{ label }}</option>
-              {% endif %}
+            {% if code %}
+            <option value="{{ code }}" {% if form.blood_group.value == code or req.blood_group == code %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
             {% endfor %}
           </select>
           {% if form.blood_group.errors %}
-            <div class="error-msg">{{ form.blood_group.errors.0 }}</div>
+          <div class="error-msg">{{ form.blood_group.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
@@ -290,13 +326,13 @@
           <select name="blood_component" id="id_blood_component" required>
             <option value="" disabled {% if not form.blood_component.value and not req.blood_component %}selected{% endif %}>Select Blood Component</option>
             {% for code, label in form.fields.blood_component.choices %}
-              {% if code %}
-                <option value="{{ code }}" {% if form.blood_component.value == code or req.blood_component == code %}selected{% endif %}>{{ label }}</option>
-              {% endif %}
+            {% if code %}
+            <option value="{{ code }}" {% if form.blood_component.value == code or req.blood_component == code %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
             {% endfor %}
           </select>
           {% if form.blood_component.errors %}
-            <div class="error-msg">{{ form.blood_component.errors.0 }}</div>
+          <div class="error-msg">{{ form.blood_component.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -305,7 +341,7 @@
           <label for="id_price">Price (₹)</label>
           <input type="number" step="0.01" min="0" name="price" id="id_price" placeholder="Enter price" value="{{ form.price.value|default_if_none:'' }}">
           {% if form.price.errors %}
-            <div class="error-msg">{{ form.price.errors.0 }}</div>
+          <div class="error-msg">{{ form.price.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
@@ -313,13 +349,13 @@
           <select name="blood_bank" id="id_blood_bank">
             <option value="" {% if not form.blood_bank.value %}selected{% endif %}>Select Blood Bank</option>
             {% for bb in blood_banks %}
-              <option value="{{ bb.name }}" {% if form.blood_bank.value == bb.name or req.blood_bank == bb.name %}selected{% endif %}>
-                {{ bb.name }}{% if bb.address %} — {{ bb.address }}{% endif %}
-              </option>
+            <option value="{{ bb.name }}" {% if form.blood_bank.value == bb.name or req.blood_bank == bb.name %}selected{% endif %}>
+              {{ bb.name }}{% if bb.address %} — {{ bb.address }}{% endif %}
+            </option>
             {% endfor %}
           </select>
           {% if form.blood_bank.errors %}
-            <div class="error-msg">{{ form.blood_bank.errors.0 }}</div>
+          <div class="error-msg">{{ form.blood_bank.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -330,7 +366,7 @@
 
       <div class="form-actions-wrapper">
         {% if is_edit %}
-          <a href="{% if req %}{% url 'admin_view_blood_request' req.id %}{% else %}{% url 'request_blood' %}{% endif %}" class="btn-cancel-custom">Cancel</a>
+        <a href="{% if req %}{% url 'admin_view_blood_request' req.id %}{% else %}{% url 'request_blood' %}{% endif %}" class="btn-cancel-custom">Cancel</a>
         {% endif %}
         <button type="submit" class="btn-signin" style="flex:1;">{% if is_edit %}Update Request{% else %}Submit{% endif %}</button>
       </div>

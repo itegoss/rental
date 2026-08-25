@@ -51,7 +51,7 @@
     <div class="modal fade" id="empViewModal{{ req.id }}" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden; box-shadow: 0 24px 48px rgba(0,0,0,0.18);">
-          <div class="modal-header" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #fff; padding: 18px 24px;">
+          <div class="modal-header" style="background: #B84A5A; color: #fff; padding: 18px 24px;">
             <h5 class="modal-title" style="font-weight: 800; color: #fff; font-size: 1.2rem;">
               <i class="fas fa-clipboard-list me-2"></i> Assigned Request Details — {{ req.patient_name }}
             </h5>
@@ -64,20 +64,19 @@
                 <span style="color: #64748b; font-size: 0.88rem;">Assigned On: {{ req.assigned_at|date:'d M, Y H:i'|default:'-' }}</span>
               </div>
               <div>
-                <span class="badge bg-primary" style="font-size: 0.95rem; padding: 8px 14px; border-radius: 20px; font-weight: 700;">{{ req.status }}</span>
+                <span class="badge bg-primary" title="{{ req.status }}" style="font-size: 1.1rem; padding: 8px 12px; border-radius: 20px;"><i class="fas fa-user-check"></i></span>
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
               <div style="background: #ffffff; border-radius: 12px; padding: 16px; border: 1px solid #e2e8f0;">
-                <h6 style="font-weight: 800; text-transform: uppercase; font-size: 0.78rem; color: #dc2626; letter-spacing: 0.5px; margin-bottom: 12px;">
+                <h6 style="font-weight: 800; text-transform: uppercase; font-size: 0.78rem; color: #B84A5A; letter-spacing: 0.5px; margin-bottom: 12px;">
                   <i class="fas fa-tint me-1"></i> Medical Details
                 </h6>
                 <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.92rem; color: #334155;">
-                  <div><strong>Blood Group:</strong> <span class="text-danger fw-bold">{{ req.blood_group }}</span></div>
+                  <div><strong>Blood Group:</strong> <span class="fw-bold" style="color:#B84A5A;">{{ req.blood_group }}</span></div>
                   <div><strong>Blood Component:</strong> {{ req.blood_component|default:'-' }}</div>
-                  <!-- <div><strong>Blood Type:</strong> {{ req.blood_type|default:'-' }}</div> -->
-                  <div><strong>Price:</strong> {% if req.price %}₹{{ req.price }}{% else %}-{% endif %}</div>
+                  <div><strong>Price:</strong> {% if req.price is not None %}₹{{ req.price }}{% else %}-{% endif %}</div>
                 </div>
               </div>
 
@@ -95,30 +94,30 @@
           </div>
 
           <div class="modal-footer" style="background: #ffffff; padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="font-weight: 700; border-radius: 8px;">
-              <i class="fas fa-times me-1"></i> Close
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" title="Close" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+              <i class="fas fa-times"></i>
             </button>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
               <form method="post" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">{% csrf_token %}
                 <input type="hidden" name="action" value="employee_searching" />
-                <button class="btn btn-info text-white" type="submit" style="font-weight: 700; border-radius: 8px;">
-                  <i class="fas fa-search me-1"></i> Continue Searching
+                <button class="btn btn-info text-white" type="submit" title="Continue Searching" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                  <i class="fas fa-search"></i>
                 </button>
               </form>
               <form method="post" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">{% csrf_token %}
                 <input type="hidden" name="action" value="employee_blood_available" />
-                <button class="btn btn-success" type="submit" style="font-weight: 700; border-radius: 8px;">
-                  <i class="fas fa-check me-1"></i> Blood Available
+                <button class="btn btn-success" type="submit" title="Blood Available" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                  <i class="fas fa-check"></i>
                 </button>
               </form>
               <form method="post" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">{% csrf_token %}
                 <input type="hidden" name="action" value="cancel" />
-                <button class="btn btn-warning text-dark" type="submit" style="font-weight: 700; border-radius: 8px;" onclick="return confirm('Cancel request as blood is not available anywhere?');">
-                  <i class="fas fa-ban me-1"></i> Cancel Request
+                <button class="btn btn-warning text-dark" type="submit" title="Cancel Request" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;" onclick="return confirm('Cancel request as blood is not available anywhere?');">
+                  <i class="fas fa-ban"></i>
                 </button>
               </form>
-              <a class="btn btn-primary" href="{% url 'edit_blood_request' req.id %}" style="font-weight: 700; border-radius: 8px;">
-                <i class="fas fa-edit me-1"></i> Edit
+              <a class="btn btn-primary" href="{% url 'edit_blood_request' req.id %}" title="Edit" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                <i class="fas fa-edit"></i>
               </a>
             </div>
           </div>

@@ -10,7 +10,7 @@
 }
 .auth-brand {
   flex: 1;
-  background: linear-gradient(145deg, #ec2427 0%, #a00f11 100%);
+  background: linear-gradient(145deg, #A83D4D 0%, #B84A5A 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -40,12 +40,14 @@
 .auth-brand-logo {
   width: 90px;
   height: 90px;
-  background: rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.15);
+  border: 2px solid var(--accent-gold);
   border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2.2rem;
+  color: var(--accent-gold);
   margin-bottom: 28px;
   position: relative;
   z-index: 1;
@@ -116,7 +118,7 @@
 .form-field input:focus {
   border-color: var(--primary);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(236,36,39,0.1);
+  box-shadow: 0 0 0 3px rgba(107,15,36,0.1);
 }
 .form-field .field-icon {
   position: absolute;
@@ -132,22 +134,23 @@
 .btn-signin {
   width: 100%;
   padding: 13px;
-  background: var(--primary);
+  background: linear-gradient(135deg, #B84A5A 0%, #A83D4D 100%);
   color: #fff;
-  border: none;
+  border: 1.5px solid #D4AF37;
   border-radius: 10px;
   font-size: 1rem;
   font-weight: 700;
   font-family: var(--font);
   cursor: pointer;
   transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 14px rgba(236,36,39,0.28);
+  box-shadow: 0 4px 14px rgba(184,74,90,0.25);
   margin-top: 6px;
 }
 .btn-signin:hover {
-  background: var(--primary-dark);
+  background: linear-gradient(135deg, #A83D4D 0%, #962E3E 100%);
+  color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(236,36,39,0.34);
+  box-shadow: 0 8px 22px rgba(168,61,77,0.35);
 }
 .auth-divider {
   display: flex;

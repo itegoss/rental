@@ -4,19 +4,21 @@
 {% block content %}
 <style>
 .volunteer-banner {
-  background: var(--primary-dark);
-  color: #fff;
+  background: linear-gradient(135deg, #FDF2F4 0%, #FAF4E6 100%);
+  color: #1e293b;
   padding: 60px 24px;
   text-align: center;
+  border-bottom: 3px solid var(--accent-gold);
 }
 .volunteer-banner h1 {
   font-size: 2.5rem;
   font-weight: 800;
+  color: #A83D4D;
   margin-bottom: 16px;
 }
 .volunteer-banner p {
   font-size: 1.1rem;
-  opacity: 0.95;
+  color: #475569;
   max-width: 650px;
   margin: 0 auto;
   line-height: 1.6;
@@ -62,7 +64,7 @@
 .form-group-custom input:focus, .form-group-custom select:focus, .form-group-custom textarea:focus {
   border-color: var(--primary);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(236,36,39,0.1);
+  box-shadow: 0 0 0 3px rgba(107,15,36,0.1);
 }
 .error-msg {
   color: var(--danger);
@@ -73,21 +75,22 @@
 .btn-signin {
   width: 100%;
   padding: 14px;
-  background: #ec2427;
+  background: linear-gradient(135deg, #B84A5A 0%, #A83D4D 100%);
   color: #fff;
-  border: none;
+  border: 1.5px solid #D4AF37;
   border-radius: 10px;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.22s;
-  box-shadow: 0 4px 14px rgba(236,36,39,0.3);
+  box-shadow: 0 4px 14px rgba(184, 74, 90, 0.25);
   text-align: center;
 }
 .btn-signin:hover {
-  background: #c0181b;
+  background: linear-gradient(135deg, #A83D4D 0%, #962E3E 100%);
+  color: #fff;
   transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(236,36,39,0.4);
+  box-shadow: 0 8px 22px rgba(168, 61, 77, 0.35);
 }
 </style>
 
@@ -138,7 +141,7 @@
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_date_of_birth">Date of Birth <span class="text-danger">*</span></label>
-          <input type="date" name="date_of_birth" id="id_date_of_birth" required value="{{ form.date_of_birth.value|default_if_none:'' }}">
+          <input type="date" name="date_of_birth" id="id_date_of_birth" max="{% now 'Y-m-d' %}" required value="{{ form.date_of_birth.value|default_if_none:'' }}">
           {% if form.date_of_birth.errors %}
             <div class="error-msg">{{ form.date_of_birth.errors.0 }}</div>
           {% endif %}

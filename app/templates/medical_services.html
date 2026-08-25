@@ -38,7 +38,7 @@
   .underline-bar {
     width: 70px;
     height: 5px;
-    background: linear-gradient(90deg, #ec2427 0%, #ff6b6b 100%);
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent-gold) 100%);
     border-radius: 4px;
     margin: 14px auto 0;
   }
@@ -64,8 +64,8 @@
     width: 68px;
     height: 68px;
     border-radius: 50%;
-    background: #fef2f2;
-    color: #ec2427;
+    background: var(--primary-light);
+    color: var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -150,13 +150,13 @@
 
   .flip-card-wrapper:hover:not(.flipped) .flip-card-front {
     transform: translateY(-6px);
-    box-shadow: 0 20px 40px rgba(236, 36, 39, 0.12);
-    border-color: rgba(236, 36, 39, 0.3);
+    box-shadow: 0 20px 40px rgba(107, 15, 36, 0.12);
+    border-color: rgba(107, 15, 36, 0.3);
   }
 
   .flip-card-wrapper.flipped .flip-card-back {
-    box-shadow: 0 22px 45px rgba(15, 23, 42, 0.18), 0 0 0 2px rgba(236, 36, 39, 0.4);
-    border-color: #ec2427;
+    box-shadow: 0 22px 45px rgba(15, 23, 42, 0.18), 0 0 0 2px rgba(107, 15, 36, 0.4);
+    border-color: var(--primary);
   }
 
   /* ── FRONT SIDE ── */
@@ -172,7 +172,7 @@
     left: 0;
     width: 100%;
     height: 6px;
-    background: linear-gradient(90deg, #ec2427 0%, #ff5255 100%);
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent-gold) 100%);
   }
 
   .card-top-row {
@@ -186,23 +186,23 @@
     width: 48px;
     height: 48px;
     border-radius: 14px;
-    background: linear-gradient(135deg, #ec2427 0%, #c0181b 100%);
-    color: #ffffff;
+    background: linear-gradient(135deg, #F5D77F 0%, #D4AF37 100%);
+    color: #4A0717;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.3rem;
-    box-shadow: 0 8px 18px rgba(236, 36, 39, 0.28);
+    box-shadow: 0 8px 18px rgba(212, 175, 55, 0.35);
   }
 
   .service-category-badge {
-    background: #fef2f2;
-    color: #ec2427;
+    background: #FAF4E6;
+    color: #997519;
     font-size: 0.74rem;
     font-weight: 700;
     padding: 4px 12px;
     border-radius: 999px;
-    border: 1px solid rgba(236, 36, 39, 0.15);
+    border: 1px solid rgba(212, 175, 55, 0.3);
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -232,8 +232,8 @@
   }
 
   .click-to-flip-btn {
-    background: #fef2f2;
-    color: #ec2427;
+    background: var(--primary-light);
+    color: var(--primary);
     font-size: 0.84rem;
     font-weight: 700;
     padding: 11px 18px;
@@ -241,16 +241,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border: 1.5px solid rgba(236, 36, 39, 0.18);
+    border: 1.5px solid rgba(107, 15, 36, 0.18);
     transition: all 0.22s ease;
     width: 100%;
   }
 
   .flip-card-wrapper:hover .click-to-flip-btn {
-    background: #ec2427;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     color: #ffffff;
-    border-color: #ec2427;
-    box-shadow: 0 6px 16px rgba(236, 36, 39, 0.3);
+    border-color: var(--primary);
+    box-shadow: 0 6px 16px rgba(107, 15, 36, 0.3);
   }
 
   /* ── BACK SIDE ── */
@@ -268,7 +268,7 @@
     left: 0;
     width: 100%;
     height: 6px;
-    background: linear-gradient(90deg, #0f172a 0%, #ec2427 100%);
+    background: linear-gradient(90deg, var(--primary-dark) 0%, var(--accent-gold) 100%);
   }
 
   .flip-card-back-header {
@@ -281,7 +281,7 @@
   }
 
   .flip-card-back h4 {
-    color: #ec2427;
+    color: var(--primary);
     font-size: 1.15rem;
     font-weight: 800;
     margin: 0;
@@ -293,12 +293,12 @@
 
   .back-flip-hint {
     font-size: 0.74rem;
-    color: #ec2427;
+    color: var(--primary);
     font-weight: 700;
-    background: #fef2f2;
+    background: var(--primary-light);
     padding: 5px 12px;
     border-radius: 999px;
-    border: 1px solid rgba(236, 36, 39, 0.18);
+    border: 1px solid rgba(107, 15, 36, 0.18);
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -306,7 +306,7 @@
   }
 
   .back-flip-hint:hover {
-    background: #ec2427;
+    background: var(--primary);
     color: #ffffff;
   }
 
@@ -319,7 +319,7 @@
     border-radius: 12px;
     border: 1px solid #e2e8f0;
     scrollbar-width: thin;
-    scrollbar-color: #ec2427 #f1f5f9;
+    scrollbar-color: var(--primary) #f1f5f9;
   }
 
   .contacts-table-wrap::-webkit-scrollbar {
@@ -331,7 +331,7 @@
   }
 
   .contacts-table-wrap::-webkit-scrollbar-thumb {
-    background: #ec2427;
+    background: var(--primary);
     border-radius: 5px;
   }
 
@@ -350,17 +350,20 @@
   }
 
   .contacts-table thead tr {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background: #B84A5A !important;
+    background-color: #B84A5A !important;
   }
 
   .contacts-table th {
+    background: #B84A5A !important;
+    background-color: #B84A5A !important;
     padding: 10px 12px;
     font-weight: 800;
-    color: #334155;
+    color: #ffffff !important;
     text-transform: uppercase;
     font-size: 0.7rem;
     letter-spacing: 0.5px;
-    border-bottom: 1.5px solid #cbd5e1;
+    border-bottom: 1.5px solid var(--accent-gold);
   }
 
   .contacts-table td {
@@ -375,12 +378,12 @@
   }
 
   .contacts-table tbody tr:hover {
-    background: #fef2f2;
+    background: var(--primary-light);
   }
 
   .service-name-td {
     font-weight: 700;
-    color: #ec2427;
+    color: var(--primary);
     white-space: nowrap;
   }
 
@@ -395,7 +398,7 @@
   }
 
   .table-phone-btn {
-    background: linear-gradient(135deg, #ec2427 0%, #c0181b 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     color: #ffffff !important;
     padding: 5px 12px;
     border-radius: 8px;

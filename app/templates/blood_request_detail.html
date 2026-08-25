@@ -15,7 +15,7 @@
     <p><strong>Reference:</strong> {{ req.reference_name|default:'-' }} — {{ req.reference_contact|default:'-' }}</p>
     <p><strong>Blood Component:</strong> {{ req.blood_component|default:'-' }}</p>
     <p><strong>Blood Type:</strong> {{ req.blood_type|default:'-' }}</p>
-    <p><strong>Price:</strong> {% if req.price %}₹{{ req.price }}{% else %}-{% endif %}</p>
+    <p><strong>Price:</strong> {% if req.price is not None %}₹{{ req.price }}{% else %}-{% endif %}</p>
     <p><strong>Blood Bank:</strong> {{ req.blood_bank|default:'-' }}</p>
     <p><strong>Status:</strong> {{ req.status }}</p>
     <p><strong>Submitted:</strong> {{ req.created_at|date:'d M, Y H:i' }}</p>

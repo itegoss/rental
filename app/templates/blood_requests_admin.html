@@ -62,7 +62,7 @@
             <td class="price-cell">{{ req.blood_group }}</td>
             <td>{{ req.blood_component|default:"-" }}</td>
             <td>{{ req.blood_type|default:"-" }}</td>
-            <td class="price-col">{% if req.price %}₹{{ req.price }}{% else %}-{% endif %}</td>
+            <td class="price-col">{% if req.price is not None %}₹{{ req.price }}{% else %}-{% endif %}</td>
             <td>{{ req.blood_bank|default:"-" }}</td>
             <td>{{ req.hospital_name }}</td>
             <td>{{ req.hospital_area }}</td>
@@ -211,7 +211,7 @@
     <div class="modal fade" id="viewModal{{ req.id }}" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 16px; border: none; overflow: hidden; box-shadow: 0 24px 48px rgba(0,0,0,0.18);">
-          <div class="modal-header" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: #fff; padding: 18px 24px;">
+          <div class="modal-header" style="background: #B84A5A; color: #fff; padding: 18px 24px;">
             <h5 class="modal-title" style="font-weight: 800; color: #fff; font-size: 1.2rem;">
               <i class="fas fa-clipboard-list me-2"></i> Request Details — {{ req.patient_name }}
             </h5>
@@ -227,30 +227,79 @@
               </div>
               <div>
                 {% if req.status == 'Pending' %}
-                  <span class="badge bg-warning text-dark" style="font-size: 0.95rem; padding: 8px 14px; border-radius: 20px; font-weight: 700;">{{ req.status }}</span>
+                  <span class="badge bg-warning text-dark" title="Pending" style="font-size: 1.1rem; padding: 8px 12px; border-radius: 20px;"><i class="fas fa-clock"></i></span>
                 {% elif req.status == 'Approved' or req.status == 'Accepted' %}
-                  <span class="badge bg-success" style="font-size: 0.95rem; padding: 8px 14px; border-radius: 20px; font-weight: 700;">{{ req.status }}</span>
+                  <span class="badge bg-success" title="{{ req.status }}" style="font-size: 1.1rem; padding: 8px 12px; border-radius: 20px;"><i class="fas fa-check-circle"></i></span>
                 {% elif req.status == 'Fulfilled' or req.status == 'Completed' %}
-                  <span class="badge bg-info text-dark" style="font-size: 0.95rem; padding: 8px 14px; border-radius: 20px; font-weight: 700;">{{ req.status }}</span>
+                  <span class="badge bg-info text-dark" title="{{ req.status }}" style="font-size: 1.1rem; padding: 8px 12px; border-radius: 20px;"><i class="fas fa-check-double"></i></span>
                 {% else %}
-                  <span class="badge bg-secondary" style="font-size: 0.95rem; padding: 8px 14px; border-radius: 20px; font-weight: 700;">{{ req.status }}</span>
+                  <span class="badge bg-secondary" title="{{ req.status }}" style="font-size: 1.1rem; padding: 8px 12px; border-radius: 20px;"><i class="fas fa-info-circle"></i></span>
                 {% endif %}
               </div>
             </div>
+
+            <!-- Assigned Employee Info (Moved Above Medical Details with Edit Icon on Top Right) -->
+            {% if req.assigned_employee %}
+            <div style="margin-bottom: 20px; background: #ecfdf5; border-radius: 12px; padding: 16px; border: 1px solid #a7f3d0; position: relative;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <h6 style="font-weight: 800; text-transform: uppercase; font-size: 0.78rem; color: #047857; letter-spacing: 0.5px; margin: 0;">
+                  <i class="fas fa-user-check me-1"></i> Assigned Employee Information
+                </h6>
+                <button type="button" class="btn btn-sm btn-outline-success" 
+                        onclick="const el = document.getElementById('reassignCollapse{{ req.id }}'); el.style.display = (el.style.display === 'none' ? 'block' : 'none');" 
+                        title="Change Assigned Person" 
+                        style="border-radius: 8px; width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-color: #047857; color: #047857;">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.9rem; color: #065f46;">
+                <div><strong>Assigned To:</strong> {{ req.assigned_employee.get_full_name|default:req.assigned_employee.username }}</div>
+                <div><strong>Contact Number:</strong> {{ req.get_assigned_employee_phone }}</div>
+              </div>
+
+              <!-- Inline Re-assignment Form Toggled on Edit Icon Click -->
+              <div id="reassignCollapse{{ req.id }}" style="display: none; margin-top: 14px; padding-top: 14px; border-top: 1px dashed #a7f3d0;">
+                <form method="POST" action="{% url 'assign_blood_request_employee' req.id %}">
+                  {% csrf_token %}
+                  <div class="row g-2 align-items-center">
+                    <div class="col-sm-8">
+                      <select class="form-select form-select-sm" name="assigned_employee" required style="border-radius: 8px;">
+                        {% if req.assigned_employee and req.assigned_employee not in active_employees %}
+                        <option value="{{ req.assigned_employee.id }}" selected>
+                          {{ req.assigned_employee.username }} {% if req.assigned_employee.get_full_name %}({{ req.assigned_employee.get_full_name }}){% endif %}
+                        </option>
+                        {% endif %}
+                        {% for user in active_employees %}
+                        <option value="{{ user.id }}" {% if user.id == req.assigned_employee.id %}selected{% endif %}>
+                          {{ user.username }} {% if user.get_full_name %}({{ user.get_full_name }}){% endif %}
+                        </option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-sm-4 text-end">
+                      <button type="submit" class="btn btn-sm btn-success w-100" style="border-radius: 8px; font-weight: 700;">
+                        <i class="fas fa-check me-1"></i> Update
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+            {% endif %}
 
             <!-- Details Grid -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
               
               <!-- Medical Details Card -->
               <div style="background: #ffffff; border-radius: 12px; padding: 16px; border: 1px solid #e2e8f0;">
-                <h6 style="font-weight: 800; text-transform: uppercase; font-size: 0.78rem; color: #dc2626; letter-spacing: 0.5px; margin-bottom: 12px;">
+                <h6 style="font-weight: 800; text-transform: uppercase; font-size: 0.78rem; color: #B84A5A; letter-spacing: 0.5px; margin-bottom: 12px;">
                   <i class="fas fa-tint me-1"></i> Medical Details
                 </h6>
                 <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.92rem; color: #334155;">
-                  <div><strong>Blood Group:</strong> <span class="text-danger fw-bold">{{ req.blood_group }}</span></div>
+                  <div><strong>Blood Group:</strong> <span class="fw-bold" style="color: #B84A5A;">{{ req.blood_group }}</span></div>
                   <div><strong>Blood Component:</strong> {{ req.blood_component|default:'-' }}</div>
-                  <!-- <div><strong>Blood Type:</strong> {{ req.blood_type|default:'-' }}</div> -->
-                  <div><strong>Price:</strong> {% if req.price %}₹{{ req.price }}{% else %}-{% endif %}</div>
+                  <div><strong>Price:</strong> {% if req.price is not None %}₹{{ req.price }}{% else %}-{% endif %}</div>
                   <div><strong>Blood Bank:</strong> {{ req.blood_bank|default:'-' }}</div>
                 </div>
               </div>
@@ -287,8 +336,8 @@
                 <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.92rem; color: #334155;">
                   <div><strong>Prescription:</strong> 
                     {% if req.prescription %}
-                      <button type="button" class="btn btn-sm btn-outline-primary ms-1" data-bs-toggle="modal" data-bs-target="#prescriptionModal{{ req.id }}" style="padding: 2px 10px; font-size: 0.8rem;">
-                        <i class="fas fa-eye me-1"></i> View Prescription
+                      <button type="button" class="btn btn-sm btn-outline-primary ms-1" data-bs-toggle="modal" data-bs-target="#prescriptionModal{{ req.id }}" title="View Prescription" style="border-radius: 8px; width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-eye"></i>
                       </button>
                     {% else %}
                       <span class="text-muted">None uploaded</span>
@@ -300,24 +349,8 @@
 
             </div>
 
-            <!-- Assigned Employee Info (if assigned) -->
-            {% if req.assigned_employee %}
-            <div style="margin-top: 16px; background: #ecfdf5; border-radius: 12px; padding: 16px; border: 1px solid #a7f3d0;">
-              <h6 style="font-weight: 800; text-transform: uppercase; font-size: 0.78rem; color: #047857; letter-spacing: 0.5px; margin-bottom: 10px;">
-                <i class="fas fa-user-check me-1"></i> Assigned Employee Information
-              </h6>
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.9rem; color: #065f46;">
-                <div><strong>Assigned To:</strong> {{ req.assigned_employee.get_full_name|default:req.assigned_employee.username }}</div>
-                <div><strong>Username:</strong> {{ req.assigned_employee.username }}</div>
-                <div><strong>Email:</strong> {{ req.assigned_employee.email|default:'-' }}</div>
-                <div><strong>Assigned By:</strong> {{ req.assigned_by.get_full_name|default:req.assigned_by.username|default:'-' }}</div>
-                <div><strong>Assigned On:</strong> {{ req.assigned_at|date:'d M Y g:i A'|default:'-' }}</div>
-              </div>
-            </div>
-            {% endif %}
-
-            <!-- Inline Employee Assignment Section if status is Accepted -->
-            {% if req.status == 'Accepted' %}
+            <!-- Inline Employee Assignment Section if status is Pending or Accepted -->
+            {% if req.status == 'Pending' or req.status == 'Accepted' %}
             <div style="margin-top: 16px; background: #f0f9ff; border-radius: 12px; padding: 16px; border: 1px solid #bae6fd;">
               <h6 style="font-weight: 800; text-transform: uppercase; font-size: 0.78rem; color: #0369a1; letter-spacing: 0.5px; margin-bottom: 12px;">
                 <i class="fas fa-user-plus me-1"></i> Assign Employee
@@ -339,8 +372,8 @@
                     <input type="text" class="form-control" name="remarks" placeholder="Optional notes...">
                   </div>
                   <div class="col-12 text-end">
-                    <button type="submit" class="btn btn-primary" style="font-weight: 700; border-radius: 8px;">
-                      <i class="fas fa-user-plus me-1"></i> Assign Employee Now
+                    <button type="submit" class="btn btn-primary" title="Assign Employee Now" style="font-weight: 700; border-radius: 8px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                      <i class="fas fa-user-plus"></i>
                     </button>
                   </div>
                 </div>
@@ -353,8 +386,8 @@
           <!-- Actions Footer (All Action Buttons Placed Here) -->
           <div class="modal-footer" style="background: #ffffff; padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div>
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="font-weight: 700; border-radius: 8px;">
-                <i class="fas fa-times me-1"></i> Close
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" title="Close" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                <i class="fas fa-times"></i>
               </button>
             </div>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
@@ -362,31 +395,24 @@
               <form method="POST" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="accept">
-                <button class="btn btn-success" type="submit" style="font-weight: 700; border-radius: 8px;">
-                  <i class="fas fa-check me-1"></i> Accept
-                </button>
-              </form>
-              <form method="POST" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="reject">
-                <button class="btn btn-danger" type="submit" style="font-weight: 700; border-radius: 8px;">
-                  <i class="fas fa-times me-1"></i> Reject
+                <button class="btn btn-success" type="submit" title="Accept" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                  <i class="fas fa-check"></i>
                 </button>
               </form>
               {% elif req.status == 'Blood Available' %}
               <form method="POST" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="ready_for_pickup">
-                <button class="btn btn-primary" type="submit" style="font-weight: 700; border-radius: 8px;">
-                  <i class="fas fa-box me-1"></i> Ready for Pickup
+                <button class="btn btn-primary" type="submit" title="Ready for Pickup" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                  <i class="fas fa-box"></i>
                 </button>
               </form>
               {% elif req.status == 'Received' %}
               <form method="POST" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="complete">
-                <button class="btn btn-success" type="submit" style="font-weight: 700; border-radius: 8px;">
-                  <i class="fas fa-flag-checkered me-1"></i> Complete
+                <button class="btn btn-success" type="submit" title="Complete" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                  <i class="fas fa-flag-checkered"></i>
                 </button>
               </form>
               {% endif %}
@@ -395,18 +421,20 @@
               <form method="POST" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="cancel">
-                <button class="btn btn-warning text-dark" type="submit" style="font-weight: 700; border-radius: 8px;" onclick="return confirm('Cancel this blood request (Blood not available anywhere)?');">
-                  <i class="fas fa-ban me-1"></i> Cancel Request
+                <button class="btn btn-warning text-dark" type="submit" title="Cancel Request" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;" onclick="return confirm('Cancel this blood request (Blood not available anywhere)?');">
+                  <i class="fas fa-ban"></i>
                 </button>
               </form>
               {% endif %}
 
-              <a class="btn btn-primary" href="{% url 'edit_blood_request' req.id %}" style="font-weight: 700; border-radius: 8px;">
-                <i class="fas fa-edit me-1"></i> Edit
+              {% if req.status != 'Pending' %}
+              <a class="btn btn-primary" href="{% url 'edit_blood_request' req.id %}" title="Edit" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                <i class="fas fa-edit"></i>
               </a>
+              {% endif %}
 
-              <a class="btn btn-danger" href="{% url 'delete_blood_request' req.id %}" onclick="return confirm('Delete this record');" style="font-weight: 700; border-radius: 8px;">
-                <i class="fas fa-trash me-1"></i> Delete
+              <a class="btn btn-danger" href="{% url 'delete_blood_request' req.id %}" onclick="return confirm('Delete this record');" title="Delete" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                <i class="fas fa-trash"></i>
               </a>
             </div>
           </div>

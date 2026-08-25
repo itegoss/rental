@@ -12,29 +12,36 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
     crossorigin="anonymous">
   {% load static notification_tags %}
-  <link rel="shortcut icon" type="image/x-icon" href="{% static 'images/logo2.png' %}">
+  <link rel="shortcut icon" type="image/png" href="{% static 'images/Hemoaid_logo1.png' %}">
+  <link rel="icon" type="image/png" href="{% static 'images/Hemoaid_logo1.png' %}">
   <link rel="manifest" href="{% static 'pwa/manifest.json' %}">
   <link rel="apple-touch-icon" href="{% static 'pwa/icons/icon-192x192.png' %}">
-  <meta name="theme-color" content="#ec2427">
+  <meta name="theme-color" content="#B84A5A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <style>
     :root {
-      --primary: #ec2427;
-      --primary-dark: #c0181b;
-      --primary-light: rgba(236, 36, 39, 0.08);
+      --hemo-maroon: #B84A5A;
+      --aid-gold: #D4AF37;
+      --primary: #B84A5A;
+      --primary-dark: #A83D4D;
+      --primary-light: rgba(184, 74, 90, 0.08);
+      --accent-gold: #D4AF37;
+      --accent-gold-dark: #B38E22;
+      --accent-gold-light: rgba(212, 175, 55, 0.14);
+      --combo-bar: linear-gradient(90deg, #B84A5A 0%, #D4AF37 100%);
       --surface: #ffffff;
-      --bg: #f5f5f7;
-      --text: #1a1a1a;
-      --muted: #6b7280;
-      --border: #e5e7eb;
+      --bg: #faf8f5;
+      --text: #1d2a3a;
+      --muted: #64748b;
+      --border: #e2e8f0;
       --success: #16a34a;
-      --warning: #f59e0b;
-      --danger: #dc2626;
+      --warning: #d97706;
+      --danger: #991b1b;
       --radius: 14px;
       --radius-sm: 8px;
-      --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-      --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.14);
+      --shadow: 0 4px 24px rgba(184, 74, 90, 0.07);
+      --shadow-lg: 0 12px 40px rgba(184, 74, 90, 0.14);
       --transition: 0.22s cubic-bezier(.4, 0, .2, 1);
       --font: 'Inter', sans-serif;
     }
@@ -85,11 +92,12 @@
     }
 
     nav {
-      background: linear-gradient(90deg, #c0181b 0%, #ec2427 50%, #c0181b 100%);
+      background: linear-gradient(135deg, #A83D4D 0%, #B84A5A 100%);
       position: sticky;
       top: 0;
       z-index: 1000;
-      box-shadow: 0 3px 20px rgba(160, 15, 17, 0.45);
+      box-shadow: 0 4px 22px rgba(184, 74, 90, 0.25);
+      border-bottom: 3px solid var(--accent-gold);
     }
 
     .nav-inner {
@@ -118,7 +126,7 @@
     }
 
     .logo img {
-      height: 52px;
+      height: 65px;
       width: auto;
       display: block;
       transition: transform var(--transition);
@@ -253,8 +261,8 @@
 
     .nav-cart-btn {
       position: relative;
-      color: rgba(255, 255, 255, 0.92);
-      font-size: 1.1rem;
+      color: #F5D77F;
+      font-size: 1.15rem;
       padding: 8px 12px;
       border-radius: 8px;
       text-decoration: none;
@@ -264,8 +272,8 @@
     }
 
     .nav-cart-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
-      color: #fff;
+      background: rgba(212, 175, 55, 0.2);
+      color: #ffffff;
     }
 
     .welcome-chip {
@@ -283,7 +291,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: rgba(255, 255, 255, 0.92);
+      color: #F5D77F;
       font-size: 1.15rem;
       padding: 8px 10px;
       border-radius: 8px;
@@ -293,16 +301,16 @@
     }
 
     .notification-bell:hover {
-      background: rgba(255, 255, 255, 0.15);
-      color: #fff;
+      background: rgba(212, 175, 55, 0.2);
+      color: #ffffff;
     }
 
     .notification-count {
       position: absolute;
       top: 0px;
       right: 0px;
-      background: #ffffff;
-      color: var(--primary);
+      background: var(--accent-gold);
+      color: #4A0717;
       font-size: 0.65rem;
       font-weight: 800;
       min-width: 18px;
@@ -465,7 +473,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(180deg, #a81316 0%, #c0181b 40%, #ec2427 100%);
+      background: linear-gradient(180deg, #8A2D3C 0%, #A83D4D 40%, #B84A5A 100%);
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
       z-index: 999;
       overflow-y: auto;
@@ -769,11 +777,12 @@
     }
 
     .footer-section {
-      background: linear-gradient(90deg, #c0181b 0%, #ec2427 50%, #c0181b 100%);
+      background: linear-gradient(135deg, #7A2633 0%, #A83D4D 50%, #B84A5A 100%);
       color: #fff;
       padding: 56px 24px 28px;
       margin-top: 60px;
       font-family: var(--font);
+      border-top: 3px solid var(--accent-gold);
     }
 
     .footer-inner {
@@ -845,11 +854,21 @@
     }
 
     .footer-bottom {
-      border-top: 1px solid rgba(255, 255, 255, 0.18);
+      border-top: 1px solid rgba(197, 155, 39, 0.3);
       padding-top: 22px;
       text-align: center;
       font-size: 0.82rem;
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .footer-bottom a {
+      color: rgba(255, 255, 255, 0.85);
+      text-decoration: underline;
+      transition: color 0.2s ease;
+    }
+
+    .footer-bottom a:hover {
+      color: var(--accent-gold, #D4AF37);
     }
 
     .btn-primary-red {
@@ -858,24 +877,51 @@
       justify-content: center;
       gap: 8px;
       padding: 11px 24px;
-      background: var(--primary);
+      background: linear-gradient(135deg, #B84A5A 0%, #A83D4D 100%);
       color: #fff;
-      border: none;
+      border: 1.5px solid var(--accent-gold);
       border-radius: 999px;
       font-weight: 700;
       font-size: 0.9rem;
       cursor: pointer;
       text-decoration: none;
       transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
-      box-shadow: 0 4px 14px rgba(236, 36, 39, 0.25);
+      box-shadow: 0 4px 16px rgba(184, 74, 90, 0.22);
       font-family: var(--font);
     }
 
     .btn-primary-red:hover {
-      background: var(--primary-dark);
+      background: linear-gradient(135deg, #A83D4D 0%, #962E3E 100%);
+      color: #ffffff;
+      border-color: var(--accent-gold);
       transform: translateY(-2px);
-      box-shadow: 0 8px 22px rgba(236, 36, 39, 0.32);
-      color: #fff;
+      box-shadow: 0 8px 24px rgba(168, 61, 77, 0.35);
+    }
+
+    .btn-gold {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 24px;
+      background: linear-gradient(135deg, #F5D77F 0%, #D4AF37 50%, #B38E22 100%);
+      color: #4A0717;
+      font-weight: 800;
+      border: 1px solid #ffffff;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.35);
+      transition: all 0.22s ease;
+      font-family: var(--font);
+    }
+
+    .btn-gold:hover {
+      background: linear-gradient(135deg, #ffffff 0%, #F5D77F 100%);
+      color: #4A0717;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.5);
     }
 
     .card-modern {
@@ -1048,7 +1094,7 @@
         top: 64px;
         left: 0;
         right: 0;
-        background: linear-gradient(135deg, #c0181b 0%, #ec2427 100%);
+        background: linear-gradient(135deg, #A83D4D 0%, #B84A5A 100%);
         flex-direction: column;
         align-items: stretch;
         gap: 0;
@@ -1116,24 +1162,33 @@
     }
 
     /* ── GLOBAL COMPREHENSIVE RESPONSIVE DESIGN ── */
-    html, body {
+    html,
+    body {
       overflow-x: hidden;
       max-width: 100vw;
     }
 
-    img, video, iframe, svg {
+    img,
+    video,
+    iframe,
+    svg {
       max-width: 100%;
       height: auto;
     }
 
-    .table-responsive, .items-table-scroll {
+    .table-responsive,
+    .items-table-scroll {
       width: 100%;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
     }
 
     @media (max-width: 767.98px) {
-      .container, .form-container, .inventory-page, .cart-container {
+
+      .container,
+      .form-container,
+      .inventory-page,
+      .cart-container {
         padding-left: 14px !important;
         padding-right: 14px !important;
       }
@@ -1168,7 +1223,7 @@
         gap: 8px !important;
       }
 
-      .modal-footer > * {
+      .modal-footer>* {
         width: 100% !important;
         margin: 0 !important;
       }
@@ -1212,7 +1267,7 @@
 
       <!-- Logo -->
       <div class="logo">
-        <a href="{% url 'index' %}"><img src="{% static 'images/logo1.png' %}" alt="Logo" width="50" height="50"></a>
+        <a href="{% url 'index' %}"><img src="{% static 'images/Hemoaid_logo1.png' %}" alt="HemoAid Logo" style="height:52px; width:auto; max-width:160px; object-fit:contain;"></a>
       </div>
 
       <!-- Hamburger toggler -->
@@ -1276,8 +1331,11 @@
       <!-- Desktop Right -->
       <div class="admin-nav-right desktop-only">
         {% if user.is_authenticated %}
-        <a href="{% url 'cart' %}" class="nav-cart-btn" title="Cart" style="color:#ffffff; font-size:1.15rem;"><i class="fas fa-cart-plus"></i></a>
-        <span class="welcome-chip" style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.22); color:#ffffff; font-weight:700; font-size:0.9rem; padding:6px 14px; border-radius:20px;"><i class="fas fa-user-circle" style="font-size:1.05rem;"></i> {{ user.get_full_name|default:user.username }}</span>
+        <a href="{% url 'cart' %}" class="nav-cart-btn" title="Cart" style="color:#ffffff; font-size:1.15rem;"><i
+            class="fas fa-cart-plus"></i></a>
+        <span class="welcome-chip"
+          style="display:inline-flex; align-items:center; gap:6px; background:rgba(197,155,39,0.22); border:1px solid rgba(197,155,39,0.5); color:#ffffff; font-weight:700; font-size:0.9rem; padding:6px 14px; border-radius:20px;"><i
+            class="fas fa-user-circle" style="font-size:1.05rem; color:#F5D77F;"></i> {{ user.get_full_name|default:user.username }}</span>
         {% if rbac_any_permission %}
         <div class="notif-wrapper">
           <div class="notification-bell" id="notificationBellAdmin" role="button" tabindex="0" aria-haspopup="true"
@@ -1417,15 +1475,14 @@
       </div>
     </div>
   </nav>
- 
+
 
   {% else %}
   {# ═══════════════ PUBLIC NAVBAR (unchanged) ═══════════════ #}
   <nav>
     <div class="nav-inner">
       <div class="logo">
-        <a href="{% url 'index' %}"><img src="{% static 'images/logo1.png' %}" alt="Sick Bed Services Logo" width="50"
-            height="50"></a>
+        <a href="{% url 'index' %}"><img src="{% static 'images/Hemoaid_logo1.png' %}" alt="HemoAid Logo" style="height:52px; width:auto; max-width:160px; object-fit:contain;"></a>
       </div>
 
       <!-- Desktop Nav Links -->
@@ -1478,7 +1535,9 @@
       <!-- Desktop Right Auth -->
       <div class="nav-right desktop-only">
         {% if user.is_authenticated %}
-        <span class="welcome-chip" style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.22); color:#ffffff; font-weight:700; font-size:0.9rem; padding:6px 14px; border-radius:20px;"><i class="fas fa-user-circle" style="font-size:1.05rem;"></i> {{ user.get_full_name|default:user.username }}</span>
+        <span class="welcome-chip"
+          style="display:inline-flex; align-items:center; gap:6px; background:rgba(197,155,39,0.22); border:1px solid rgba(197,155,39,0.5); color:#ffffff; font-weight:700; font-size:0.9rem; padding:6px 14px; border-radius:20px;"><i
+            class="fas fa-user-circle" style="font-size:1.05rem; color:#F5D77F;"></i> {{ user.get_full_name|default:user.username }}</span>
         {% if rbac_any_permission %}
         <div class="notif-wrapper">
           <div class="notification-bell" id="notificationBell" role="button" tabindex="0" aria-haspopup="true"
@@ -1618,32 +1677,38 @@
   {% endif %}{# end is_staff/is_superuser check #}
   {% if messages %}
   <!-- Global Message Modal Popup -->
-  <div class="modal fade" id="globalMessageModal" tabindex="-1" aria-labelledby="globalMessageModalLabel" aria-hidden="true" style="z-index: 10050;">
+  <div class="modal fade" id="globalMessageModal" tabindex="-1" aria-labelledby="globalMessageModalLabel"
+    aria-hidden="true" style="z-index: 10050;">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
-      <div class="modal-content" style="border-radius: 20px; border: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); text-align: center; padding: 28px 24px 24px 24px; background: #ffffff;">
+      <div class="modal-content"
+        style="border-radius: 20px; border: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); text-align: center; padding: 28px 24px 24px 24px; background: #ffffff;">
         <div class="modal-body p-0">
           {% for message in messages %}
-            <div class="mb-3">
-              {% if 'success' in message.tags %}
-                <div style="width: 76px; height: 76px; background: #dcfce7; color: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; font-size: 2.5rem; box-shadow: 0 8px 20px rgba(22,163,74,0.2);">
-                  <i class="fas fa-check-circle"></i>
-                </div>
-                <h3 style="font-weight: 800; color: #15803d; margin-bottom: 12px; font-size: 1.5rem;">Submitted Successfully!</h3>
-              {% elif 'error' in message.tags %}
-                <div style="width: 76px; height: 76px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; font-size: 2.5rem; box-shadow: 0 8px 20px rgba(220,38,38,0.2);">
-                  <i class="fas fa-exclamation-circle"></i>
-                </div>
-                <h3 style="font-weight: 800; color: #b91c1c; margin-bottom: 12px; font-size: 1.5rem;">Notice</h3>
-              {% else %}
-                <div style="width: 76px; height: 76px; background: #e0f2fe; color: #0284c7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; font-size: 2.5rem; box-shadow: 0 8px 20px rgba(2,132,199,0.2);">
-                  <i class="fas fa-info-circle"></i>
-                </div>
-                <h3 style="font-weight: 800; color: #0369a1; margin-bottom: 12px; font-size: 1.5rem;">Notification</h3>
-              {% endif %}
-              <p style="font-size: 1.05rem; color: #374151; font-weight: 600; line-height: 1.6; margin-bottom: 0;">{{ message }}</p>
+          <div class="mb-3">
+            {% if 'success' in message.tags %}
+            <div
+              style="width: 76px; height: 76px; background: #dcfce7; color: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; font-size: 2.5rem; box-shadow: 0 8px 20px rgba(22,163,74,0.2);">
+              <i class="fas fa-check-circle"></i>
             </div>
+            <h3 style="font-weight: 800; color: #15803d; margin-bottom: 12px; font-size: 1.5rem;">Success!</h3>
+            {% elif 'error' in message.tags %}
+            <div
+              style="width: 76px; height: 76px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; font-size: 2.5rem; box-shadow: 0 8px 20px rgba(220,38,38,0.2);">
+              <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h3 style="font-weight: 800; color: #b91c1c; margin-bottom: 12px; font-size: 1.5rem;">Notice</h3>
+            {% else %}
+            <div
+              style="width: 76px; height: 76px; background: #e0f2fe; color: #0284c7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; font-size: 2.5rem; box-shadow: 0 8px 20px rgba(2,132,199,0.2);">
+              <i class="fas fa-info-circle"></i>
+            </div>
+            <h3 style="font-weight: 800; color: #0369a1; margin-bottom: 12px; font-size: 1.5rem;">Notification</h3>
+            {% endif %}
+            <p style="font-size: 1.05rem; color: #374151; font-weight: 600; line-height: 1.6; margin-bottom: 0;">{{ message }}</p>
+          </div>
           {% endfor %}
-          <button type="button" class="btn px-4 py-3 mt-3" data-bs-dismiss="modal" style="background: #ec2427; color: #ffffff; font-weight: 700; border-radius: 12px; font-size: 1rem; width: 100%; box-shadow: 0 4px 14px rgba(236,36,39,0.35); border: none; transition: all 0.2s;">
+          <button type="button" class="btn px-4 py-3 mt-3" data-bs-dismiss="modal"
+            style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: #ffffff; font-weight: 700; border-radius: 12px; font-size: 1rem; width: 100%; box-shadow: 0 4px 14px rgba(107,15,36,0.35); border: 1px solid var(--accent-gold); transition: all 0.2s;">
             OK, Got it!
           </button>
         </div>
@@ -1697,7 +1762,8 @@
             </div>
             <div class="footer-contact-row">
               <a href="mailto:bhayander@kutchyuvaksangh.org" class="email-link">
-                <i class="fas fa-envelope"></i><span class="email-text">bhayander@<br class="mobile-email-br">kutchyuvaksangh.org</span>
+                <i class="fas fa-envelope"></i><span class="email-text">bhayander@<br
+                    class="mobile-email-br">kutchyuvaksangh.org</span>
               </a>
             </div>
             <div class="footer-contact-row">
@@ -1734,7 +1800,8 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <p>© 2026 Kutch Yuvak Sangh. All Rights Reserved | Powered and Managed by <a href="https://www.itegoss.in/" target="_blank">Itegoss Technology.</a></p>
+        <p>© 2026 Kutch Yuvak Sangh. All Rights Reserved | Powered and Managed by <a href="https://www.itegoss.in/"
+            target="_blank">Itegoss Technology.</a></p>
       </div>
     </div>
   </footer>

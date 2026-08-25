@@ -39,6 +39,7 @@
             <th>Contact</th>
             <th>Email</th>
             <th>DOB</th>
+            <th>Age</th>
             <th>Area</th>
             <th>Interest</th>
             <th>Registered</th>
@@ -51,12 +52,13 @@
             <td>{{ v.contact_number }}</td>
             <td>{{ v.email }}</td>
             <td>{{ v.date_of_birth }}</td>
+            <td>{% if v.age is not None %}{{ v.age }} yrs{% else %}-{% endif %}</td>
             <td>{{ v.area_of_residence }}</td>
             <td>{{ v.event_interest|default:'General' }}</td>
             <td>{{ v.created_at|date:'d M, Y' }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">No volunteers found</td></tr>
+          <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No volunteers found</td></tr>
           {% endfor %}
         </tbody>
       </table>

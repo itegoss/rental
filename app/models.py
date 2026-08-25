@@ -589,6 +589,7 @@ class BloodRequest(models.Model):
         ('AB-', 'AB-'),
         ('O+', 'O+'),
         ('O-', 'O-'),
+        ('BB', 'BB'),
     ]
     STATUS_CHOICES = [
         ('Pending', 'Pending'),
@@ -617,7 +618,7 @@ class BloodRequest(models.Model):
     patient_name = models.CharField(max_length=255)
     hospital_name = models.CharField(max_length=255)
     hospital_area = models.CharField(max_length=255)
-    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, blank=True, null=True)
+    blood_group = models.CharField(max_length=20, choices=BLOOD_GROUP_CHOICES, blank=True, null=True)
     units_required = models.PositiveIntegerField(default=1)
     coordinator_name = models.CharField(max_length=255)
     coordinator_contact = models.CharField(max_length=15)
@@ -659,6 +660,17 @@ class BloodRequest(models.Model):
     status_history = models.TextField(blank=True, null=True, help_text='JSON-like status history timeline')
     last_status_changed_at = models.DateTimeField(blank=True, null=True)
     last_status_changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='blood_requests_status_changed')
+
+    def get_assigned_employee_phone(self):
+        if not self.assigned_employee:
+            return "-"
+        try:
+            ud = getattr(self.assigned_employee, 'userdetail', None)
+            if ud and ud.phone:
+                return ud.phone
+        except Exception:
+            pass
+        return self.coordinator_contact or "-"
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -732,7 +744,7 @@ class BloodRequest(models.Model):
         self.status_history = json.dumps(history)
         self.last_status_changed_at = timezone.now()
         self.last_status_changed_by = changed_by
-        self.save(update_fields=['status_history', 'last_status_changed_at', 'last_status_changed_by'])
+        self.save()
 
 
 class BloodBank(models.Model):
@@ -803,6 +815,8 @@ class BloodDonor(models.Model):
         ('AB-', 'AB-'),
         ('O+', 'O+'),
         ('O-', 'O-'),
+        ('BB', 'BB'),
+        ("Don't Know", "Don't Know"),
     ]
     STATUS_CHOICES = [
         ('Pending', 'Pending'),
@@ -810,12 +824,13 @@ class BloodDonor(models.Model):
         ('Cancelled', 'Cancelled'),
         ('Fulfilled', 'Fulfilled'),
     ]
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
+    full_name = models.CharField(max_length=255, blank=True, null=True)
+    first_name = models.CharField(max_length=255, blank=True, null=True)
+    last_name = models.CharField(max_length=255, blank=True, null=True)
     contact_number = models.CharField(max_length=15)
     date_of_birth = models.DateField()
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
-    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES)
+    blood_group = models.CharField(max_length=20, choices=BLOOD_GROUP_CHOICES)
     area_of_residence = models.CharField(max_length=255)
     reference_name = models.CharField(max_length=255, blank=True, null=True)
     reference_contact = models.CharField(max_length=15, blank=True, null=True)
@@ -827,8 +842,29 @@ class BloodDonor(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     remarks = models.TextField(blank=True, null=True)
 
+    def get_full_name(self):
+        if self.full_name and self.full_name.strip():
+            return self.full_name.strip()
+        return f"{self.first_name or ''} {self.last_name or ''}".strip()
+
+    def save(self, *args, **kwargs):
+        if self.full_name and self.full_name.strip():
+            parts = self.full_name.strip().split(None, 1)
+            self.first_name = parts[0]
+            self.last_name = parts[1] if len(parts) > 1 else ''
+        elif self.first_name:
+            self.full_name = f"{self.first_name} {self.last_name or ''}".strip()
+        super().save(*args, **kwargs)
+
+    @property
+    def age(self):
+        if not self.date_of_birth:
+            return None
+        today = timezone.now().date()
+        return today.year - self.date_of_birth.year - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
+
     def __str__(self):
-        return f"{self.first_name} {self.last_name} - {self.blood_group} ({self.status})"
+        return f"{self.get_full_name()} - {self.blood_group} ({self.status})"
 
 
 class EventVolunteer(models.Model):
@@ -854,6 +890,13 @@ class EventVolunteer(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def age(self):
+        if not self.date_of_birth:
+            return None
+        today = timezone.now().date()
+        return today.year - self.date_of_birth.year - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='volunteers_created')
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='volunteers_updated')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
