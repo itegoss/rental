@@ -17,8 +17,10 @@ CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 
 ALLOWED_HOSTS = [
+    "https://rental-testing-319338334172.us-central1.run.app",
     "rental-856395380155.us-central1.run.app",
     "sickbed.itegoss.in","*"
+    
 ]
 
 
@@ -154,6 +156,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "https://sickbed.itegoss.in",
+    "https://rental-testing-319338334172.us-central1.run.app",
 ]
 
 SESSION_COOKIE_SAMESITE = "Lax"
