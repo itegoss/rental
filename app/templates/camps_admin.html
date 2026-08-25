@@ -1,7 +1,144 @@
 {% extends 'base.html' %}
 {% block title %}Camp Management — Sick Bed Services{% endblock %}
 {% block content %}
-<style>{% include 'admin_table_css.html' %}</style>
+<style>
+  {% include 'admin_table_css.html' %}
+
+  /* Camp Status Dropdown Styling */
+  .status-cell {
+    white-space: nowrap !important;
+  }
+
+  .camp-status-btn {
+    font-weight: 700 !important;
+    font-size: 0.82rem !important;
+    padding: 6px 14px !important;
+    border-radius: 20px !important;
+    border: 1px solid transparent !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .camp-status-btn::after {
+    margin-left: 4px;
+    vertical-align: middle;
+    font-size: 0.75rem;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  /* Status: Completed */
+  .status-btn-completed {
+    background-color: #dcfce7 !important;
+    color: #15803d !important;
+    border-color: #bbf7d0 !important;
+  }
+  .status-btn-completed .status-dot {
+    background-color: #16a34a;
+  }
+  .status-btn-completed:hover, .status-btn-completed:focus {
+    background-color: #bbf7d0 !important;
+    color: #166534 !important;
+  }
+
+  /* Status: Pending */
+  .status-btn-pending {
+    background-color: #fef3c7 !important;
+    color: #b45309 !important;
+    border-color: #fde68a !important;
+  }
+  .status-btn-pending .status-dot {
+    background-color: #f59e0b;
+  }
+  .status-btn-pending:hover, .status-btn-pending:focus {
+    background-color: #fde68a !important;
+    color: #92400e !important;
+  }
+
+  /* Status: Cancelled */
+  .status-btn-cancelled {
+    background-color: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #fecaca !important;
+  }
+  .status-btn-cancelled .status-dot {
+    background-color: #ef4444;
+  }
+  .status-btn-cancelled:hover, .status-btn-cancelled:focus {
+    background-color: #fecaca !important;
+    color: #991b1b !important;
+  }
+
+  /* Dropdown Menu styling */
+  .camp-status-menu {
+    border-radius: 12px !important;
+    min-width: 145px !important;
+    padding: 6px 0 !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+    z-index: 1050 !important;
+  }
+
+  .status-opt-item {
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    padding: 8px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    border: none !important;
+    background: none !important;
+    text-align: left !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease !important;
+    color: #374151 !important;
+  }
+
+  .status-opt-item:hover {
+    background-color: #f3f4f6 !important;
+  }
+
+  .status-opt-item.active {
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+    font-weight: 700 !important;
+  }
+
+  .status-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1f2937;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .status-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
 
 <div class="inventory-page">
   <div class="inventory-head">
@@ -56,7 +193,37 @@
             <td>{{ c.proposed_venue }}</td>
             <td class="qty-cell">{{ c.expected_donors }}</td>
             <td>{{ c.volunteers_available|yesno:"Yes,No" }}</td>
-            <td>{{ c.display_status }}</td>
+            <td class="status-cell">
+              <div class="dropdown camp-status-dropdown" style="position: relative; display: inline-block;">
+                <button class="btn btn-sm dropdown-toggle camp-status-btn status-btn-{{ c.status|lower }}" 
+                        type="button" 
+                        id="campStatusDropdown{{ c.id }}" 
+                        data-bs-toggle="dropdown" 
+                        aria-expanded="false"
+                        data-camp-id="{{ c.id }}"
+                        data-current-status="{{ c.status }}">
+                  <span class="status-dot"></span>
+                  <span class="status-text">{{ c.status }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm camp-status-menu" aria-labelledby="campStatusDropdown{{ c.id }}">
+                  <li>
+                    <button type="button" class="dropdown-item status-opt-item {% if c.status == 'Completed' %}active{% endif %}" data-camp-id="{{ c.id }}" data-status="Completed">
+                      <i class="fas fa-check-circle me-2 text-success"></i> Completed
+                    </button>
+                  </li>
+                  <li>
+                    <button type="button" class="dropdown-item status-opt-item {% if c.status == 'Pending' %}active{% endif %}" data-camp-id="{{ c.id }}" data-status="Pending">
+                      <i class="fas fa-clock me-2 text-warning"></i> Pending
+                    </button>
+                  </li>
+                  <li>
+                    <button type="button" class="dropdown-item status-opt-item {% if c.status == 'Cancelled' %}active{% endif %}" data-camp-id="{{ c.id }}" data-status="Cancelled">
+                      <i class="fas fa-times-circle me-2 text-danger"></i> Cancelled
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </td>
           </tr>
           {% empty %}
           <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted);">No records found</td></tr>
@@ -105,4 +272,117 @@
   </div>
 </div>
 
+<div id="campStatusToast" class="status-toast">
+  <i class="fas fa-check-circle" style="color:#4ade80;"></i>
+  <span id="campStatusToastText">Status updated successfully</span>
+</div>
+
+<script>
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  function showStatusToast(message, isError = false) {
+    const toast = document.getElementById('campStatusToast');
+    const toastText = document.getElementById('campStatusToastText');
+    const icon = toast.querySelector('i');
+    if (!toast || !toastText) return;
+
+    toastText.textContent = message;
+    if (isError) {
+      icon.className = 'fas fa-exclamation-circle';
+      icon.style.color = '#ef4444';
+    } else {
+      icon.className = 'fas fa-check-circle';
+      icon.style.color = '#4ade80';
+    }
+
+    toast.classList.add('show');
+    setTimeout(() => {
+      toast.classList.remove('show');
+    }, 3000);
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const statusOptions = document.querySelectorAll('.status-opt-item');
+
+    statusOptions.forEach(opt => {
+      opt.addEventListener('click', function (e) {
+        e.preventDefault();
+        const campId = this.getAttribute('data-camp-id');
+        const newStatus = this.getAttribute('data-status');
+        const dropdown = this.closest('.camp-status-dropdown');
+        if (!dropdown) return;
+
+        const button = dropdown.querySelector('.camp-status-btn');
+        const statusText = button.querySelector('.status-text');
+        const prevStatus = button.getAttribute('data-current-status');
+
+        if (newStatus === prevStatus) {
+          return;
+        }
+
+        // Optimistically update UI
+        button.className = `btn btn-sm dropdown-toggle camp-status-btn status-btn-${newStatus.toLowerCase()}`;
+        if (statusText) statusText.textContent = newStatus;
+        button.setAttribute('data-current-status', newStatus);
+
+        // Update active class on options
+        const allOpts = dropdown.querySelectorAll('.status-opt-item');
+        allOpts.forEach(o => {
+          if (o.getAttribute('data-status') === newStatus) {
+            o.classList.add('active');
+          } else {
+            o.classList.remove('active');
+          }
+        });
+
+        // Send AJAX request to update status in database
+        const url = `/organize-camp/status/${campId}/`;
+        const csrftoken = getCookie('csrftoken');
+
+        const formData = new FormData();
+        formData.append('status', newStatus);
+
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken,
+          },
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            showStatusToast(`Camp status updated to "${newStatus}"`);
+          } else {
+            // Revert on error
+            button.className = `btn btn-sm dropdown-toggle camp-status-btn status-btn-${prevStatus.toLowerCase()}`;
+            if (statusText) statusText.textContent = prevStatus;
+            button.setAttribute('data-current-status', prevStatus);
+            showStatusToast(data.error || 'Failed to update status', true);
+          }
+        })
+        .catch(err => {
+          // Revert on network error
+          button.className = `btn btn-sm dropdown-toggle camp-status-btn status-btn-${prevStatus.toLowerCase()}`;
+          if (statusText) statusText.textContent = prevStatus;
+          button.setAttribute('data-current-status', prevStatus);
+          showStatusToast('Network error while updating status', true);
+        });
+      });
+    });
+  });
+</script>
 {% endblock %}

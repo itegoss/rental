@@ -68,40 +68,47 @@
       <h2>Create account</h2>
       <p class="auth-sub">Fill in your details to get started</p>
 
-      {% if messages %}
-        <div class="msgs-box">
-          {% for message in messages %}
-            <div class="msg {{ message.tags }}">{{ message }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      <form method="POST">
+      <form method="POST" novalidate>
         {% csrf_token %}
         <div class="form-field">
           <label>Username</label>
-          <input type="text" name="username" placeholder="Choose a username" required>
+          <input type="text" name="username" placeholder="Choose a username" value="{{ username|default:'' }}" required class="{% if field_errors.username %}is-invalid{% endif %}">
           <i class="fas fa-user field-icon"></i>
+          {% if field_errors.username %}
+            <div class="field-error-msg"><i class="fas fa-exclamation-circle"></i> <span>{{ field_errors.username }}</span></div>
+          {% endif %}
         </div>
         <div class="form-field">
           <label>Email <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
-          <input type="email" name="email" placeholder="your@email.com">
+          <input type="email" name="email" placeholder="your@email.com" value="{{ email|default:'' }}" class="{% if field_errors.email %}is-invalid{% endif %}">
           <i class="fas fa-envelope field-icon"></i>
+          {% if field_errors.email %}
+            <div class="field-error-msg"><i class="fas fa-exclamation-circle"></i> <span>{{ field_errors.email }}</span></div>
+          {% endif %}
         </div>
         <div class="form-field">
           <label>Mobile</label>
-          <input type="text" name="mobile" placeholder="e.g. 9876543210" required>
+          <input type="tel" name="mobile" placeholder="e.g. 9876543210" value="{{ mobile|default:'' }}" required class="{% if field_errors.mobile %}is-invalid{% endif %}">
           <i class="fas fa-mobile-alt field-icon"></i>
+          {% if field_errors.mobile %}
+            <div class="field-error-msg"><i class="fas fa-exclamation-circle"></i> <span>{{ field_errors.mobile }}</span></div>
+          {% endif %}
         </div>
         <div class="form-field">
           <label>Password</label>
-          <input type="password" id="pw1" name="password" placeholder="Create a strong password" required>
+          <input type="password" id="pw1" name="password" placeholder="Create a strong password" required class="{% if field_errors.password %}is-invalid{% endif %}">
           <i class="fa-regular fa-eye field-icon" data-toggle="#pw1" onclick="togglePw(this)"></i>
+          {% if field_errors.password %}
+            <div class="field-error-msg"><i class="fas fa-exclamation-circle"></i> <span>{{ field_errors.password }}</span></div>
+          {% endif %}
         </div>
         <div class="form-field">
           <label>Confirm Password</label>
-          <input type="password" id="pw2" name="confirm_password" placeholder="Repeat your password" required>
+          <input type="password" id="pw2" name="confirm_password" placeholder="Repeat your password" required class="{% if field_errors.confirm_password %}is-invalid{% endif %}">
           <i class="fa-regular fa-eye field-icon" data-toggle="#pw2" onclick="togglePw(this)"></i>
+          {% if field_errors.confirm_password %}
+            <div class="field-error-msg"><i class="fas fa-exclamation-circle"></i> <span>{{ field_errors.confirm_password }}</span></div>
+          {% endif %}
         </div>
         <button type="submit" class="btn-signup">Create Account</button>
       </form>

@@ -1,0 +1,110 @@
+/* Universal Inline Form Validation Styling */
+.is-invalid, 
+.form-control.is-invalid, 
+input.is-invalid, 
+select.is-invalid, 
+textarea.is-invalid {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+  background-image: none !important;
+}
+
+.field-error-msg,
+.invalid-feedback,
+.error-msg {
+  color: #dc2626;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 4px;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.35;
+  animation: fadeInError 0.2s ease-in-out;
+}
+
+.field-error-msg i,
+.invalid-feedback i,
+.error-msg i {
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+@keyframes fadeInError {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-group-custom, .form-field, .mb-3, .mb-4, .item-field {
+  position: relative;
+}
+
+/* Top Success & Status Notification Styling */
+.global-top-alert {
+  border-radius: 12px !important;
+  padding: 12px 18px !important;
+  font-size: 0.95rem !important;
+  animation: slideDownAlert 0.3s ease-out;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.alert-success-custom {
+  background-color: #f0fdf4 !important;
+  border: 1px solid #bbf7d0 !important;
+  color: #15803d !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08) !important;
+}
+
+.alert-error-custom {
+  background-color: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  color: #991b1b !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.08) !important;
+}
+
+.alert-info-custom {
+  background-color: #f0f9ff !important;
+  border: 1px solid #bae6fd !important;
+  color: #0369a1 !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08) !important;
+}
+
+.btn-close-alert {
+  background: none !important;
+  border: none !important;
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  padding: 0 4px !important;
+  cursor: pointer !important;
+  color: inherit !important;
+  opacity: 0.65;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-close-alert:hover {
+  opacity: 1 !important;
+  transform: scale(1.2);
+}
+
+@keyframes slideDownAlert {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

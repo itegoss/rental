@@ -330,3 +330,32 @@ class BloodPortalTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'medical_services.html')
         self.assertContains(response, 'Services')
+
+    def test_update_camp_status(self):
+        admin = User.objects.create_user(username='campadmin', password='password123', is_staff=True)
+        camp = CampOrganizer.objects.create(
+            organizer_name='Camp Org',
+            organization_name='Test Org',
+            contact_number='9876543210',
+            email='test@org.com',
+            proposed_date=timezone.localdate() + datetime.timedelta(days=5),
+            proposed_venue='Venue',
+            expected_donors=50,
+            status='Pending'
+        )
+
+        # Test valid statuses: Completed, Cancelled, Pending
+        self.client.force_login(admin)
+        for status_val in ['Completed', 'Cancelled', 'Pending']:
+            response = self.client.post(reverse('update_camp_status', args=[camp.id]), {'status': status_val})
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertTrue(data['success'])
+            camp.refresh_from_db()
+            self.assertEqual(camp.status, status_val)
+
+        # Test invalid status
+        response = self.client.post(reverse('update_camp_status', args=[camp.id]), {'status': 'InvalidStatus'})
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data['success'])
