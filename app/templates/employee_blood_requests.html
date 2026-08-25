@@ -110,14 +110,11 @@
                   <i class="fas fa-check"></i>
                 </button>
               </form>
-              <form method="post" action="{% url 'admin_edit_blood_request_status' req.id %}" style="display:inline-block;">{% csrf_token %}
-                <input type="hidden" name="action" value="cancel" />
-                <button class="btn btn-warning text-dark" type="submit" title="Cancel Request" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;" onclick="return confirm('Cancel request as blood is not available anywhere?');">
-                  <i class="fas fa-ban"></i>
-                </button>
-              </form>
-              <a class="btn btn-primary" href="{% url 'edit_blood_request' req.id %}" title="Edit" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
-                <i class="fas fa-edit"></i>
+              <button type="button" class="btn btn-warning text-dark" onclick="empOpenCancelModal('{{ req.id }}'); return false;" style="font-weight: 700; border-radius: 8px;">
+                <i class="fas fa-ban me-1"></i> Cancel Request
+              </button>
+              <a class="btn btn-primary" href="{% url 'edit_blood_request' req.id %}" style="font-weight: 700; border-radius: 8px;">
+                <i class="fas fa-edit me-1"></i> Edit
               </a>
             </div>
           </div>
@@ -127,4 +124,103 @@
     {% endfor %}
   </div>
 </div>
+
+<!-- Employee Cancel Request Modal -->
+<div id="empCancelModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:99999; justify-content:center; align-items:center;" role="dialog" aria-modal="true">
+  <div style="background:#fff; border-radius:20px; max-width:440px; width:92%; padding:28px; box-shadow:0 24px 48px rgba(0,0,0,0.2); position:relative;">
+    <button type="button" id="empCancelCloseX" style="position:absolute; top:14px; right:16px; border:none; background:none; font-size:1.5rem; color:#9ca3af; cursor:pointer; line-height:1;" aria-label="Close">&times;</button>
+    <h2 style="margin:0 0 6px; font-size:1.35rem; font-weight:800; color:#0f172a;">Cancel Blood Request</h2>
+    <p style="margin:0 0 18px; color:#64748b; font-size:0.92rem;">This action cannot be undone. Please provide a reason.</p>
+    <form method="POST" id="empCancelForm" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="cancel" />
+      <label for="empCancelReason" style="display:block; font-weight:700; color:#0f172a; margin-bottom:6px; font-size:0.95rem;">Cancellation Reason</label>
+      <textarea name="cancellation_reason" id="empCancelReason" rows="4" style="width:100%; padding:10px 12px; border:1.5px solid #d1d5db; border-radius:10px; resize:vertical; font-family:inherit; font-size:0.95rem; transition:border-color 0.2s;" placeholder="Enter reason for cancellation..."></textarea>
+      <div id="empCancelError" style="color:#dc2626; font-size:0.84rem; margin-top:5px; display:none;"><i class="fas fa-exclamation-circle"></i> Please enter a cancellation reason.</div>
+      <div style="margin-top:18px; display:flex; gap:10px; justify-content:flex-end;">
+        <button type="button" id="empCancelCloseBtn" style="padding:10px 20px; border-radius:10px; border:1.5px solid #d1d5db; background:#f9fafb; color:#374151; font-weight:600; font-size:0.92rem; cursor:pointer;">Close</button>
+        <button type="submit" style="padding:10px 20px; border-radius:10px; border:none; background:linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color:#fff; font-weight:700; font-size:0.92rem; cursor:pointer; box-shadow:0 4px 12px rgba(220,38,38,0.3);">Confirm Cancellation</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Global function — must be accessible from inline onclick inside Bootstrap modals
+function empOpenCancelModal(reqId) {
+  var modal = document.getElementById('empCancelModal');
+  var form  = document.getElementById('empCancelForm');
+  var textarea = document.getElementById('empCancelReason');
+  var errorDiv = document.getElementById('empCancelError');
+  if (!modal || !form || !textarea) return;
+
+  // Hide active Bootstrap modal + backdrop so they don't intercept events
+  var activeBsModal = document.querySelector('.modal.show');
+  modal._prevBsModal = activeBsModal || null;
+  if (activeBsModal) {
+    activeBsModal.style.visibility = 'hidden';
+    activeBsModal.style.pointerEvents = 'none';
+  }
+  document.querySelectorAll('.modal-backdrop').forEach(function(bd) {
+    bd.style.visibility = 'hidden';
+    bd.style.pointerEvents = 'none';
+  });
+
+  form.action = '/request-blood/status/' + reqId + '/';
+  textarea.value = '';
+  if (errorDiv) errorDiv.style.display = 'none';
+  textarea.style.borderColor = '#d1d5db';
+  modal.style.display = 'flex';
+
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() { textarea.focus(); });
+  });
+}
+
+function empCloseCancelModal() {
+  var modal = document.getElementById('empCancelModal');
+  if (!modal) return;
+
+  var prevBsModal = modal._prevBsModal;
+  if (prevBsModal) {
+    prevBsModal.style.visibility = '';
+    prevBsModal.style.pointerEvents = '';
+  }
+  document.querySelectorAll('.modal-backdrop').forEach(function(bd) {
+    bd.style.visibility = '';
+    bd.style.pointerEvents = '';
+  });
+  modal._prevBsModal = null;
+  modal.style.display = 'none';
+}
+
+(function() {
+  var modal = document.getElementById('empCancelModal');
+  var form = document.getElementById('empCancelForm');
+  var textarea = document.getElementById('empCancelReason');
+  var errorDiv = document.getElementById('empCancelError');
+  var closeX = document.getElementById('empCancelCloseX');
+  var closeBtn = document.getElementById('empCancelCloseBtn');
+
+  if (closeX) closeX.addEventListener('click', empCloseCancelModal);
+  if (closeBtn) closeBtn.addEventListener('click', empCloseCancelModal);
+  if (modal) modal.addEventListener('click', function(e) { if (e.target === modal) empCloseCancelModal(); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && modal && modal.style.display === 'flex') empCloseCancelModal(); });
+
+  if (form) form.addEventListener('submit', function(e) {
+    if (!textarea.value.trim()) {
+      e.preventDefault();
+      if (errorDiv) errorDiv.style.display = 'block';
+      textarea.style.borderColor = '#dc2626';
+      textarea.focus();
+    }
+  });
+  if (textarea) textarea.addEventListener('input', function() {
+    if (textarea.value.trim()) {
+      if (errorDiv) errorDiv.style.display = 'none';
+      textarea.style.borderColor = '#d1d5db';
+    }
+  });
+})();
+</script>
 {% endblock %}

@@ -87,6 +87,10 @@
       -moz-osx-font-smoothing: grayscale;
     }
 
+    table th, thead th, .items-table th, .bookings-table th, .b-table th, .contacts-table th {
+      text-transform: none;
+    }
+
     main {
       flex: 1 0 auto;
     }
@@ -1676,52 +1680,56 @@
   </nav>
   {% endif %}{# end is_staff/is_superuser check #}
   {% if messages %}
-  <!-- Global Message Modal Popup -->
-  <div class="modal fade" id="globalMessageModal" tabindex="-1" aria-labelledby="globalMessageModalLabel"
-    aria-hidden="true" style="z-index: 10050;">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
-      <div class="modal-content"
-        style="border-radius: 20px; border: none; box-shadow: 0 20px 50px rgba(0,0,0,0.3); text-align: center; padding: 28px 24px 24px 24px; background: #ffffff;">
-        <div class="modal-body p-0">
-          {% for message in messages %}
-          <div class="mb-3">
+  <!-- Global Top Notification Banner -->
+  <div class="container-fluid px-3 px-md-4 pt-3" id="globalNotificationContainer" style="max-width: 1200px; margin: 0 auto; position: relative; z-index: 1000;">
+    {% for message in messages %}
+      {% if 'field_validation' not in message.tags and 'form_error' not in message.tags %}
+        <div class="alert global-top-alert {% if 'success' in message.tags %}alert-success-custom{% elif 'error' in message.tags %}alert-error-custom{% else %}alert-info-custom{% endif %} d-flex align-items-center justify-content-between mb-3" role="alert" data-auto-dismiss="180000">
+          <div class="d-flex align-items-center gap-2" style="flex: 1; min-width: 0;">
             {% if 'success' in message.tags %}
-            <div
-              style="width: 76px; height: 76px; background: #dcfce7; color: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; font-size: 2.5rem; box-shadow: 0 8px 20px rgba(22,163,74,0.2);">
-              <i class="fas fa-check-circle"></i>
-            </div>
-            <h3 style="font-weight: 800; color: #15803d; margin-bottom: 12px; font-size: 1.5rem;">Success!</h3>
+              <i class="fas fa-check-circle fs-5" style="color: #16a34a; flex-shrink: 0;"></i>
             {% elif 'error' in message.tags %}
-            <div
-              style="width: 76px; height: 76px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; font-size: 2.5rem; box-shadow: 0 8px 20px rgba(220,38,38,0.2);">
-              <i class="fas fa-exclamation-circle"></i>
-            </div>
-            <h3 style="font-weight: 800; color: #b91c1c; margin-bottom: 12px; font-size: 1.5rem;">Notice</h3>
+              <i class="fas fa-exclamation-circle fs-5" style="color: #dc2626; flex-shrink: 0;"></i>
             {% else %}
-            <div
-              style="width: 76px; height: 76px; background: #e0f2fe; color: #0284c7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; font-size: 2.5rem; box-shadow: 0 8px 20px rgba(2,132,199,0.2);">
-              <i class="fas fa-info-circle"></i>
-            </div>
-            <h3 style="font-weight: 800; color: #0369a1; margin-bottom: 12px; font-size: 1.5rem;">Notification</h3>
+              <i class="fas fa-info-circle fs-5" style="color: #0284c7; flex-shrink: 0;"></i>
             {% endif %}
-            <p style="font-size: 1.05rem; color: #374151; font-weight: 600; line-height: 1.6; margin-bottom: 0;">{{ message }}</p>
+            <span style="font-weight: 600; font-size: 0.95rem; line-height: 1.4; word-break: break-word;">{{ message }}</span>
           </div>
-          {% endfor %}
-          <button type="button" class="btn px-4 py-3 mt-3" data-bs-dismiss="modal"
-            style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: #ffffff; font-weight: 700; border-radius: 12px; font-size: 1rem; width: 100%; box-shadow: 0 4px 14px rgba(107,15,36,0.35); border: 1px solid var(--accent-gold); transition: all 0.2s;">
-            OK, Got it!
+          <button type="button" class="btn-close-alert ms-3" aria-label="Close" title="Dismiss">
+            &times;
           </button>
         </div>
-      </div>
-    </div>
+      {% endif %}
+    {% endfor %}
   </div>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
-      var msgModalEl = document.getElementById('globalMessageModal');
-      if (msgModalEl) {
-        var msgModal = new bootstrap.Modal(msgModalEl);
-        msgModal.show();
-      }
+      var alerts = document.querySelectorAll('.global-top-alert');
+      alerts.forEach(function (alertEl) {
+        var timer = null;
+        var duration = parseInt(alertEl.getAttribute('data-auto-dismiss') || '180000', 10);
+        
+        function dismissAlert() {
+          if (timer) clearTimeout(timer);
+          alertEl.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+          alertEl.style.opacity = '0';
+          alertEl.style.transform = 'translateY(-10px)';
+          setTimeout(function () {
+            alertEl.remove();
+          }, 300);
+        }
+
+        timer = setTimeout(dismissAlert, duration);
+
+        var closeBtn = alertEl.querySelector('.btn-close-alert');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dismissAlert();
+          });
+        }
+      });
     });
   </script>
   {% endif %}
@@ -2037,6 +2045,7 @@
     }
   </script>
 
+  <script src="{% static 'js/form_validation.js' %}"></script>
 </body>
 
 </html>

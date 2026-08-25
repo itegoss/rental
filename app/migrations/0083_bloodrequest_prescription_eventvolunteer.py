@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='bloodrequest',
             name='prescription',
-            field=models.FileField(blank=True, null=True, upload_to='prescriptions/', validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'pdf', 'img', 'webp'])]),
+            field=models.FileField(blank=True, null=True, upload_to='prescriptions/', validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'pdf', 'img'])]),
         ),
         migrations.CreateModel(
             name='EventVolunteer',

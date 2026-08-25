@@ -176,41 +176,44 @@ def signup(request):
         confirm_password = request.POST.get('confirm_password')
         mobile = request.POST.get('mobile')
 
-        if not all([username, password, confirm_password]):
-            messages.error(request, "Please fill all fields.")
-            return render(request, 'signup.html')
+        field_errors = {}
+        if not username:
+            field_errors['username'] = "Username is required."
+        elif username[0].isdigit():
+            field_errors['username'] = "Username should not start with a digit."
+        elif User.objects.filter(username=username).exists():
+            field_errors['username'] = "Username already taken."
 
-        if password != confirm_password:
-            messages.error(request, "Password and confirm password do not match.")
-            return render(request, 'signup.html')
+        if not mobile:
+            field_errors['mobile'] = "Mobile number is required."
+        else:
+            clean_mob = re.sub(r'\D', '', mobile)
+            if len(clean_mob) != 10:
+                field_errors['mobile'] = "Contact number must be exactly 10 digits."
 
-        if len(password) < 6:
-            messages.error(request, "Password must be at least 6 characters long.")
-            return render(request, 'signup.html')
+        if not password:
+            field_errors['password'] = "Password is required."
+        elif len(password) < 6:
+            field_errors['password'] = "Password must be at least 6 characters long."
+        elif not re.search(r'[A-Z]', password):
+            field_errors['password'] = "Password must contain at least one uppercase letter."
+        elif not re.search(r'[a-z]', password):
+            field_errors['password'] = "Password must contain at least one lowercase letter."
+        elif not re.search(r'\d', password):
+            field_errors['password'] = "Password must contain at least one digit."
+        elif not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            field_errors['password'] = "Password must contain at least one special character."
 
-        if username[0].isdigit():
-            messages.error(request, "Username should not start with a digit.")
-            return render(request, 'signup.html')
+        if confirm_password != password:
+            field_errors['confirm_password'] = "Passwords do not match."
 
-        if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already taken.")
-            return render(request, 'signup.html')
-
-        if not re.search(r'[A-Z]', password):
-            messages.error(request, "Password must contain at least one uppercase letter.")
-            return render(request, 'signup.html')
-
-        if not re.search(r'[a-z]', password):
-            messages.error(request, "Password must contain at least one lowercase letter.")
-            return render(request, 'signup.html')
-
-        if not re.search(r'\d', password):
-            messages.error(request, "Password must contain at least one digit.")
-            return render(request, 'signup.html')
-
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-            messages.error(request, "Password must contain at least one special character.")
-            return render(request, 'signup.html')
+        if field_errors:
+            return render(request, 'signup.html', {
+                'field_errors': field_errors,
+                'username': username,
+                'email': email,
+                'mobile': mobile,
+            })
 
         user = User.objects.create_user(username=username, email=email, password=password)
         user.save()
@@ -261,27 +264,32 @@ def signin(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
 
-        if not username or not password:
-            messages.error(request, "All fields are required.", extra_tags="signin")
-            return redirect('signin')
+        field_errors = {}
+        if not username:
+            field_errors['username'] = "Username is required."
+        if not password:
+            field_errors['password'] = "Password is required."
 
-        try:
-            user = User.objects.get(username=username)
-            if password.isdigit():
-                messages.error(request, "Password should contain alphabets or special characters.", extra_tags="signin")
-                return redirect('signin')
+        if not field_errors:
+            try:
+                user = User.objects.get(username=username)
+                if password.isdigit():
+                    field_errors['password'] = "Password should contain alphabets or special characters."
+                else:
+                    authenticated_user = authenticate(request, username=username, password=password)
+                    if authenticated_user is not None:
+                        login(request, authenticated_user)
+                        return redirect('index')
+                    else:
+                        field_errors['password'] = "Invalid username or password."
+            except User.DoesNotExist:
+                field_errors['username'] = "User not found."
 
-            authenticated_user = authenticate(request, username=username, password=password)
-            if authenticated_user is not None:
-                login(request, authenticated_user)
-
-                return redirect('index')
-            else:
-                messages.error(request, "Invalid username or password.", extra_tags="signin")
-                return redirect('signin')
-        except User.DoesNotExist:
-            messages.error(request, "User not found.", extra_tags="signin")
-            return redirect('signin')
+        if field_errors:
+            return render(request, 'signin.html', {
+                'field_errors': field_errors,
+                'username': username,
+            })
 
     return render(request, 'signin.html')
 
@@ -374,12 +382,14 @@ def verify_otp(request):
 
 def forgot(request):
     if request.method == 'POST':
-        username = request.POST.get('username')
+        username = (request.POST.get('username') or '').strip()
+        if not username:
+            return render(request, 'forgot.html', {'field_errors': {'username': 'Username is required.'}})
         try:
             user = User.objects.get(username=username)
             return redirect('resetpass', username=username)
         except User.DoesNotExist:
-            messages.error(request, "Username does not exist.")
+            return render(request, 'forgot.html', {'field_errors': {'username': 'Username does not exist.'}, 'username': username})
     return render(request, 'forgot.html')
 
 def resetpass(request, username):
@@ -387,13 +397,19 @@ def resetpass(request, username):
         new_password = request.POST.get('new_password')
         confirm_password = request.POST.get('confirm_password')
 
-        if not new_password or not confirm_password:
-            messages.error(request, "Both password fields are required.")
-            return redirect('resetpass', username=username)
+        field_errors = {}
+        if not new_password:
+            field_errors['new_password'] = "New password is required."
+        elif len(new_password) < 6:
+            field_errors['new_password'] = "Password must be at least 6 characters long."
 
-        if new_password != confirm_password:
-            messages.error(request, "Passwords do not match.")
-            return redirect('resetpass', username=username)
+        if not confirm_password:
+            field_errors['confirm_password'] = "Confirm password is required."
+        elif new_password and confirm_password and new_password != confirm_password:
+            field_errors['confirm_password'] = "Passwords do not match."
+
+        if field_errors:
+            return render(request, 'resetpass.html', {'username': username, 'field_errors': field_errors})
 
         try:
             user = User.objects.get(username=username)
@@ -402,8 +418,7 @@ def resetpass(request, username):
             messages.success(request, "Password reset successfully. Please sign in.")
             return redirect('signin')
         except User.DoesNotExist:
-            messages.error(request, "User not found.")
-            return redirect('forgot')
+            return render(request, 'forgot.html', {'field_errors': {'username': 'User not found.'}})
 
     return render(request, 'resetpass.html', {'username': username})
 
@@ -2476,6 +2491,7 @@ def request_blood(request):
         qs = BloodRequest.objects.all().order_by('-created_at')
         if q:
             qs = qs.filter(
+                Q(request_id__icontains=q) |
                 Q(patient_name__icontains=q) |
                 Q(hospital_name__icontains=q) |
                 Q(hospital_area__icontains=q) |
@@ -2485,6 +2501,32 @@ def request_blood(request):
                 Q(reference_contact__icontains=q) |
                 Q(blood_group__icontains=q)
             )
+
+        if request.GET.get('export') == 'csv':
+            import csv
+            from django.http import HttpResponse
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="blood_requests.csv"'
+            writer = csv.writer(response)
+            writer.writerow([
+                'ID', 'Patient Name', 'Blood Group', 'Blood Component',
+                'Price', 'Blood Bank', 'Hospital Name', 'Hospital Area',
+                'Status', 'Submitted Date'
+            ])
+            for req_item in qs:
+                writer.writerow([
+                    req_item.request_id or req_item.formatted_request_id,
+                    req_item.patient_name,
+                    req_item.blood_group or '-',
+                    req_item.blood_component or '-',
+                    req_item.price if req_item.price is not None else '-',
+                    req_item.blood_bank or '-',
+                    req_item.hospital_name,
+                    req_item.hospital_area,
+                    req_item.status,
+                    req_item.created_at.strftime('%d %b, %Y %H:%M') if req_item.created_at else '-'
+                ])
+            return response
 
         paginator = Paginator(qs, page_size_int)
         page_number = request.GET.get('page')
@@ -2715,9 +2757,13 @@ def admin_edit_blood_request_status(request, request_id):
             else:
                 req.status = 'Cancelled'
                 req.updated_by = request.user
-                req.remarks = request.POST.get('remarks') or req.remarks or 'Blood not available anywhere'
+                # Save cancellation reason
+                req.cancellation_reason = request.POST.get('cancellation_reason', '').strip()
+                # Preserve existing remarks or add note
+                if not req.remarks:
+                    req.remarks = request.POST.get('remarks') or 'Cancelled by admin'
                 req.save()
-                req.append_status_history('Cancelled', changed_by=request.user, note='Cancelled: Blood not available anywhere')
+                req.append_status_history('Cancelled', changed_by=request.user, note='Cancelled: ' + (req.cancellation_reason or 'No reason'))
                 if req.created_by:
                     try:
                         send_notification(
@@ -2867,17 +2913,6 @@ def organize_camp(request):
             )
             return redirect('index')
         else:
-            # Form invalid: log and surface validation errors so we can diagnose
-            try:
-                for field, errs in form.errors.items():
-                    err_text = ", ".join(errs)
-                    messages.error(request, f"{field}: {err_text}")
-                # also non-field errors
-                for err in form.non_field_errors():
-                    messages.error(request, err)
-            except Exception:
-                # fallback: ensure we still render the form
-                print("Error while reporting form errors:", form.errors.as_json())
             print("CampOrganizerForm invalid:", form.errors.as_json())
             return render(request, 'organize_camp.html', {'form': form})
     # Admin: show management table
@@ -2891,9 +2926,6 @@ def organize_camp(request):
         except ValueError:
             page_size_int = 10
         page_size = str(page_size_int)
-        from django.utils import timezone
-        today = timezone.now().date()
-        CampOrganizer.objects.filter(proposed_date__lte=today, status='Pending').update(status='Completed')
 
         qs = CampOrganizer.objects.all().order_by('-created_at')
         if q:
@@ -2912,6 +2944,44 @@ def organize_camp(request):
         form = CampOrganizerForm()
 
     return render(request, 'organize_camp.html', {'form': form})
+
+
+@login_required
+def update_camp_status(request, camp_id):
+    if not (user_has_permission(request.user, 'can_manage_camps') or request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Permission denied.'}, status=403)
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed.'}, status=405)
+
+    camp = get_object_or_404(CampOrganizer, id=camp_id)
+
+    new_status = request.POST.get('status')
+    if not new_status and request.body:
+        try:
+            import json
+            data = json.loads(request.body)
+            new_status = data.get('status')
+        except Exception:
+            pass
+
+    allowed_statuses = ['Completed', 'Pending', 'Cancelled']
+    if new_status not in allowed_statuses:
+        return JsonResponse({
+            'success': False,
+            'error': f"Invalid status '{new_status}'. Allowed values are: {', '.join(allowed_statuses)}."
+        }, status=400)
+
+    camp.status = new_status
+    camp.updated_by = request.user
+    camp.save()
+
+    return JsonResponse({
+        'success': True,
+        'camp_id': camp.id,
+        'status': camp.status,
+        'message': f"Status updated to {camp.status} successfully."
+    })
 
 def be_donor(request):
     if request.method == 'POST':
@@ -2959,17 +3029,7 @@ def be_donor(request):
             )
             return redirect('index')
         else:
-            # Form invalid: surface errors and log them for debugging
-            try:
-                for field, errs in form.errors.items():
-                    err_text = ", ".join(errs)
-                    messages.error(request, f"{field}: {err_text}")
-                for err in form.non_field_errors():
-                    messages.error(request, err)
-            except Exception:
-                print("Error while reporting BloodDonorForm errors:", form.errors.as_json())
             print("BloodDonorForm invalid:", form.errors.as_json())
-            print("BloodDonor POST data:", dict(request.POST))
             return render(request, 'be_donor.html', {'form': form})
     # Admin: show management table
     if user_has_permission(request.user, 'can_manage_donors'):
@@ -3063,7 +3123,17 @@ def add_service(request):
                         )
             messages.success(request, 'Service created successfully.')
             return redirect('medical_services')
-        messages.error(request, 'Please fill in all required fields.')
+        field_errors = {}
+        if not name:
+            field_errors['name'] = 'Service title is required.'
+        if not description:
+            field_errors['description'] = 'Description is required.'
+        return render(request, 'add_service.html', {
+            'field_errors': field_errors,
+            'name': name,
+            'description': description,
+            'is_active': is_active
+        })
     return render(request, 'add_service.html')
 
 @login_required(login_url='signin')
@@ -3101,7 +3171,23 @@ def edit_service(request, pk):
                         )
             messages.success(request, 'Service updated successfully.')
             return redirect('medical_services')
-        messages.error(request, 'Please fill in all required fields.')
+        field_errors = {}
+        if not name:
+            field_errors['name'] = 'Service title is required.'
+        if not description:
+            field_errors['description'] = 'Description is required.'
+        contacts_list = list(service.contacts.all().order_by('display_order'))
+        contacts = []
+        for i in range(4):
+            if i < len(contacts_list):
+                contacts.append(contacts_list[i])
+            else:
+                contacts.append({'service_name': '', 'contact_name': '', 'contact_number': ''})
+        return render(request, 'edit_service.html', {
+            'service': service,
+            'contacts': contacts,
+            'field_errors': field_errors
+        })
 
     contacts_list = list(service.contacts.all().order_by('display_order'))
     contacts = []
@@ -3170,17 +3256,7 @@ def volunteer_event(request):
             )
             return redirect('index')
         else:
-            # Form invalid: surface errors and log them for debugging
-            try:
-                for field, errs in form.errors.items():
-                    err_text = ", ".join(errs)
-                    messages.error(request, f"{field}: {err_text}")
-                for err in form.non_field_errors():
-                    messages.error(request, err)
-            except Exception:
-                print("Error while reporting EventVolunteerForm errors:", form.errors.as_json())
             print("EventVolunteerForm invalid:", form.errors.as_json())
-            print("EventVolunteer POST data:", dict(request.POST))
             return render(request, 'volunteer_event.html', {'form': form})
     # Admin: show volunteers management
     if user_has_permission(request.user, 'can_manage_volunteers'):

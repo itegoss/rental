@@ -24,16 +24,14 @@
     <div class="icon-circle"><i class="fas fa-key"></i></div>
     <h2>Forgot Password</h2>
     <p class="sub">Enter your username to continue to password reset</p>
-    {% if messages %}
-      {% for message in messages %}
-        <div class="err-msg">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-    <form method="POST">
+    <form method="POST" novalidate>
       {% csrf_token %}
       <div class="form-field">
         <label>Username</label>
-        <input type="text" name="username" placeholder="Enter your username" required>
+        <input type="text" name="username" placeholder="Enter your username" value="{{ username|default:'' }}" required class="{% if field_errors.username %}is-invalid{% endif %}">
+        {% if field_errors.username %}
+          <div class="field-error-msg"><i class="fas fa-exclamation-circle"></i> <span>{{ field_errors.username }}</span></div>
+        {% endif %}
       </div>
       <button type="submit" class="btn-submit">Continue</button>
     </form>

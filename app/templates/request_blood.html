@@ -205,18 +205,16 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_patient_name">Patient’s Full Name <span class="text-danger">*</span></label>
-          <input type="text" name="patient_name" id="id_patient_name" required placeholder="Enter patient's full name"
-            value="{{ form.patient_name.value|default_if_none:'' }}">
+          <input type="text" name="patient_name" id="id_patient_name" required placeholder="Enter patient's full name" value="{{ form.patient_name.value|default_if_none:'' }}" class="{% if form.patient_name.errors %}is-invalid{% endif %}">
           {% if form.patient_name.errors %}
-          <div class="error-msg">{{ form.patient_name.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.patient_name.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_hospital_name">Hospital Name <span class="text-danger">*</span></label>
-          <input type="text" name="hospital_name" id="id_hospital_name" required placeholder="Enter hospital name"
-            value="{{ form.hospital_name.value|default_if_none:'' }}">
+          <input type="text" name="hospital_name" id="id_hospital_name" required placeholder="Enter hospital name" value="{{ form.hospital_name.value|default_if_none:'' }}" class="{% if form.hospital_name.errors %}is-invalid{% endif %}">
           {% if form.hospital_name.errors %}
-          <div class="error-msg">{{ form.hospital_name.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.hospital_name.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -224,18 +222,16 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_hospital_area">Hospital Area <span class="text-danger">*</span></label>
-          <input type="text" name="hospital_area" id="id_hospital_area" required placeholder="e.g. Bhayander West"
-            value="{{ form.hospital_area.value|default_if_none:'' }}">
+          <input type="text" name="hospital_area" id="id_hospital_area" required placeholder="e.g. Bhayander West" value="{{ form.hospital_area.value|default_if_none:'' }}" class="{% if form.hospital_area.errors %}is-invalid{% endif %}">
           {% if form.hospital_area.errors %}
-          <div class="error-msg">{{ form.hospital_area.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.hospital_area.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
-          <label for="id_units_required">Units Required <span class="text-danger">*</span></label>
-          <input type="number" name="units_required" id="id_units_required" min="1" required
-            value="{{ form.units_required.value|default_if_none:'1' }}">
+          <label for="id_units_required">Units Required</label>
+          <input type="number" name="units_required" id="id_units_required" min="1" placeholder="e.g. 1" value="{{ form.units_required.value|default_if_none:'' }}" class="{% if form.units_required.errors %}is-invalid{% endif %}">
           {% if form.units_required.errors %}
-          <div class="error-msg">{{ form.units_required.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.units_required.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -245,19 +241,16 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_coordinator_name">Relative/Coordinator Full name <span class="text-danger">*</span></label>
-          <input type="text" name="coordinator_name" id="id_coordinator_name" required
-            placeholder="Person who is directly co-ordinating with Doctor"
-            value="{{ form.coordinator_name.value|default_if_none:'' }}">
+          <input type="text" name="coordinator_name" id="id_coordinator_name" required placeholder="Enter coordinator's full name" value="{{ form.coordinator_name.value|default_if_none:'' }}" class="{% if form.coordinator_name.errors %}is-invalid{% endif %}">
           {% if form.coordinator_name.errors %}
-          <div class="error-msg">{{ form.coordinator_name.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.coordinator_name.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_coordinator_contact">Coordinator’s Contact number <span class="text-danger">*</span></label>
-          <input type="tel" name="coordinator_contact" id="id_coordinator_contact" required
-            placeholder="10-digit mobile number" value="{{ form.coordinator_contact.value|default_if_none:'' }}">
+          <input type="tel" name="coordinator_contact" id="id_coordinator_contact" required placeholder="10-digit mobile number" value="{{ form.coordinator_contact.value|default_if_none:'' }}" class="{% if form.coordinator_contact.errors %}is-invalid{% endif %}">
           {% if form.coordinator_contact.errors %}
-          <div class="error-msg">{{ form.coordinator_contact.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.coordinator_contact.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -265,42 +258,40 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_reference_name">Reference Name (if any)</label>
-          <input type="text" name="reference_name" id="id_reference_name" placeholder="Enter reference name"
-            value="{{ form.reference_name.value|default_if_none:'' }}">
+          <input type="text" name="reference_name" id="id_reference_name" placeholder="Enter reference name" value="{{ form.reference_name.value|default_if_none:'' }}" class="{% if form.reference_name.errors %}is-invalid{% endif %}">
           {% if form.reference_name.errors %}
-          <div class="error-msg">{{ form.reference_name.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.reference_name.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_reference_contact">Reference contact number</label>
-          <input type="tel" name="reference_contact" id="id_reference_contact" placeholder="10-digit reference contact"
-            value="{{ form.reference_contact.value|default_if_none:'' }}">
+          <input type="tel" name="reference_contact" id="id_reference_contact" placeholder="10-digit reference contact" value="{{ form.reference_contact.value|default_if_none:'' }}" class="{% if form.reference_contact.errors %}is-invalid{% endif %}">
           {% if form.reference_contact.errors %}
-          <div class="error-msg">{{ form.reference_contact.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.reference_contact.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
 
       <div class="form-group-custom mt-3">
         <label for="id_prescription">Upload Doctor’s prescription image (jpg, jpeg, png, pdf, img) <span class="text-danger">*</span></label>
-        <input type="file" name="prescription" id="id_prescription" {% if not is_edit or not req.prescription %}required{% endif %} accept=".jpg,.jpeg,.png,.pdf,.img,.webp">
+        <input type="file" name="prescription" id="id_prescription" {% if not is_edit or not req.prescription %}required{% endif %} accept=".jpg,.jpeg,.png,.pdf,.img," class="{% if form.prescription.errors %}is-invalid{% endif %}">
         {% if req.prescription %}
         <small class="text-muted d-block mt-1">Current prescription: <a href="{{ req.prescription.url }}" target="_blank" style="color:#3b82f6;text-decoration:underline;">View File</a></small>
         {% endif %}
         {% if form.prescription.errors %}
-        <div class="error-msg">{{ form.prescription.errors.0 }}</div>
+          <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.prescription.errors.0 }}</div>
         {% endif %}
       </div>
 
       <div class="consent-box mt-4">
         <div class="consent-checkbox-wrapper" style="align-items: flex-start;">
-          <input type="checkbox" name="consent" id="id_consent" required {% if form.consent.value %}checked{% endif %} style="margin-top: 4px;">
+          <input type="checkbox" name="consent" id="id_consent" required {% if form.consent.value %}checked{% endif %} style="margin-top: 4px;" class="{% if form.consent.errors %}is-invalid{% endif %}">
           <label for="id_consent" style="font-weight: 500; line-height: 1.6;">
             I hereby consent to the following ::::&gt; 1. Permit information in this form to be a part of the KYS Database. 2. Permit KYS to share this information for the sole purpose of matching you to a potential blood bank or Blood donor. 3. Acknowledge that KYS is NGO and only a facilitator trying to help and cannot be held liable for any complications arising out of the any process. <span class="text-danger">*</span>
           </label>
         </div>
         {% if form.consent.errors %}
-        <div class="error-msg">{{ form.consent.errors.0 }}</div>
+          <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.consent.errors.0 }}</div>
         {% endif %}
       </div>
 

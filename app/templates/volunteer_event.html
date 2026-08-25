@@ -117,16 +117,16 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_full_name">Full Name <span class="text-danger">*</span></label>
-          <input type="text" name="full_name" id="id_full_name" required placeholder="Enter full name" value="{{ form.full_name.value|default_if_none:'' }}">
+          <input type="text" name="full_name" id="id_full_name" required placeholder="Enter full name" value="{{ form.full_name.value|default_if_none:'' }}" class="{% if form.full_name.errors %}is-invalid{% endif %}">
           {% if form.full_name.errors %}
-            <div class="error-msg">{{ form.full_name.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.full_name.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_contact_number">Contact Number (WhatsApp) <span class="text-danger">*</span></label>
-          <input type="tel" name="contact_number" id="id_contact_number" required placeholder="10-digit mobile number" value="{{ form.contact_number.value|default_if_none:'' }}">
+          <input type="tel" name="contact_number" id="id_contact_number" required placeholder="10-digit mobile number" value="{{ form.contact_number.value|default_if_none:'' }}" class="{% if form.contact_number.errors %}is-invalid{% endif %}">
           {% if form.contact_number.errors %}
-            <div class="error-msg">{{ form.contact_number.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.contact_number.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -134,16 +134,16 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_email">Email Address</label>
-          <input type="email" name="email" id="id_email" placeholder="Enter email address" value="{{ form.email.value|default_if_none:'' }}">
+          <input type="email" name="email" id="id_email" placeholder="Enter email address" value="{{ form.email.value|default_if_none:'' }}" class="{% if form.email.errors %}is-invalid{% endif %}">
           {% if form.email.errors %}
-            <div class="error-msg">{{ form.email.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.email.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_date_of_birth">Date of Birth <span class="text-danger">*</span></label>
-          <input type="date" name="date_of_birth" id="id_date_of_birth" max="{% now 'Y-m-d' %}" required value="{{ form.date_of_birth.value|default_if_none:'' }}">
+          <input type="date" name="date_of_birth" id="id_date_of_birth" required value="{{ form.date_of_birth.value|default_if_none:'' }}" class="{% if form.date_of_birth.errors %}is-invalid{% endif %}">
           {% if form.date_of_birth.errors %}
-            <div class="error-msg">{{ form.date_of_birth.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.date_of_birth.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -151,7 +151,7 @@
       <div class="row">
         <div class="col-md-6 form-group-custom">
           <label for="id_gender">Gender</label>
-          <select name="gender" id="id_gender">
+          <select name="gender" id="id_gender" class="{% if form.gender.errors %}is-invalid{% endif %}">
             <option value="" {% if not form.gender.value %}selected{% endif %}>Select Gender (Optional)</option>
             {% for code, label in form.fields.gender.choices %}
               {% if code %}
@@ -160,14 +160,14 @@
             {% endfor %}
           </select>
           {% if form.gender.errors %}
-            <div class="error-msg">{{ form.gender.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.gender.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_area_of_residence">Area of Residence <span class="text-danger">*</span></label>
-          <input type="text" name="area_of_residence" id="id_area_of_residence" required placeholder="e.g. Bhayander West" value="{{ form.area_of_residence.value|default_if_none:'' }}">
+          <input type="text" name="area_of_residence" id="id_area_of_residence" required placeholder="e.g. Bhayander West" value="{{ form.area_of_residence.value|default_if_none:'' }}" class="{% if form.area_of_residence.errors %}is-invalid{% endif %}">
           {% if form.area_of_residence.errors %}
-            <div class="error-msg">{{ form.area_of_residence.errors.0 }}</div>
+            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.area_of_residence.errors.0 }}</div>
           {% endif %}
         </div>
       </div>
@@ -176,17 +176,17 @@
 
       <div class="form-group-custom">
         <label for="id_event_interest">Event / Domain of Interest</label>
-        <input type="text" name="event_interest" id="id_event_interest" placeholder="e.g. Blood Donation Camp, Equipment Management, Youth Drive" value="{{ form.event_interest.value|default_if_none:'' }}">
+        <input type="text" name="event_interest" id="id_event_interest" placeholder="e.g. Blood Donation Camp, Equipment Management, Youth Drive" value="{{ form.event_interest.value|default_if_none:'' }}" class="{% if form.event_interest.errors %}is-invalid{% endif %}">
         {% if form.event_interest.errors %}
-          <div class="error-msg">{{ form.event_interest.errors.0 }}</div>
+          <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.event_interest.errors.0 }}</div>
         {% endif %}
       </div>
 
       <div class="form-group-custom">
-        <label for="id_skills_remarks">Relevant Skills & Remarks (Optional)</label>
-        <textarea name="skills_remarks" id="id_skills_remarks" rows="4" placeholder="Tell us about any previous volunteering experience, availability, or skills">{{ form.skills_remarks.value|default_if_none:'' }}</textarea>
+        <label for="id_skills_remarks">Your Skills</label>
+        <textarea name="skills_remarks" id="id_skills_remarks" rows="4" placeholder="Tell us about any previous volunteering experience, availability, or skills" class="{% if form.skills_remarks.errors %}is-invalid{% endif %}">{{ form.skills_remarks.value|default_if_none:'' }}</textarea>
         {% if form.skills_remarks.errors %}
-          <div class="error-msg">{{ form.skills_remarks.errors.0 }}</div>
+          <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.skills_remarks.errors.0 }}</div>
         {% endif %}
       </div>
 

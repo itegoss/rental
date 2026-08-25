@@ -26,22 +26,23 @@
     <div class="icon-circle"><i class="fas fa-lock"></i></div>
     <h2>Reset Password</h2>
     <p class="sub">Create a new password for <strong>{{ username }}</strong></p>
-    {% if messages %}
-      {% for message in messages %}
-        <div class="err-msg">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-    <form method="POST" action="{% url 'resetpass' username=username %}">
+    <form method="POST" action="{% url 'resetpass' username=username %}" novalidate>
       {% csrf_token %}
       <div class="form-field">
         <label>New Password</label>
-        <input type="password" id="pw1" name="new_password" placeholder="Enter new password" required>
+        <input type="password" id="pw1" name="new_password" placeholder="Enter new password" required class="{% if field_errors.new_password %}is-invalid{% endif %}">
         <i class="fa-regular fa-eye field-icon" onclick="togglePw('pw1',this)"></i>
+        {% if field_errors.new_password %}
+          <div class="field-error-msg"><i class="fas fa-exclamation-circle"></i> <span>{{ field_errors.new_password }}</span></div>
+        {% endif %}
       </div>
       <div class="form-field">
         <label>Confirm Password</label>
-        <input type="password" id="pw2" name="confirm_password" placeholder="Repeat new password" required>
+        <input type="password" id="pw2" name="confirm_password" placeholder="Repeat new password" required class="{% if field_errors.confirm_password %}is-invalid{% endif %}">
         <i class="fa-regular fa-eye field-icon" onclick="togglePw('pw2',this)"></i>
+        {% if field_errors.confirm_password %}
+          <div class="field-error-msg"><i class="fas fa-exclamation-circle"></i> <span>{{ field_errors.confirm_password }}</span></div>
+        {% endif %}
       </div>
       <button type="submit" class="btn-submit">Reset Password</button>
     </form>
