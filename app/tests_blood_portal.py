@@ -231,7 +231,7 @@ class BloodPortalTests(TestCase):
     def test_camp_organizer_form_future_date(self):
         data = {
             'organizer_name': 'Organizer Name',
-            'organization_name': 'KYS Group',
+            'organization_name': 'HEMOAID Group',
             'contact_number': '9876543210',
             'email': 'organizer@example.com',
             'proposed_date': timezone.localdate() - datetime.timedelta(days=1),  # Past date

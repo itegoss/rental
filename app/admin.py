@@ -330,7 +330,7 @@ class HistoryAdmin(admin.ModelAdmin):
                 f"🛏 Item: {obj.rental_item.title}\n"
                 f"New Return Date: {date_val.strftime('%d-%m-%Y')}\n\n"
                 f"Thank you.\n"
-                f"— Kutch Yuvak Sangh Team"
+                f"— HEMOAID Team"
             )
         else:
             date_val = obj.end_date
@@ -340,7 +340,7 @@ class HistoryAdmin(admin.ModelAdmin):
                 f"🛏 Item: {obj.rental_item.title}\n"
                 f"Return Date: {date_val.strftime('%d-%m-%Y')}\n\n"
                 f"Thank you.\n"
-                f"— Kutch Yuvak Sangh Team"
+                f"— HEMOAID Team"
             )
 
         encoded = urllib.parse.quote(message)
@@ -368,7 +368,7 @@ class HistoryAdmin(admin.ModelAdmin):
             f" Return Date: {final_date.strftime('%d-%m-%Y')}\n\n"
             f"Please return or extend.\n\n"
             f"Thank you \n"
-            f"— Kutch Yuvak Sangh Team"
+            f"— HEMOAID Team"
         )
 
         encoded = urllib.parse.quote(message)

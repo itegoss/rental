@@ -880,7 +880,7 @@ def paymentmethod(request):
                     msg = (
                         f"Hi {customer_name}, your rental request {rental.order_id} for '{item.title}' "
                         f"(Qty: {rental.quantity}) from {rental.start_date} to {rental.end_date} has been submitted. "
-                        "We'll notify you when it's confirmed. - Kutch Yuvak Sangh"
+                        "We'll notify you when it's confirmed. - HEMOAID"
                     )
                     send_whatsapp_message(to_digits, msg)
             except Exception as e:
@@ -2445,7 +2445,7 @@ def request_blood(request):
             f"Hello {blood_request.coordinator_name},\n\n"
             f"Thank you for submitting a blood request for patient {blood_request.patient_name} ({blood_request.blood_group}). "
             f"Our team is reviewing the request and will match with available blood banks/donors.\n\n"
-            f"Regards,\nKYS Bhayander Team"
+            f"Regards,\nHEMOAID Team"
         )
 
         send_whatsapp_message(blood_request.coordinator_contact, whatsapp_msg)
@@ -2902,7 +2902,7 @@ def organize_camp(request):
                 f"Hello {camp.organizer_name},\n\n"
                 f"We deeply appreciate your initiative to organize a blood donation camp with {camp.organization_name} at {camp.proposed_venue} on {camp.proposed_date}. "
                 f"Our team will contact you shortly to coordinate details.\n\n"
-                f"Regards,\nKYS Bhayander Team"
+                f"Regards,\nHEMOAID Team"
             )
 
             send_whatsapp_message(camp.contact_number, whatsapp_msg)
@@ -3018,7 +3018,7 @@ def be_donor(request):
                 f"Hello {donor.get_full_name()},\n\n"
                 f"Congratulations on registering as a blood donor! You are a hero. "
                 f"We will contact you whenever there is a requirement matching your blood group ({donor.blood_group}).\n\n"
-                f"Regards,\nKYS Bhayander Team"
+                f"Regards,\nHEMOAID Team"
             )
 
             send_whatsapp_message(donor.contact_number, whatsapp_msg)
@@ -3245,7 +3245,7 @@ def volunteer_event(request):
                 f"Thank you for registering as a volunteer with KYS Bhayander! "
                 f"Your dedication to community service helps us drive positive social impact. "
                 f"Our team will notify you regarding upcoming drives and events.\n\n"
-                f"Regards,\nKYS Bhayander Team"
+                f"Regards,\nHEMOAID Team"
             )
 
             send_whatsapp_message(volunteer.contact_number, whatsapp_msg)

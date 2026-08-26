@@ -6,7 +6,7 @@ Welcome to the **Sick Bed Services (QuickNest)** codebase guide. This document s
 
 ## 1. Project Overview & Architecture
 
-**Sick Bed Services** (under *Kutch Yuvak Sangh, Bhayandar*) is a medical equipment rental web application. It allows customers to book medical equipment (beds, oxygen cylinders, wheelchairs, walkers, etc.) on a daily rental basis.
+**Sick Bed Services** (under *HEMOAID, Bhayandar*) is a medical equipment rental web application. It allows customers to book medical equipment (beds, oxygen cylinders, wheelchairs, walkers, etc.) on a daily rental basis.
 
 ### Core Tech Stack
 - **Framework**: Django 5.2.4 (Python 3.x)

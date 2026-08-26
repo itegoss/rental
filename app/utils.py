@@ -267,7 +267,7 @@ def generate_receipt(order):
     )
 
     # 1. Header Title
-    elements.append(Paragraph("Kutch Yuvak Sangh, Bhayandar", title_style))
+    elements.append(Paragraph("HEMOAID, Bhayandar", title_style))
     elements.append(Paragraph("RENTAL BOOKING RECEIPT", ParagraphStyle('SubTitle', parent=title_style, fontSize=12, textColor=HexColor('#333333'), spaceAfter=15)))
     elements.append(Spacer(1, 10))
 
