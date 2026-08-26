@@ -147,15 +147,40 @@ class CampOrganizerForm(forms.ModelForm):
 
 
 class BloodDonorForm(forms.ModelForm):
-    full_name = forms.CharField(max_length=255, required=True, label='Full Name')
+    full_name = forms.CharField(max_length=255, required=False, label='Full Name')
+    first_name = forms.CharField(max_length=255, required=False, label='First Name')
+    last_name = forms.CharField(max_length=255, required=False, label='Last Name')
 
     class Meta:
         model = BloodDonor
         fields = [
-            'full_name', 'contact_number', 'date_of_birth',
+            'full_name', 'first_name', 'last_name', 'contact_number', 'date_of_birth',
             'gender', 'blood_group', 'area_of_residence',
             'reference_name', 'reference_contact'
         ]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        first_name = (cleaned_data.get('first_name') or '').strip()
+        last_name = (cleaned_data.get('last_name') or '').strip()
+        full_name = (cleaned_data.get('full_name') or '').strip()
+
+        if not full_name:
+            if first_name or last_name:
+                full_name = f"{first_name} {last_name}".strip()
+            else:
+                self.add_error('first_name', 'First name is required.')
+                self.add_error('last_name', 'Last name is required.')
+
+        cleaned_data['full_name'] = full_name
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.full_name = self.cleaned_data.get('full_name')
+        if commit:
+            instance.save()
+        return instance
 
     def clean_contact_number(self):
         contact = self.cleaned_data.get('contact_number', '').strip()
@@ -177,8 +202,12 @@ class BloodDonorForm(forms.ModelForm):
     def clean_date_of_birth(self):
         dob = self.cleaned_data.get('date_of_birth')
         if dob:
-            if dob > timezone.localdate():
+            today = timezone.localdate()
+            if dob > today:
                 raise ValidationError("Date of birth cannot be in the future.")
+            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+            if age < 18:
+                raise ValidationError("You must be at least 18 years old to register as a blood donor.")
         return dob
 
 
