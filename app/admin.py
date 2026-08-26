@@ -570,11 +570,11 @@ class BloodDonorAdmin(admin.ModelAdmin):
         'status',
     )
     list_filter = ('status', 'blood_group', 'created_at')
-    search_fields = ('first_name', 'last_name', 'contact_number', 'area_of_residence')
+    search_fields = ('full_name', 'contact_number', 'area_of_residence')
     readonly_fields = ('created_at', 'updated_at')
 
     def donor_name(self, obj):
-        return f"{obj.first_name} {obj.last_name}"
+        return obj.get_full_name()
     donor_name.short_description = "Donor Name"
 
     def save_model(self, request, obj, form, change):

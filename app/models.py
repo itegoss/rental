@@ -846,8 +846,6 @@ class BloodDonor(models.Model):
         ('Fulfilled', 'Fulfilled'),
     ]
     full_name = models.CharField(max_length=255, blank=True, null=True)
-    first_name = models.CharField(max_length=255, blank=True, null=True)
-    last_name = models.CharField(max_length=255, blank=True, null=True)
     contact_number = models.CharField(max_length=15)
     date_of_birth = models.DateField()
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
@@ -863,18 +861,25 @@ class BloodDonor(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     remarks = models.TextField(blank=True, null=True)
 
-    def get_full_name(self):
+    @property
+    def first_name(self):
         if self.full_name and self.full_name.strip():
-            return self.full_name.strip()
-        return f"{self.first_name or ''} {self.last_name or ''}".strip()
+            return self.full_name.strip().split(None, 1)[0]
+        return ""
 
-    def save(self, *args, **kwargs):
+    @property
+    def last_name(self):
         if self.full_name and self.full_name.strip():
             parts = self.full_name.strip().split(None, 1)
-            self.first_name = parts[0]
-            self.last_name = parts[1] if len(parts) > 1 else ''
-        elif self.first_name:
-            self.full_name = f"{self.first_name} {self.last_name or ''}".strip()
+            return parts[1] if len(parts) > 1 else ""
+        return ""
+
+    def get_full_name(self):
+        return (self.full_name or "").strip()
+
+    def save(self, *args, **kwargs):
+        if self.full_name:
+            self.full_name = self.full_name.strip()
         super().save(*args, **kwargs)
 
     @property

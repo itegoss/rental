@@ -32,7 +32,7 @@ class BloodRequestWorkflowTests(TestCase):
         req.refresh_from_db()
         self.assertEqual(req.status, 'Accepted')
 
-        volunteer = User.objects.create_user(username='volunteer1', password='password123')
+        volunteer = User.objects.create_user(username='volunteer1', password='password123', is_staff=True)
         response = self.client.post(reverse('admin_edit_blood_request_status', args=[req.id]), {'action': 'assign', 'assigned_employee': volunteer.id})
         self.assertEqual(response.status_code, 302)
         req.refresh_from_db()
@@ -168,7 +168,7 @@ class BloodPortalTests(TestCase):
 
     def test_assign_employee_view_assigns_request_to_active_user(self):
         admin = User.objects.create_user(username='adminassign', password='password123', is_staff=True)
-        employee = User.objects.create_user(username='employee1', password='password123', is_active=True)
+        employee = User.objects.create_user(username='employee1', password='password123', is_active=True, is_staff=True)
         req = BloodRequest.objects.create(
             patient_name='Assign Patient',
             hospital_name='City Hospital',
@@ -200,7 +200,7 @@ class BloodPortalTests(TestCase):
 
     def test_assign_employee_creates_notification_for_assigned_user(self):
         admin = User.objects.create_user(username='adminassign2', password='password123', is_staff=True)
-        employee = User.objects.create_user(username='employee2', password='password123', is_active=True)
+        employee = User.objects.create_user(username='employee2', password='password123', is_active=True, is_staff=True)
         req = BloodRequest.objects.create(
             patient_name='Assign Patient 2',
             hospital_name='City Hospital',

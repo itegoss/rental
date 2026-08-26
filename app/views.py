@@ -3046,8 +3046,6 @@ def be_donor(request):
         if q:
             qs = qs.filter(
                 Q(full_name__icontains=q) |
-                Q(first_name__icontains=q) |
-                Q(last_name__icontains=q) |
                 Q(contact_number__icontains=q) |
                 Q(area_of_residence__icontains=q) |
                 Q(blood_group__icontains=q)
