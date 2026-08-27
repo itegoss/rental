@@ -25,7 +25,7 @@
 }
 .form-container {
   max-width: 960px;
-  margin: -40px auto 60px;
+  margin: 40px auto 60px;
   background: #ffffff;
   padding: 40px;
   border-radius: 16px;
@@ -94,8 +94,8 @@
 }
 </style>
 
-<div class="donor-banner">
-  <h1>Congratulations on Stepping Up!</h1>
+<div class="blood-banner">
+  <h1>Congratulations on <span>Stepping Up!</span></h1>
   <p>Thank you for making the noble decision to give the gift of blood. You are the hero of your life, and your incredible generosity has the power to save others!</p>
   <p style="margin-top: 10px; opacity: 0.9;">Please fill out the details below to register with us. </p>
 </div>
@@ -142,7 +142,7 @@
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_date_of_birth">DOB <span class="text-danger">*</span></label>
-          <input type="date" name="date_of_birth" id="id_date_of_birth" required value="{{ form.date_of_birth.value|default_if_none:'' }}" class="{% if form.date_of_birth.errors %}is-invalid{% endif %}">
+          <input type="date" name="date_of_birth" id="id_date_of_birth" max="{% now 'Y-m-d' %}" required value="{{ form.date_of_birth.value|default_if_none:'' }}" class="{% if form.date_of_birth.errors %}is-invalid{% endif %}">
           {% if form.date_of_birth.errors %}
             <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.date_of_birth.errors.0 }}</div>
           {% endif %}
@@ -211,4 +211,21 @@
     </form>
   </div>
 </div>
+
+<script>
+  (function() {
+    function setDobMaxDate() {
+      const dobInput = document.getElementById('id_date_of_birth');
+      if (dobInput) {
+        const today = new Date().toISOString().split('T')[0];
+        dobInput.setAttribute('max', today);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setDobMaxDate);
+    } else {
+      setDobMaxDate();
+    }
+  })();
+</script>
 {% endblock %}

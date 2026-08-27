@@ -82,7 +82,7 @@
             <td>{{ role.permission_list|join:', ' }}</td>
             <td>
               <div class="table-actions">
-                <a class="btn-edit-item" href="{% url 'roles' %}?edit={{ role.id }}">Edit</a>
+                <a class="btn-edit-item" href="{% url 'roles' %}?edit={{ role.id }}" title="Edit Role" aria-label="Edit Role"><i class="fas fa-edit"></i></a>
               </div>
             </td>
           </tr>

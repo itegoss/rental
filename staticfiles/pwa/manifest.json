@@ -1,0 +1,22 @@
+{
+    "name": "Sick Bed Services",
+    "short_name": "SickBed",
+    "description": "Medical Equipment Rental",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#6B0F24",
+    "icons": [
+        {
+            "src": "/static/pwa/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/pwa/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
