@@ -169,8 +169,7 @@ class BloodDonorForm(forms.ModelForm):
             if first_name or last_name:
                 full_name = f"{first_name} {last_name}".strip()
             else:
-                self.add_error('first_name', 'First name is required.')
-                self.add_error('last_name', 'Last name is required.')
+                self.add_error('full_name', 'Full name is required.')
 
         cleaned_data['full_name'] = full_name
         return cleaned_data
@@ -205,9 +204,6 @@ class BloodDonorForm(forms.ModelForm):
             today = timezone.localdate()
             if dob > today:
                 raise ValidationError("Date of birth cannot be in the future.")
-            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-            if age < 18:
-                raise ValidationError("You must be at least 18 years old to register as a blood donor.")
         return dob
 
 

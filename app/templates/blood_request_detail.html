@@ -36,7 +36,7 @@
       <!-- Cancel Request Button (only show when not already terminal) -->
       {% if req.status != 'Completed' and req.status != 'Cancelled' and req.status != 'Rejected' %}
       <button type="button" class="btn-delete-item-table" id="cancelRequestBtn" title="Cancel Request" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-        <i class="fas fa-ban"></i> Cancel Request
+        <i class="fas fa-ban"></i>
       </button>
       {% endif %}
     </div>

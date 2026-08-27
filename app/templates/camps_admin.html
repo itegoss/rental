@@ -315,72 +315,103 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    const statusOptions = document.querySelectorAll('.status-opt-item');
-
-    statusOptions.forEach(opt => {
-      opt.addEventListener('click', function (e) {
-        e.preventDefault();
-        const campId = this.getAttribute('data-camp-id');
-        const newStatus = this.getAttribute('data-status');
-        const dropdown = this.closest('.camp-status-dropdown');
-        if (!dropdown) return;
-
-        const button = dropdown.querySelector('.camp-status-btn');
-        const statusText = button.querySelector('.status-text');
-        const prevStatus = button.getAttribute('data-current-status');
-
-        if (newStatus === prevStatus) {
-          return;
+    function closeCampDropdown(button, dropdown) {
+      if (window.bootstrap && bootstrap.Dropdown) {
+        const bsInstance = bootstrap.Dropdown.getInstance(button);
+        if (bsInstance) {
+          try {
+            bsInstance.hide();
+          } catch (err) {
+            // Fallback if hide fails
+          }
         }
+      }
+      const menu = dropdown.querySelector('.dropdown-menu');
+      if (menu) menu.classList.remove('show');
+      button.classList.remove('show');
+      button.setAttribute('aria-expanded', 'false');
+    }
 
-        // Optimistically update UI
-        button.className = `btn btn-sm dropdown-toggle camp-status-btn status-btn-${newStatus.toLowerCase()}`;
-        if (statusText) statusText.textContent = newStatus;
-        button.setAttribute('data-current-status', newStatus);
+    document.addEventListener('click', function (e) {
+      const opt = e.target.closest('.status-opt-item');
+      if (!opt) return;
 
-        // Update active class on options
-        const allOpts = dropdown.querySelectorAll('.status-opt-item');
-        allOpts.forEach(o => {
-          if (o.getAttribute('data-status') === newStatus) {
-            o.classList.add('active');
-          } else {
-            o.classList.remove('active');
-          }
-        });
+      e.preventDefault();
+      e.stopPropagation();
 
-        // Send AJAX request to update status in database
-        const url = `/organize-camp/status/${campId}/`;
-        const csrftoken = getCookie('csrftoken');
+      const campId = opt.getAttribute('data-camp-id');
+      const newStatus = opt.getAttribute('data-status');
+      const dropdown = opt.closest('.camp-status-dropdown');
+      if (!dropdown) return;
 
-        const formData = new FormData();
-        formData.append('status', newStatus);
+      const button = dropdown.querySelector('.camp-status-btn');
+      if (!button) return;
 
-        fetch(url, {
-          method: 'POST',
-          headers: {
-            'X-CSRFToken': csrftoken,
-          },
-          body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            showStatusToast(`Camp status updated to "${newStatus}"`);
-          } else {
-            // Revert on error
-            button.className = `btn btn-sm dropdown-toggle camp-status-btn status-btn-${prevStatus.toLowerCase()}`;
-            if (statusText) statusText.textContent = prevStatus;
-            button.setAttribute('data-current-status', prevStatus);
-            showStatusToast(data.error || 'Failed to update status', true);
-          }
-        })
-        .catch(err => {
-          // Revert on network error
+      const statusText = button.querySelector('.status-text');
+      const prevStatus = button.getAttribute('data-current-status');
+
+      // Close dropdown menu cleanly
+      closeCampDropdown(button, dropdown);
+
+      if (newStatus === prevStatus) {
+        return;
+      }
+
+      // Optimistically update UI
+      button.className = `btn btn-sm dropdown-toggle camp-status-btn status-btn-${newStatus.toLowerCase()}`;
+      if (statusText) statusText.textContent = newStatus;
+      button.setAttribute('data-current-status', newStatus);
+
+      // Update active class on options
+      const allOpts = dropdown.querySelectorAll('.status-opt-item');
+      allOpts.forEach(o => {
+        if (o.getAttribute('data-status') === newStatus) {
+          o.classList.add('active');
+        } else {
+          o.classList.remove('active');
+        }
+      });
+
+      // Send AJAX request to update status in database
+      const url = `/organize-camp/status/${campId}/`;
+      const csrftoken = getCookie('csrftoken');
+
+      const formData = new FormData();
+      formData.append('status', newStatus);
+
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+        },
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(
+            errData => { throw new Error(errData.error || `Server error (${response.status})`); },
+            () => { throw new Error(`Server error (${response.status})`); }
+          );
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          showStatusToast(`Camp status updated to "${newStatus}"`);
+        } else {
+          // Revert on error
           button.className = `btn btn-sm dropdown-toggle camp-status-btn status-btn-${prevStatus.toLowerCase()}`;
           if (statusText) statusText.textContent = prevStatus;
           button.setAttribute('data-current-status', prevStatus);
-          showStatusToast('Network error while updating status', true);
-        });
+          showStatusToast(data.error || 'Failed to update status', true);
+        }
+      })
+      .catch(err => {
+        // Revert on network/server error
+        button.className = `btn btn-sm dropdown-toggle camp-status-btn status-btn-${prevStatus.toLowerCase()}`;
+        if (statusText) statusText.textContent = prevStatus;
+        button.setAttribute('data-current-status', prevStatus);
+        showStatusToast(err.message || 'Network error while updating status', true);
       });
     });
   });

@@ -25,7 +25,7 @@
 }
 .form-container {
   max-width: 960px;
-  margin: -40px auto 60px;
+  margin: 40px auto 60px;
   background: #ffffff;
   padding: 40px;
   border-radius: 16px;
@@ -94,8 +94,8 @@
 }
 </style>
 
-<div class="donor-banner">
-  <h1>Congratulations on Stepping Up!</h1>
+<div class="blood-banner">
+  <h1>Congratulations on <span>Stepping Up!</span></h1>
   <p>Thank you for making the noble decision to give the gift of blood. You are the hero of your life, and your incredible generosity has the power to save others!</p>
   <p style="margin-top: 10px; opacity: 0.9;">Please fill out the details below to register with us. </p>
 </div>
@@ -115,21 +115,12 @@
 
       <div class="form-section-title">Personal Details</div>
       
-      <div class="row">
-        <div class="col-md-6 form-group-custom">
-          <label for="id_first_name">First Name <span class="text-danger">*</span></label>
-          <input type="text" name="first_name" id="id_first_name" required placeholder="Enter first name" value="{{ form.first_name.value|default_if_none:'' }}" class="{% if form.first_name.errors %}is-invalid{% endif %}">
-          {% if form.first_name.errors %}
-            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.first_name.errors.0 }}</div>
-          {% endif %}
-        </div>
-        <div class="col-md-6 form-group-custom">
-          <label for="id_last_name">Last Name <span class="text-danger">*</span></label>
-          <input type="text" name="last_name" id="id_last_name" required placeholder="Enter last name" value="{{ form.last_name.value|default_if_none:'' }}" class="{% if form.last_name.errors %}is-invalid{% endif %}">
-          {% if form.last_name.errors %}
-            <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.last_name.errors.0 }}</div>
-          {% endif %}
-        </div>
+      <div class="form-group-custom">
+        <label for="id_full_name">Full Name <span class="text-danger">*</span></label>
+        <input type="text" name="full_name" id="id_full_name" required placeholder="Enter full name" value="{{ form.full_name.value|default_if_none:'' }}" class="{% if form.full_name.errors %}is-invalid{% endif %}">
+        {% if form.full_name.errors %}
+          <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.full_name.errors.0 }}</div>
+        {% endif %}
       </div>
 
       <div class="row">
@@ -142,7 +133,7 @@
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_date_of_birth">DOB <span class="text-danger">*</span></label>
-          <input type="date" name="date_of_birth" id="id_date_of_birth" required value="{{ form.date_of_birth.value|default_if_none:'' }}" class="{% if form.date_of_birth.errors %}is-invalid{% endif %}">
+          <input type="date" name="date_of_birth" id="id_date_of_birth" max="{% now 'Y-m-d' %}" required value="{{ form.date_of_birth.value|default_if_none:'' }}" class="{% if form.date_of_birth.errors %}is-invalid{% endif %}">
           {% if form.date_of_birth.errors %}
             <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.date_of_birth.errors.0 }}</div>
           {% endif %}
@@ -211,4 +202,21 @@
     </form>
   </div>
 </div>
+
+<script>
+  (function() {
+    function setDobMaxDate() {
+      const dobInput = document.getElementById('id_date_of_birth');
+      if (dobInput) {
+        const today = new Date().toISOString().split('T')[0];
+        dobInput.setAttribute('max', today);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setDobMaxDate);
+    } else {
+      setDobMaxDate();
+    }
+  })();
+</script>
 {% endblock %}

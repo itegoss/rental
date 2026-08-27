@@ -78,7 +78,8 @@ class BloodRequestWorkflowTests(TestCase):
         response = self.client.get(reverse('edit_blood_request', args=[req.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Original Patient')
-        self.assertContains(response, 'Edit Blood Request')
+        self.assertContains(response, 'Edit Blood')
+        self.assertContains(response, 'Request')
 
     def test_edit_blood_request_post(self):
         prescription_file = SimpleUploadedFile("prescription.jpg", b"file_content", content_type="image/jpeg")
@@ -231,7 +232,7 @@ class BloodPortalTests(TestCase):
     def test_camp_organizer_form_future_date(self):
         data = {
             'organizer_name': 'Organizer Name',
-            'organization_name': 'KYS Group',
+            'organization_name': 'HEMOAID Group',
             'contact_number': '9876543210',
             'email': 'organizer@example.com',
             'proposed_date': timezone.localdate() - datetime.timedelta(days=1),  # Past date
@@ -245,7 +246,7 @@ class BloodPortalTests(TestCase):
         self.assertIn('proposed_date', form.errors)
 
     def test_blood_donor_form_underage(self):
-        # Under 18 check
+        # Under 18 check removed; under 18 is now valid
         dob = timezone.localdate() - datetime.timedelta(days=17 * 365)
         data = {
             'first_name': 'Alex',
@@ -257,8 +258,7 @@ class BloodPortalTests(TestCase):
             'area_of_residence': 'Bhayander West',
         }
         form = BloodDonorForm(data=data)
-        self.assertFalse(form.is_valid())
-        self.assertIn('date_of_birth', form.errors)
+        self.assertTrue(form.is_valid())
 
     def test_blood_request_view_submission(self):
         self.client.force_login(self.user)

@@ -28,7 +28,7 @@
 
   .form-container {
     max-width: 960px;
-    margin: -40px auto 60px;
+    margin: 40px auto 60px;
     background: #ffffff;
     padding: 40px;
     border-radius: 16px;
@@ -182,7 +182,7 @@
 </style>
 
 <div class="blood-banner">
-  <h1>{% if is_edit %}Edit Blood Request{% else %}Request a Blood component for your patient{% endif %}</h1>
+  <h1>{% if is_edit %}Edit Blood <span>Request</span>{% else %}Blood Request <span>Management</span>{% endif %}</h1>
   <p>{% if is_edit %}Update the blood request details below.{% else %}Please fill and submit the below form and keep
     track of messages on your whatsapp.{% endif %}</p>
 </div>

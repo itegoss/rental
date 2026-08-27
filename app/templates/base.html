@@ -12,6 +12,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
     crossorigin="anonymous">
   {% load static notification_tags %}
+  <link rel="stylesheet" href="{% static 'css/inline_validation.css' %}">
   <link rel="shortcut icon" type="image/png" href="{% static 'images/Hemoaid_logo1.png' %}">
   <link rel="icon" type="image/png" href="{% static 'images/Hemoaid_logo1.png' %}">
   <link rel="manifest" href="{% static 'pwa/manifest.json' %}">
@@ -796,9 +797,10 @@
 
     .footer-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 48px;
       margin-bottom: 44px;
+      justify-items: center;
     }
 
     .footer-col {
@@ -806,6 +808,7 @@
       flex-direction: column;
       align-items: flex-start;
       text-align: left;
+      min-width: 220px;
     }
 
     .footer-col h4 {
@@ -831,20 +834,24 @@
     .footer-contact-row {
       display: flex;
       align-items: center;
+      justify-content: flex-start;
       gap: 10px;
       width: 100%;
       font-size: 0.88rem;
       color: rgba(255, 255, 255, 0.85);
+      text-align: left;
     }
 
     .footer-contact-row a {
       display: inline-flex;
       align-items: center;
+      justify-content: flex-start;
       gap: 10px;
       color: rgba(255, 255, 255, 0.85);
       text-decoration: none;
       transition: color var(--transition);
       font-size: 0.88rem;
+      text-align: left;
     }
 
     .footer-contact-row a:hover {
@@ -946,21 +953,21 @@
       }
 
       .footer-col {
-        align-items: center;
-        text-align: center;
+        align-items: flex-start;
+        text-align: left;
       }
 
       .footer-col h4 {
-        width: 190px;
+        width: 100%;
         max-width: 100%;
-        margin: 0 auto 16px auto;
+        margin: 0 0 16px 0;
         text-align: left;
       }
 
       .footer-contact-list {
-        width: 190px;
+        width: 100%;
         max-width: 100%;
-        margin: 0 auto;
+        margin: 0;
         align-items: flex-start;
       }
 
@@ -1258,6 +1265,94 @@
       .welcome-chip {
         display: none !important;
       }
+    }
+
+    /* Universal Page Banner & Centered Title/Description Layout */
+    .blood-banner,
+    .donor-banner,
+    .camp-banner,
+    .volunteer-banner,
+    .about-banner {
+      background: linear-gradient(135deg, #FDF2F4 0%, #FAF4E6 100%) !important;
+      color: #1e293b !important;
+      padding: 56px 24px !important;
+      text-align: center !important;
+      border-bottom: 3px solid #d4af37 !important;
+      margin-bottom: 0 !important;
+    }
+
+    .inventory-head,
+    .support-services-head,
+    .services-page-head,
+    .items-page-head,
+    .cart-page-head,
+    .bookings-head,
+    .notif-page-head,
+    .blood-banner,
+    .donor-banner,
+    .camp-banner,
+    .volunteer-banner,
+    .about-banner,
+    .page-head {
+      text-align: center !important;
+    }
+
+    .inventory-head h1,
+    .support-services-head h1,
+    .services-page-head h1,
+    .items-page-head h1,
+    .cart-page-head h1,
+    .bookings-head h1,
+    .notif-page-head h1,
+    .blood-banner h1,
+    .donor-banner h1,
+    .camp-banner h1,
+    .volunteer-banner h1,
+    .about-banner h1,
+    .page-head h1 {
+      text-align: center !important;
+      color: #1d2a3a !important;
+      font-size: 2.3rem !important;
+      font-weight: 800 !important;
+      margin-bottom: 12px !important;
+      letter-spacing: -0.5px;
+    }
+
+    .inventory-head h1 span,
+    .support-services-head h1 span,
+    .services-page-head h1 span,
+    .items-page-head h1 span,
+    .cart-page-head h1 span,
+    .bookings-head h1 span,
+    .notif-page-head h1 span,
+    .blood-banner h1 span,
+    .donor-banner h1 span,
+    .camp-banner h1 span,
+    .volunteer-banner h1 span,
+    .about-banner h1 span,
+    .page-head h1 span {
+      color: #d4af37 !important;
+    }
+
+    .inventory-head p,
+    .support-services-head p,
+    .services-page-head p,
+    .items-page-head p,
+    .cart-page-head p,
+    .bookings-head p,
+    .notif-page-head p,
+    .blood-banner p,
+    .donor-banner p,
+    .camp-banner p,
+    .volunteer-banner p,
+    .about-banner p,
+    .page-head p {
+      text-align: center !important;
+      margin: 0 auto !important;
+      max-width: 650px !important;
+      color: #475569 !important;
+      font-size: 1.05rem !important;
+      line-height: 1.6 !important;
     }
   </style>
 </head>
@@ -1696,7 +1791,7 @@
             <span style="font-weight: 600; font-size: 0.95rem; line-height: 1.4; word-break: break-word;">{{ message }}</span>
           </div>
           <button type="button" class="btn-close-alert ms-3" aria-label="Close" title="Dismiss">
-            &times;
+            <i class="fas fa-times"></i>
           </button>
         </div>
       {% endif %}
@@ -1762,54 +1857,23 @@
         <div class="footer-col">
           <h4>Contact Us</h4>
           <div class="footer-contact-list">
+           
             <div class="footer-contact-row">
-              <a href="tel:9867348169"><i class="fas fa-phone"></i> 9867348169</a>
+              <a href="tel:9820247550"><i class="fas fa-phone"></i> 88505 13009</a>
             </div>
             <div class="footer-contact-row">
-              <a href="tel:9820247550"><i class="fas fa-phone"></i> 9820247550</a>
-            </div>
-            <div class="footer-contact-row">
-              <a href="mailto:bhayander@kutchyuvaksangh.org" class="email-link">
-                <i class="fas fa-envelope"></i><span class="email-text">bhayander@<br
-                    class="mobile-email-br">kutchyuvaksangh.org</span>
+              <a href="mailto:info.itegoss.in" class="email-link">
+                <i class="fas fa-envelope"></i><span class="email-text">info.itegoss<br
+                    class="mobile-email-br">.in</span>
               </a>
             </div>
-            <div class="footer-contact-row">
-              <a href="https://www.kutchyuvaksangh.org" target="_blank">
-                <i class="fas fa-globe"></i> kutchyuvaksangh.org
-              </a>
-            </div>
-          </div>
-        </div>
-        <div class="footer-col">
-          <h4>Social Links</h4>
-          <div class="footer-contact-list">
-            <div class="footer-contact-row">
-              <a href="https://www.facebook.com/kysBhayander/" target="_blank">
-                <i class="fab fa-facebook-f"></i> Facebook
-              </a>
-            </div>
-            <div class="footer-contact-row">
-              <a href="https://www.instagram.com/kysbhayander" target="_blank">
-                <i class="fab fa-instagram"></i> Instagram
-              </a>
-            </div>
-            <div class="footer-contact-row">
-              <a href="https://www.youtube.com/@bhayanderkys4491" target="_blank">
-                <i class="fab fa-youtube"></i> YouTube
-              </a>
-            </div>
-            <div class="footer-contact-row">
-              <a href="https://sites.google.com/kutchyuvaksangh.org/kysbhayander/home" target="_blank">
-                <i class="fab fa-google"></i> Google
-              </a>
-            </div>
+           
           </div>
         </div>
       </div>
       <div class="footer-bottom">
-        <p>© 2026 Kutch Yuvak Sangh. All Rights Reserved | Powered and Managed by <a href="https://www.itegoss.in/"
-            target="_blank">Itegoss Technology.</a></p>
+        <p>Managed by <a href="https://www.itegoss.in/"
+            target="_blank">Itegoss Technology </a> | Inspired by Kutch Yuvak Sangh <br>© 2026 HEMOAID. All Rights Reserved </p>
       </div>
     </div>
   </footer>
