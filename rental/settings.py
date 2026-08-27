@@ -87,7 +87,7 @@ if 'test' in sys.argv:
     }
 
 else:
-      DATABASES = {
+       DATABASES = {
              'default': {
                  'ENGINE': 'django.db.backends.postgresql',
                  'NAME': os.getenv('DB_NAME'),
@@ -97,7 +97,6 @@ else:
                  'PORT': os.getenv('DB_PORT'),
      }
      }
-
 
 
 AUTH_PASSWORD_VALIDATORS = [

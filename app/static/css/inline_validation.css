@@ -132,17 +132,18 @@ ul.errorlist li {
 /* Top Alert & Status Notification Styling */
 .global-top-alert {
   border-radius: 12px !important;
-  padding: 12px 18px !important;
+  padding: 12px 20px !important;
   font-size: 0.95rem !important;
   animation: slideDownAlert 0.3s ease-out;
-  transition: opacity 0.5s ease, transform 0.5s ease;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
 }
 
 .alert-success-custom {
   background-color: #f0fdf4 !important;
   border: 1px solid #bbf7d0 !important;
   color: #15803d !important;
-  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08) !important;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.08) !important;
 }
 
 .alert-danger,
@@ -153,7 +154,7 @@ ul.errorlist li {
   border: 1px solid #fecaca !important;
   color: #dc3545 !important;
   border-left: 4px solid #dc3545 !important;
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.08) !important;
+  box-shadow: 0 4px 14px rgba(220, 53, 69, 0.08) !important;
 }
 
 .alert-danger *,
@@ -167,28 +168,37 @@ ul.errorlist li {
   background-color: #f0f9ff !important;
   border: 1px solid #bae6fd !important;
   color: #0369a1 !important;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08) !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08) !important;
 }
 
 .btn-close-alert {
-  background: none !important;
+  background: transparent !important;
   border: none !important;
-  font-size: 1.35rem !important;
+  outline: none !important;
+  box-shadow: none !important;
+  font-size: 0.95rem !important;
   font-weight: 700 !important;
   line-height: 1 !important;
-  padding: 0 4px !important;
+  padding: 6px 10px !important;
   cursor: pointer !important;
   color: inherit !important;
   opacity: 0.65;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  border-radius: 8px !important;
+  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
-.btn-close-alert:hover {
+.btn-close-alert:hover,
+.btn-close-alert:focus {
   opacity: 1 !important;
-  transform: scale(1.2);
+  background-color: rgba(0, 0, 0, 0.07) !important;
+  transform: scale(1.08);
+  outline: none !important;
 }
 
 @keyframes slideDownAlert {

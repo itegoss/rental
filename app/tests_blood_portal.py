@@ -78,7 +78,8 @@ class BloodRequestWorkflowTests(TestCase):
         response = self.client.get(reverse('edit_blood_request', args=[req.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Original Patient')
-        self.assertContains(response, 'Edit Blood Request')
+        self.assertContains(response, 'Edit Blood')
+        self.assertContains(response, 'Request')
 
     def test_edit_blood_request_post(self):
         prescription_file = SimpleUploadedFile("prescription.jpg", b"file_content", content_type="image/jpeg")

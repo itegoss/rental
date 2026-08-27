@@ -169,8 +169,7 @@ class BloodDonorForm(forms.ModelForm):
             if first_name or last_name:
                 full_name = f"{first_name} {last_name}".strip()
             else:
-                self.add_error('first_name', 'First name is required.')
-                self.add_error('last_name', 'Last name is required.')
+                self.add_error('full_name', 'Full name is required.')
 
         cleaned_data['full_name'] = full_name
         return cleaned_data
