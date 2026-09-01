@@ -590,6 +590,7 @@ class BloodRequest(models.Model):
         ('O+', 'O+'),
         ('O-', 'O-'),
         ('BB', 'BB'),
+        ("Don't Know", "Don't Know"),
     ]
     STATUS_CHOICES = [
         ('Pending', 'Pending'),
@@ -618,7 +619,7 @@ class BloodRequest(models.Model):
     patient_name = models.CharField(max_length=255)
     hospital_name = models.CharField(max_length=255)
     hospital_area = models.CharField(max_length=255)
-    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, blank=True, null=True)
+    blood_group = models.CharField(max_length=20, choices=BLOOD_GROUP_CHOICES, blank=True, null=True)
     units_required = models.PositiveIntegerField(default=1, blank=True, null=True)
     coordinator_name = models.CharField(max_length=255)
     coordinator_contact = models.CharField(max_length=15)
