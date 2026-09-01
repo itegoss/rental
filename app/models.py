@@ -693,7 +693,19 @@ class BloodRequest(models.Model):
     def save(self, *args, **kwargs):
         if not self.request_id:
             self.request_id = self.generate_request_id()
-        super().save(*args, **kwargs)
+        try:
+            super().save(*args, **kwargs)
+        except Exception as e:
+            if 'value too long for type character varying' in str(e) or 'character varying(5)' in str(e):
+                from django.db import connection
+                try:
+                    with connection.cursor() as cursor:
+                        cursor.execute("ALTER TABLE app_bloodrequest ALTER COLUMN blood_group TYPE varchar(20);")
+                    super().save(*args, **kwargs)
+                    return
+                except Exception:
+                    pass
+            raise e
 
     @property
     def formatted_request_id(self):
@@ -881,7 +893,19 @@ class BloodDonor(models.Model):
     def save(self, *args, **kwargs):
         if self.full_name:
             self.full_name = self.full_name.strip()
-        super().save(*args, **kwargs)
+        try:
+            super().save(*args, **kwargs)
+        except Exception as e:
+            if 'value too long for type character varying' in str(e) or 'character varying(5)' in str(e):
+                from django.db import connection
+                try:
+                    with connection.cursor() as cursor:
+                        cursor.execute("ALTER TABLE app_blooddonor ALTER COLUMN blood_group TYPE varchar(20);")
+                    super().save(*args, **kwargs)
+                    return
+                except Exception:
+                    pass
+            raise e
 
     @property
     def age(self):

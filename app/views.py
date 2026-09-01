@@ -2941,7 +2941,7 @@ def organize_camp(request):
 
             messages.success(
                 request,
-                "Thank you for organizing the blood donation camp! We will contact you shortly."
+                "Thank you for your intresting in organizing a camp! We will contact you shortly."
             )
             return redirect('index')
         else:
@@ -3282,7 +3282,7 @@ def volunteer_event(request):
 
             messages.success(
                 request,
-                "Thank you for volunteering! Your registration has been submitted successfully."
+                "Thank you for your intresting in volunteering! Your registration has been submitted successfully."
             )
             return redirect('index')
         else:
