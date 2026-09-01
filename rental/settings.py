@@ -78,6 +78,20 @@ TEMPLATES = [
 ENV = os.getenv("ENV", "DEV")
 
 import sys
+
+db_host = os.getenv('DB_HOST', 'localhost')
+db_port = os.getenv('DB_PORT', '5432')
+db_name = os.getenv('DB_NAME', 'kys')
+db_user = os.getenv('DB_USER', 'postgres')
+db_password = os.getenv('DB_PASSWORD', 'admin')
+
+# When running locally on Windows and DB_HOST points to Cloud SQL Unix socket
+if sys.platform == 'win32' and db_host and db_host.startswith('/cloudsql/'):
+    db_host = os.getenv('DB_HOST_LOCAL', '127.0.0.1')
+    db_port = os.getenv('DB_PORT_LOCAL', '5433')
+    db_name = os.getenv('DB_NAME_LOCAL', 'kys')
+    db_password = os.getenv('DB_PASSWORD_LOCAL', 'admin')
+
 if 'test' in sys.argv:
     DATABASES = {
         'default': {
@@ -85,26 +99,17 @@ if 'test' in sys.argv:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-
 else:
-    if os.getenv('USE_POSTGRES') == 'true':
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                 'NAME': os.getenv('DB_NAME'),
-                 'USER': os.getenv('DB_USER'),
-                 'PASSWORD': os.getenv('DB_PASSWORD'),
-                 'HOST': os.getenv('DB_HOST'),
-                 'PORT': os.getenv('DB_PORT'),
-            }
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password,
+            'HOST': db_host,
+            'PORT': db_port,
         }
-    else:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
-        }
+    }
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
