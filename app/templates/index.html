@@ -35,7 +35,6 @@
   background: radial-gradient(circle, #6B0F24 0%, rgba(107, 15, 36, 0) 70%);
   top: -80px;
   left: -80px;
-  animation: orbFloat1 14s ease-in-out infinite alternate;
 }
 
 .hero-bg-orb-2 {
@@ -44,19 +43,6 @@
   background: radial-gradient(circle, #D4AF37 0%, rgba(212, 175, 55, 0) 70%);
   bottom: -100px;
   right: -100px;
-  animation: orbFloat2 16s ease-in-out infinite alternate-reverse;
-}
-
-@keyframes orbFloat1 {
-  0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(50px, 40px) scale(1.12); }
-  100% { transform: translate(-30px, 60px) scale(0.92); }
-}
-
-@keyframes orbFloat2 {
-  0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-40px, -50px) scale(1.15); }
-  100% { transform: translate(30px, -20px) scale(0.95); }
 }
 
 .hero-top-intro {
@@ -89,58 +75,38 @@
   margin: 0 auto;
 }
 
-/* Row 1: Featured 7:5 Split Cards (Cards 1 & 2) */
-.bento-hero-1 {
-  grid-column: span 7;
-  height: 220px;
-}
-
+/* Row 1: Featured 7:5 Split Cards (Cards 1 & 2) - Exactly Equal Height & Alignment */
+.bento-hero-1,
 .bento-hero-2 {
-  grid-column: span 5;
+  grid-column: span 6;
+  height: 320px;
+  border-radius: 20px;
+}
+
+.bento-hero-1 .bento-hero-img,
+.bento-hero-2 .bento-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* Row 2: 4 Sub-Cards (Cards 3, 4, 5, 6) - Equal Height & Alignment */
+.bento-sub-3,
+.bento-sub-4,
+.bento-sub-5,
+.bento-sub-6 {
+  grid-column: span 3;
   height: 220px;
 }
 
-/* Row 2: 4 Staggered Cards (Cards 3, 4, 5, 6) */
-.bento-sub-3 { grid-column: span 3; height: 210px; }
-.bento-sub-4 { grid-column: span 3; height: 220px; }
-.bento-sub-5 { grid-column: span 3; height: 210px; }
-.bento-sub-6 { grid-column: span 3; height: 220px; }
-
-/* Continuous Smooth Floating Animations */
-@keyframes bentoFloatUp {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-}
-
-@keyframes bentoFloatDown {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(8px); }
-}
-
-@keyframes bentoFloatDiag1 {
-  0%, 100% { transform: translate(0px, 0px); }
-  50% { transform: translate(4px, -6px); }
-}
-
-@keyframes bentoFloatDiag2 {
-  0%, 100% { transform: translate(0px, 0px); }
-  50% { transform: translate(-4px, -7px); }
-}
-
-.bento-hero-1 { animation: bentoFloatUp 6.5s ease-in-out infinite; }
-.bento-hero-2 { animation: bentoFloatDown 7s ease-in-out infinite 0.7s; }
-.bento-sub-3  { animation: bentoFloatDiag1 6s ease-in-out infinite 1.4s; }
-.bento-sub-4  { animation: bentoFloatUp 7.2s ease-in-out infinite 0.3s; }
-.bento-sub-5  { animation: bentoFloatDiag2 6.8s ease-in-out infinite 1s; }
-.bento-sub-6  { animation: bentoFloatDown 6.3s ease-in-out infinite 0.5s; }
-
-/* Card Hover Elevate Effect */
+/* Card Hover Elevate Effect (User-Triggered Hover Only) */
 .bento-hero-card:hover, .bento-sub-card:hover {
-  animation-play-state: paused !important;
-  transform: translateY(-10px) scale(1.025) !important;
-  box-shadow: 0 20px 45px rgba(107, 15, 36, 0.3) !important;
-  border-color: #D4AF37 !important;
-  z-index: 20 !important;
+  transform: translateY(-6px) scale(1.015);
+  box-shadow: 0 20px 45px rgba(107, 15, 36, 0.25);
+  border-color: #D4AF37;
+  z-index: 20;
 }
 
 /* Featured Hero Bento Cards Styling (Cards 1 & 2) */
@@ -497,9 +463,8 @@
     <div class="hero-bento-bento6">
       <!-- 1. Items / Sickbed Rentals (Featured Wide 7-Cols) -->
       <a href="{% url 'items' %}" class="bento-hero-card bento-hero-1">
-        <img src="{% static 'images/banner_sickbed_rental.png' %}" alt="Sickbed Rentals" class="bento-hero-img" fetchpriority="high">
+        <img src="{% static 'images/rentalbanner.png' %}" alt="Sickbed Rentals" class="bento-hero-img" fetchpriority="high">
         <div class="bento-hero-overlay"></div>
-        <div style="position: absolute; top: 12px; left: 14px; z-index: 3; background: rgba(255,255,255,0.22); backdrop-filter: blur(6px); color: #fff; font-size: 0.68rem; font-weight: 800; padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.3);"><i class="fas fa-wheelchair"></i> MEDICAL RENTALS</div>
         <div class="bento-hero-content">
        
          
@@ -509,9 +474,8 @@
 
       <!-- 2. Request Blood (Featured 5-Cols) -->
       <a href="{% url 'request_blood' %}" class="bento-hero-card bento-hero-2">
-        <img src="{% static 'images/banner_donation_camp.png' %}" alt="Request Blood Component" class="bento-hero-img">
+        <img src="{% static 'images/blood.png' %}" alt="Request Blood Component" class="bento-hero-img">
         <div class="bento-hero-overlay"></div>
-        <div style="position: absolute; top: 12px; left: 14px; z-index: 3; background: rgba(220,38,38,0.88); backdrop-filter: blur(6px); color: #fff; font-size: 0.68rem; font-weight: 800; padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(254,202,202,0.5);"><i class="fas fa-tint"></i> EMERGENCY BLOOD</div>
         <div class="bento-hero-content">
         
          
@@ -522,7 +486,7 @@
       <!-- 3. Organize Camp (Sub-Card 3) -->
       <a href="{% url 'organize_camp' %}" class="bento-sub-card bento-sub-3 card-camp">
         <div class="hub-card-img-wrap">
-          <img src="{% static 'images/impact_donation.png' %}" alt="Organize Blood Donation Camp">
+          <img src="{% static 'images/blood_donation_camp.png' %}" alt="Organize Blood Donation Camp">
         </div>
         <div class="hub-card-body">
           <div>
@@ -538,7 +502,7 @@
       <!-- 4. Be a Donor (Sub-Card 4) -->
       <a href="{% url 'be_donor' %}" class="bento-sub-card bento-sub-4 card-donor">
         <div class="hub-card-img-wrap">
-          <img src="{% static 'images/banner_donor_hero.png' %}" alt="Register as a Blood Donor">
+          <img src="{% static 'images/donor.png' %}" alt="Register as a Blood Donor">
         </div>
         <div class="hub-card-body">
           <div>
@@ -570,7 +534,7 @@
       <!-- 6. Medical Services (Sub-Card 6) -->
       <a href="{% url 'medical_services' %}" class="bento-sub-card bento-sub-6 card-services">
         <div class="hub-card-img-wrap">
-          <img src="{% static 'images/banner_medical_services.png' %}" alt="Medical Services">
+          <img src="{% static 'images/service.png' %}" alt="Medical Services">
         </div>
         <div class="hub-card-body">
           <div>
