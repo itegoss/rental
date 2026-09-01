@@ -204,9 +204,6 @@ class BloodDonorForm(forms.ModelForm):
             today = timezone.localdate()
             if dob > today:
                 raise ValidationError("Date of birth cannot be in the future.")
-            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-            if age < 18:
-                raise ValidationError("You must be at least 18 years old to register as a blood donor.")
         return dob
 
 

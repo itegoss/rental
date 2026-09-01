@@ -3,107 +3,324 @@
 {% block title %}Sick Bed Services — Home{% endblock %}
 {% block content %}
 <style>
-/* Hero Carousel Styling */
-.hero-carousel {
+/* Hero Section Styling */
+.hero-section {
   position: relative;
+  background: radial-gradient(circle at 50% 0%, #fffdfb 0%, #f7ebe1 50%, #f3dfcf 100%);
+  padding: 40px 20px 54px;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.3);
   overflow: hidden;
-  width: 100%;
-  border-bottom: 1.5px solid var(--border);
 }
-.hero-carousel .carousel-item {
-  height: 520px;
-  background-color: #fdf9f5;
-}
-.carousel-item-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  max-width: 1200px;
+
+.hero-container {
+  max-width: 1260px;
   margin: 0 auto;
-  padding: 0 40px;
-  height: 100%;
-  gap: 32px;
+  position: relative;
+  z-index: 2;
 }
-.carousel-text-col {
-  width: 50%;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+/* Floating Ambient Background Orbs */
+.hero-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(75px);
+  opacity: 0.22;
+  pointer-events: none;
+  z-index: 0;
 }
-.carousel-text-col .pre-title {
-  font-size: 0.82rem;
-  font-weight: 800;
-  color: var(--primary);
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin-bottom: 10px;
+
+.hero-bg-orb-1 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #6B0F24 0%, rgba(107, 15, 36, 0) 70%);
+  top: -80px;
+  left: -80px;
+  animation: orbFloat1 14s ease-in-out infinite alternate;
 }
-.carousel-text-col h2 {
-  font-size: 2.3rem;
-  font-weight: 800;
-  color: var(--text);
-  margin-bottom: 16px;
-  line-height: 1.25;
+
+.hero-bg-orb-2 {
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, #D4AF37 0%, rgba(212, 175, 55, 0) 70%);
+  bottom: -100px;
+  right: -100px;
+  animation: orbFloat2 16s ease-in-out infinite alternate-reverse;
 }
-.carousel-text-col p {
-  font-size: 1rem;
-  color: var(--muted);
-  margin-bottom: 24px;
-  line-height: 1.6;
+
+@keyframes orbFloat1 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(50px, 40px) scale(1.12); }
+  100% { transform: translate(-30px, 60px) scale(0.92); }
 }
-.carousel-text-col .btn-primary-red {
+
+@keyframes orbFloat2 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-40px, -50px) scale(1.15); }
+  100% { transform: translate(30px, -20px) scale(0.95); }
+}
+
+.hero-top-intro {
+  text-align: center;
+  margin: 0 auto 28px;
+}
+
+.hero-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 28px;
+  padding: 8px 26px;
   border-radius: 999px;
-  font-weight: 700;
+  background: linear-gradient(135deg, #6B0F24 0%, #85132D 100%);
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border: 1.5px solid #D4AF37;
+  box-shadow: 0 6px 20px rgba(107, 15, 36, 0.22);
+}
+
+/* Innovative Asymmetric Bento Grid */
+.hero-bento-bento6 {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+/* Row 1: Featured 7:5 Split Cards (Cards 1 & 2) */
+.bento-hero-1 {
+  grid-column: span 7;
+  height: 220px;
+}
+
+.bento-hero-2 {
+  grid-column: span 5;
+  height: 220px;
+}
+
+/* Row 2: 4 Staggered Cards (Cards 3, 4, 5, 6) */
+.bento-sub-3 { grid-column: span 3; height: 210px; }
+.bento-sub-4 { grid-column: span 3; height: 220px; }
+.bento-sub-5 { grid-column: span 3; height: 210px; }
+.bento-sub-6 { grid-column: span 3; height: 220px; }
+
+/* Continuous Smooth Floating Animations */
+@keyframes bentoFloatUp {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes bentoFloatDown {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(8px); }
+}
+
+@keyframes bentoFloatDiag1 {
+  0%, 100% { transform: translate(0px, 0px); }
+  50% { transform: translate(4px, -6px); }
+}
+
+@keyframes bentoFloatDiag2 {
+  0%, 100% { transform: translate(0px, 0px); }
+  50% { transform: translate(-4px, -7px); }
+}
+
+.bento-hero-1 { animation: bentoFloatUp 6.5s ease-in-out infinite; }
+.bento-hero-2 { animation: bentoFloatDown 7s ease-in-out infinite 0.7s; }
+.bento-sub-3  { animation: bentoFloatDiag1 6s ease-in-out infinite 1.4s; }
+.bento-sub-4  { animation: bentoFloatUp 7.2s ease-in-out infinite 0.3s; }
+.bento-sub-5  { animation: bentoFloatDiag2 6.8s ease-in-out infinite 1s; }
+.bento-sub-6  { animation: bentoFloatDown 6.3s ease-in-out infinite 0.5s; }
+
+/* Card Hover Elevate Effect */
+.bento-hero-card:hover, .bento-sub-card:hover {
+  animation-play-state: paused !important;
+  transform: translateY(-10px) scale(1.025) !important;
+  box-shadow: 0 20px 45px rgba(107, 15, 36, 0.3) !important;
+  border-color: #D4AF37 !important;
+  z-index: 20 !important;
+}
+
+/* Featured Hero Bento Cards Styling (Cards 1 & 2) */
+.bento-hero-card {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
   text-decoration: none;
-  font-size: 0.9rem;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: #fff;
-  border: 1px solid var(--accent-gold);
-  transition: all 0.22s;
-  box-shadow: 0 4px 14px rgba(107,15,36,0.22);
+  color: #ffffff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1.5px solid rgba(212, 175, 55, 0.3);
+  transition: all 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 20px 22px;
 }
-.carousel-text-col .btn-primary-red:hover {
-  background: linear-gradient(135deg, #85132D 0%, var(--primary) 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(107,15,36,0.3);
-}
-.carousel-image-col {
-  width: 50%;
+
+.bento-hero-card .bento-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
   height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+  z-index: 1;
+}
+
+.bento-hero-card:hover .bento-hero-img {
+  transform: scale(1.07);
+}
+
+.bento-hero-card .bento-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.5) 60%, rgba(0, 0, 0, 0.1) 100%);
+  z-index: 2;
+  transition: background 0.35s ease;
+}
+
+.bento-hero-card:hover .bento-hero-overlay {
+  background: linear-gradient(to top, rgba(107, 15, 36, 0.95) 0%, rgba(15, 23, 42, 0.5) 60%, rgba(0, 0, 0, 0.1) 100%);
+}
+
+.bento-hero-card .bento-hero-content {
+  position: relative;
+  z-index: 3;
+}
+
+.bento-hero-card h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.bento-hero-card p {
+  font-size: 0.82rem;
+  opacity: 0.92;
+  margin-bottom: 10px;
+}
+
+/* Sub-Cards (Cards 3 to 6) Split-Glass Style */
+.bento-sub-card {
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  text-decoration: none;
+  color: #1e293b;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  border: 1.5px solid rgba(212, 175, 55, 0.22);
+  transition: all 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Hover Accent Borders for Sub-Cards */
+.bento-sub-card.card-camp:hover { border-color: #EA580C; box-shadow: 0 16px 36px rgba(234,88,12,0.28); }
+.bento-sub-card.card-donor:hover { border-color: #E11D48; box-shadow: 0 16px 36px rgba(225,29,72,0.28); }
+.bento-sub-card.card-volunteer:hover { border-color: #059669; box-shadow: 0 16px 36px rgba(5,150,105,0.28); }
+.bento-sub-card.card-services:hover { border-color: #4F46E5; box-shadow: 0 16px 36px rgba(79,70,229,0.28); }
+
+.hub-card-img-wrap {
+  width: 100%;
+  height: 115px;
+  position: relative;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.hub-card-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.bento-sub-card:hover .hub-card-img-wrap img {
+  transform: scale(1.08);
+}
+
+.hub-card-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 999px;
   display: flex;
   align-items: center;
+  gap: 4px;
+  letter-spacing: 0.4px;
+}
+
+.hub-card-tag.tag-red {
+  background: rgba(220, 38, 38, 0.9);
+}
+
+.hub-card-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-grow: 1;
+}
+
+.hub-card-body h3 {
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.hub-card-body p {
+  font-size: 0.74rem;
+  color: #64748b;
+  margin-bottom: 8px;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hub-card-btn {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-}
-.carousel-image-col img {
-  max-width: 100%;
-  max-height: 94%;
-  object-fit: contain;
-  display: block;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  gap: 5px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6B0F24 0%, #85132D 100%);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 3px 10px rgba(107,15,36,0.18);
+  transition: all 0.25s ease;
 }
 
-.hero-carousel-overlay {
-  display: none;
+.bento-sub-card:hover .hub-card-btn {
+  background: linear-gradient(135deg, #85132D 0%, #6B0F24 100%);
+  box-shadow: 0 5px 14px rgba(107,15,36,0.3);
 }
-.carousel-caption-custom {
-  display: none;
+
+@media(max-width: 992px) {
+  .bento-hero-1, .bento-hero-2 { grid-column: span 12; height: 200px; }
+  .bento-sub-3, .bento-sub-4, .bento-sub-5, .bento-sub-6 { grid-column: span 6; transform: none; }
+}
+
+@media(max-width: 576px) {
+  .bento-sub-3, .bento-sub-4, .bento-sub-5, .bento-sub-6 { grid-column: span 12; }
 }
 
 /* Sections Styling */
@@ -233,11 +450,30 @@
 .modal-close:hover { color:var(--text); }
 .modal-card-btns { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
 
-@media(max-width:768px) {
-  .hero-carousel .carousel-item { height: 350px; }
-  .carousel-item-inner { padding: 0 16px; justify-content: center; }
-  .carousel-text-col { display: none !important; }
-  .carousel-image-col { width: 100%; }
+@media(max-width: 992px) {
+  .hero-bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .hero-bento-card.bento-wide,
+  .hero-bento-card.bento-small {
+    grid-column: span 1;
+    height: 220px;
+  }
+}
+@media(max-width: 576px) {
+  .hero-bento-grid {
+    grid-template-columns: 1fr;
+  }
+  .hero-bento-card.bento-wide,
+  .hero-bento-card.bento-small {
+    grid-column: span 1;
+    height: 200px;
+    padding: 18px;
+  }
+  .hero-bento-card h3 {
+    font-size: 1.15rem;
+  }
   .banner-content h2 { font-size: 1.75rem; }
   .section-head h2 { font-size: 1.8rem; }
   .feat-card img { height:170px; }
@@ -245,107 +481,114 @@
 }
 </style>
 
-<!-- SECTION 1: Hero Carousel Banner (Auto Slide, Responsive, Custom Controls) -->
-<div id="homeCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel">
-  <div class="carousel-indicators" style="z-index: 10;">
-    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
-    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="3" aria-label="Slide 4"></button>
-    <button type="button" data-bs-target="#homeCarousel" data-bs-slide-to="4" aria-label="Slide 5"></button>
+<!-- SECTION 1: Single Unified Hero Showcase Hub -->
+<section class="hero-section">
+  <!-- Background Floating Ambient Orbs -->
+  <div class="hero-bg-orb hero-bg-orb-1"></div>
+  <div class="hero-bg-orb hero-bg-orb-2"></div>
+
+  <div class="hero-container">
+    <!-- Hero Header -->
+    <div class="hero-top-intro">
+      <span class="hero-badge"><i class="fas fa-heartbeat"></i> HEMOAID HELPING PLATFORM</span>
+    </div>
+
+    <!-- 6 Interactive Bento Cards (Asymmetrical 7:5 Top + 4 Staggered Bottom) -->
+    <div class="hero-bento-bento6">
+      <!-- 1. Items / Sickbed Rentals (Featured Wide 7-Cols) -->
+      <a href="{% url 'items' %}" class="bento-hero-card bento-hero-1">
+        <img src="{% static 'images/banner_sickbed_rental.png' %}" alt="Sickbed Rentals" class="bento-hero-img" fetchpriority="high">
+        <div class="bento-hero-overlay"></div>
+        <div style="position: absolute; top: 12px; left: 14px; z-index: 3; background: rgba(255,255,255,0.22); backdrop-filter: blur(6px); color: #fff; font-size: 0.68rem; font-weight: 800; padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.3);"><i class="fas fa-wheelchair"></i> MEDICAL RENTALS</div>
+        <div class="bento-hero-content">
+          <h3>Sickbed & Equipment Rentals</h3>
+          <p>Hospital beds, wheelchairs & airbeds at affordable deposit rates.</p>
+          <span class="hub-card-btn" style="width: auto; display: inline-flex; padding: 7px 18px; border-radius: 999px;"><i class="fas fa-wheelchair"></i> Browse Rentals <i class="fas fa-arrow-right"></i></span>
+        </div>
+      </a>
+
+      <!-- 2. Request Blood (Featured 5-Cols) -->
+      <a href="{% url 'request_blood' %}" class="bento-hero-card bento-hero-2">
+        <img src="{% static 'images/banner_donation_camp.png' %}" alt="Request Blood Component" class="bento-hero-img">
+        <div class="bento-hero-overlay"></div>
+        <div style="position: absolute; top: 12px; left: 14px; z-index: 3; background: rgba(220,38,38,0.88); backdrop-filter: blur(6px); color: #fff; font-size: 0.68rem; font-weight: 800; padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(254,202,202,0.5);"><i class="fas fa-tint"></i> EMERGENCY BLOOD</div>
+        <div class="bento-hero-content">
+          <h3>Request Blood</h3>
+          <p>Instant emergency blood donor matching portal.</p>
+          <span class="hub-card-btn" style="width: auto; display: inline-flex; padding: 7px 18px; border-radius: 999px; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);"><i class="fas fa-tint"></i> Request Blood <i class="fas fa-arrow-right"></i></span>
+        </div>
+      </a>
+
+      <!-- 3. Organize Camp (Sub-Card 3) -->
+      <a href="{% url 'organize_camp' %}" class="bento-sub-card bento-sub-3 card-camp">
+        <div class="hub-card-img-wrap">
+          <span class="hub-card-tag"><i class="fas fa-hand-holding-heart"></i> CAMP</span>
+          <img src="{% static 'images/impact_donation.png' %}" alt="Organize Blood Donation Camp">
+        </div>
+        <div class="hub-card-body">
+          <div>
+            <h3>Organize Blood Camp</h3>
+            <p>Host blood drive in community</p>
+          </div>
+          <div class="hub-card-btn">
+            <i class="fas fa-hand-holding-heart"></i> Organize Camp <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+      </a>
+
+      <!-- 4. Be a Donor (Sub-Card 4) -->
+      <a href="{% url 'be_donor' %}" class="bento-sub-card bento-sub-4 card-donor">
+        <div class="hub-card-img-wrap">
+          <span class="hub-card-tag"><i class="fas fa-heartbeat"></i> HERO</span>
+          <img src="{% static 'images/banner_donor_hero.png' %}" alt="Register as a Blood Donor">
+        </div>
+        <div class="hub-card-body">
+          <div>
+            <h3>Register Donor</h3>
+            <p>Join donor network & save lives</p>
+          </div>
+          <div class="hub-card-btn">
+            <i class="fas fa-user-plus"></i> Register Now <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+      </a>
+
+      <!-- 5. Volunteer (Sub-Card 5) -->
+      <a href="{% url 'volunteer_event' %}" class="bento-sub-card bento-sub-5 card-volunteer">
+        <div class="hub-card-img-wrap">
+          <span class="hub-card-tag"><i class="fas fa-hands-helping"></i> VOLUNTEER</span>
+          <img src="{% static 'images/impact_community.png' %}" alt="Volunteer for Event">
+        </div>
+        <div class="hub-card-body">
+          <div>
+            <h3>Volunteer for Event</h3>
+            <p>Join youth volunteer force</p>
+          </div>
+          <div class="hub-card-btn">
+            <i class="fas fa-hands-helping"></i> Join Volunteer <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+      </a>
+
+      <!-- 6. Medical Services (Sub-Card 6) -->
+      <a href="{% url 'medical_services' %}" class="bento-sub-card bento-sub-6 card-services">
+        <div class="hub-card-img-wrap">
+          <span class="hub-card-tag"><i class="fas fa-user-md"></i> SERVICES</span>
+          <img src="{% static 'images/banner_medical_services.png' %}" alt="Medical Services">
+        </div>
+        <div class="hub-card-body">
+          <div>
+            <h3>Medical Services</h3>
+            <p>Doctor consultations & wellness</p>
+          </div>
+          <div class="hub-card-btn">
+            <i class="fas fa-user-md"></i> Explore Services <i class="fas fa-arrow-right"></i>
+          </div>
+        </div>
+      </a>
+    </div>
   </div>
-  <div class="carousel-inner">
-    <!-- Slide 1 -->
-    <div class="carousel-item active">
-      <div class="carousel-item-inner">
-        <div class="carousel-text-col">
-          <span class="pre-title">HEMOAID Presents</span>
-          <h2>Sickbed & Medical Equipment Rentals</h2>
-          <p>Providing essential hospital beds, wheelchairs, and air beds at affordable deposit rates to those in need.</p>
-          <a href="{% url 'items' %}" class="btn-primary-red">
-            <i class="fas fa-wheelchair"></i> Browse Rentals
-          </a>
-        </div>
-        <div class="carousel-image-col">
-          <img src="{% static 'images/banner_sickbed_rental.png' %}" alt="Hospital equipment rental banner" fetchpriority="high">
-        </div>
-      </div>
-    </div>
-    <!-- Slide 2 -->
-    <div class="carousel-item">
-      <div class="carousel-item-inner">
-        <div class="carousel-text-col">
-          <span class="pre-title">Emergency Support</span>
-          <h2>Request a Blood Component</h2>
-          <p>Please submit your patient emergency requirements. We coordinate matches with donors instantly.</p>
-          <a href="{% url 'request_blood' %}" class="btn-primary-red">
-            <i class="fas fa-tint"></i> Request Blood
-          </a>
-        </div>
-        <div class="carousel-image-col">
-          <img src="{% static 'images/banner_donation_camp.png' %}" alt="Organize blood donation camp banner">
-        </div>
-      </div>
-    </div>
-    <!-- Slide 3 -->
-    <div class="carousel-item">
-      <div class="carousel-item-inner">
-        <div class="carousel-text-col">
-          <span class="pre-title">Be a Hero</span>
-          <h2>Register as a Blood Donor</h2>
-          <p>Join the HEMOAID database as a donor hero and help bridge the gap for critical patients in Bhayander.</p>
-          <a href="{% url 'be_donor' %}" class="btn-primary-red">
-            <i class="fas fa-heartbeat"></i> Register as Donor
-          </a>
-        </div>
-        <div class="carousel-image-col">
-          <img src="{% static 'images/banner_donor_hero.png' %}" alt="Blood donor hero banner">
-        </div>
-      </div>
-    </div>
-    <!-- Slide 4 -->
-    <div class="carousel-item">
-      <div class="carousel-item-inner">
-        <div class="carousel-text-col">
-          <span class="pre-title">Community Health</span>
-          <h2>Premium Medical Services</h2>
-          <p>Professional doctor consultations and wellness services are coming soon to our portal.</p>
-          <a href="{% url 'medical_services' %}" class="btn-primary-red">
-            <i class="fas fa-concierge-bell"></i> Explore Services
-          </a>
-        </div>
-        <div class="carousel-image-col">
-          <img src="{% static 'images/banner_medical_services.png' %}" alt="Medical services coming soon banner">
-        </div>
-      </div>
-    </div>
-    <!-- Slide 5 -->
-    <div class="carousel-item">
-      <div class="carousel-item-inner">
-        <div class="carousel-text-col">
-          <span class="pre-title">Humanitarian Relief</span>
-          <h2>HEMOAID</h2>
-          <p>A dedicated Unit of HEMOAID striving for national welfare, social equality, and humanitarian relief.</p>
-          <a href="{% url 'about' %}" class="btn-primary-red">
-            <i class="fas fa-info-circle"></i> About KYS
-          </a>
-        </div>
-        <div class="carousel-image-col">
-          <img src="{% static 'images/banner_humanitarian.png' %}" alt="NGO humanitarian cause banner">
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- Controls -->
-  <button class="carousel-control-prev" type="button" data-bs-target="#homeCarousel" data-bs-slide="prev" style="z-index: 10;">
-    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-    <span class="visually-hidden">Previous</span>
-  </button>
-  <button class="carousel-control-next" type="button" data-bs-target="#homeCarousel" data-bs-slide="next" style="z-index: 10;">
-    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-    <span class="visually-hidden">Next</span>
-  </button>
-</div>
+</section>
 
 <!-- SECTION 2: Featured Medical Equipments -->
 <section class="featured-sec">
@@ -467,15 +710,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const modal = document.getElementById('signupModal');
   const closeBtn = document.getElementById('closeModal');
   
-  // Explicitly initialize the Bootstrap carousel to auto-slide
-  const carouselEl = document.getElementById('homeCarousel');
-  if (carouselEl && typeof bootstrap !== 'undefined') {
-    new bootstrap.Carousel(carouselEl, {
-      interval: 4000,
-      ride: 'carousel',
-      wrap: true
-    });
-  }
 
   {% if not user.is_authenticated %}
   document.querySelectorAll('.feat-card').forEach(card => {

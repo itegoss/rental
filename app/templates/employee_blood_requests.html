@@ -110,8 +110,8 @@
                   <i class="fas fa-check"></i>
                 </button>
               </form>
-              <button type="button" class="btn btn-warning text-dark" onclick="empOpenCancelModal('{{ req.id }}'); return false;" style="font-weight: 700; border-radius: 8px;">
-                <i class="fas fa-ban me-1"></i> Cancel Request
+              <button type="button" class="btn btn-warning text-dark" onclick="empOpenCancelModal('{{ req.id }}'); return false;" title="Cancel Request" style="font-weight: 700; border-radius: 10px; width: 42px; height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                <i class="fas fa-ban"></i>
               </button>
               <a class="btn btn-primary" href="{% url 'edit_blood_request' req.id %}" style="font-weight: 700; border-radius: 8px;">
                 <i class="fas fa-edit me-1"></i> Edit

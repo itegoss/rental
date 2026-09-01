@@ -2684,15 +2684,47 @@ def admin_edit_blood_request_status(request, request_id):
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'accept':
-            if req.status != 'Pending':
-                messages.error(request, 'Only pending requests can be accepted.')
+            if req.status not in {'Pending', 'Accepted'}:
+                messages.error(request, 'Only pending or accepted requests can be updated.')
             else:
-                req.status = 'Accepted'
                 req.updated_by = request.user
-                req.remarks = request.POST.get('remarks', req.remarks)
-                req.save()
-                req.append_status_history('Accepted', changed_by=request.user, note='Accepted by admin')
-                messages.success(request, 'Request accepted.')
+                remarks_val = request.POST.get('remarks')
+                if remarks_val:
+                    req.remarks = remarks_val
+                
+                emp_id = request.POST.get('assigned_employee')
+                if emp_id:
+                    try:
+                        emp = User.objects.get(id=emp_id, is_active=True)
+                        req.assigned_employee = emp
+                        req.assigned_by = request.user
+                        req.assigned_at = timezone.now()
+                        req.status = 'Assigned'
+                        req.save()
+                        req.append_status_history('Assigned', changed_by=request.user, note=f'Accepted & Assigned to {emp.username}')
+                        try:
+                            send_notification(
+                                title='Blood Request Assigned',
+                                message=(
+                                    f'You have been assigned to blood request for {req.patient_name} '
+                                    f'({req.blood_group}) at {req.hospital_name}. Please review the request.'
+                                ),
+                                recipient=emp,
+                                link=f'/request-blood/view/{req.id}/',
+                            )
+                        except Exception:
+                            pass
+                        messages.success(request, f'Request accepted and assigned to {emp.get_full_name() or emp.username}.')
+                    except User.DoesNotExist:
+                        req.status = 'Accepted'
+                        req.save()
+                        req.append_status_history('Accepted', changed_by=request.user, note='Accepted by admin')
+                        messages.success(request, 'Request accepted.')
+                else:
+                    req.status = 'Accepted'
+                    req.save()
+                    req.append_status_history('Accepted', changed_by=request.user, note='Accepted by admin')
+                    messages.success(request, 'Request accepted.')
         elif action == 'reject':
             if req.status in {'Completed', 'Rejected'}:
                 messages.error(request, 'This request cannot be rejected again.')

@@ -155,9 +155,9 @@
       align-items: center;
       justify-content: center;
       gap: 4px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       min-width: 0;
-      overflow: visible;
+      overflow: hidden;
     }
 
     .nav-links,
@@ -697,7 +697,7 @@
       background: rgba(255, 255, 255, 0.25);
     }
 
-    @media (max-width: 991px) {
+    @media (max-width: 1160px) {
       .desktop-only {
         display: none !important;
       }
@@ -707,7 +707,7 @@
       }
     }
 
-    @media (min-width: 992px) {
+    @media (min-width: 1161px) {
       .desktop-only {
         display: flex !important;
       }
@@ -718,6 +718,18 @@
 
       .mobile-nav-drawer {
         display: none !important;
+      }
+    }
+
+    @media (min-width: 1161px) and (max-width: 1280px) {
+      .nav-links a,
+      .nav-links button.nav-btn,
+      .nav-dropdown-toggle {
+        padding: 6px 8px !important;
+        font-size: 0.82rem !important;
+      }
+      .nav-links {
+        gap: 2px !important;
       }
     }
 
@@ -800,6 +812,7 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 48px;
       margin-bottom: 44px;
+      justify-items: center;
     }
 
     .footer-col {
@@ -807,6 +820,7 @@
       flex-direction: column;
       align-items: flex-start;
       text-align: left;
+      min-width: 220px;
     }
 
     .footer-col h4 {
@@ -832,20 +846,24 @@
     .footer-contact-row {
       display: flex;
       align-items: center;
+      justify-content: flex-start;
       gap: 10px;
       width: 100%;
       font-size: 0.88rem;
       color: rgba(255, 255, 255, 0.85);
+      text-align: left;
     }
 
     .footer-contact-row a {
       display: inline-flex;
       align-items: center;
+      justify-content: flex-start;
       gap: 10px;
       color: rgba(255, 255, 255, 0.85);
       text-decoration: none;
       transition: color var(--transition);
       font-size: 0.88rem;
+      text-align: left;
     }
 
     .footer-contact-row a:hover {
@@ -947,21 +965,21 @@
       }
 
       .footer-col {
-        align-items: center;
-        text-align: center;
+        align-items: flex-start;
+        text-align: left;
       }
 
       .footer-col h4 {
-        width: 190px;
+        width: 100%;
         max-width: 100%;
-        margin: 0 auto 16px auto;
+        margin: 0 0 16px 0;
         text-align: left;
       }
 
       .footer-contact-list {
-        width: 190px;
+        width: 100%;
         max-width: 100%;
-        margin: 0 auto;
+        margin: 0;
         align-items: flex-start;
       }
 
@@ -1857,7 +1875,7 @@
             </div>
             <div class="footer-contact-row">
               <a href="mailto:info.itegoss.in" class="email-link">
-                <i class="fas fa-envelope"></i><span class="email-text">info.itegoss<br
+                <i class="fas fa-envelope"></i><span class="email-text">info@itegoss<br
                     class="mobile-email-br">.in</span>
               </a>
             </div>
@@ -1867,7 +1885,7 @@
       </div>
       <div class="footer-bottom">
         <p>Managed by <a href="https://www.itegoss.in/"
-            target="_blank">Itegoss Technology </a> | Inspired by Kutch Yuvak Sangh <br>© 2026 HEMOAID. All Rights Reserved </p>
+            target="_blank">Itegoss Technologies</a> | Inspired by Kutch Yuvak Sangh <br>© 2026 HEMOAID. All Rights Reserved </p>
       </div>
     </div>
   </footer>

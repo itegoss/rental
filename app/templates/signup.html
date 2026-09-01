@@ -53,7 +53,37 @@
 .otp-box input { width:100%; padding:11px 13px; border:1.5px solid var(--border); border-radius:10px; font-size:0.95rem; font-family:var(--font); outline:none; margin-bottom:10px; }
 .otp-box input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
 .otp-box button { width:100%; padding:11px; background:var(--primary); color:#fff; border:none; border-radius:10px; font-weight:700; font-family:var(--font); cursor:pointer; font-size:0.95rem; }
-@media (max-width:768px) { .auth-brand{display:none;} .auth-form-side{padding:28px 18px;} }
+@media (max-width: 1044px) {
+  .auth-wrap {
+    flex-direction: column;
+    min-height: auto;
+  }
+  .auth-brand {
+    width: 100%;
+    padding: 36px 20px;
+    flex: none;
+  }
+  .auth-brand-logo {
+    width: 70px;
+    height: 70px;
+    border-radius: 18px;
+    margin-bottom: 16px;
+    font-size: 1.8rem;
+  }
+  .auth-brand h1 {
+    font-size: 1.6rem;
+    margin-bottom: 8px;
+  }
+  .auth-brand p {
+    font-size: 0.95rem;
+    max-width: 480px;
+  }
+  .auth-form-side {
+    width: 100%;
+    padding: 36px 20px;
+    flex: none;
+  }
+}
 </style>
 
 <div class="auth-wrap">

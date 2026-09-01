@@ -246,7 +246,7 @@ class BloodPortalTests(TestCase):
         self.assertIn('proposed_date', form.errors)
 
     def test_blood_donor_form_underage(self):
-        # Under 18 check
+        # Under 18 check removed; under 18 is now valid
         dob = timezone.localdate() - datetime.timedelta(days=17 * 365)
         data = {
             'first_name': 'Alex',
@@ -258,8 +258,7 @@ class BloodPortalTests(TestCase):
             'area_of_residence': 'Bhayander West',
         }
         form = BloodDonorForm(data=data)
-        self.assertFalse(form.is_valid())
-        self.assertIn('date_of_birth', form.errors)
+        self.assertTrue(form.is_valid())
 
     def test_blood_request_view_submission(self):
         self.client.force_login(self.user)

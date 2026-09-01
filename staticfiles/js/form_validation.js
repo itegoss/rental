@@ -197,18 +197,6 @@
         if (inputDate > today) {
           return 'Date of birth cannot be in the future.';
         }
-
-        // Donor min age check (18 years)
-        if (form && (form.action.includes('be_donor') || form.action.includes('be-donor') || window.location.pathname.includes('be-donor'))) {
-          let age = today.getFullYear() - inputDate.getFullYear();
-          const m = today.getMonth() - inputDate.getMonth();
-          if (m < 0 || (m === 0 && today.getDate() < inputDate.getDate())) {
-            age--;
-          }
-          if (age < 18) {
-            return 'You must be at least 18 years old to register as a donor.';
-          }
-        }
       }
 
       // Camp proposed date rules (must be in future)
