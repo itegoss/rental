@@ -10,6 +10,33 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunSQL(
+            sql="ALTER TABLE app_blooddonor ALTER COLUMN blood_group TYPE varchar(20);",
+            reverse_sql="ALTER TABLE app_blooddonor ALTER COLUMN blood_group TYPE varchar(5);"
+        ),
+        migrations.RunSQL(
+            sql="ALTER TABLE app_bloodrequest ALTER COLUMN blood_group TYPE varchar(20);",
+            reverse_sql="ALTER TABLE app_bloodrequest ALTER COLUMN blood_group TYPE varchar(5);"
+        ),
+        migrations.AlterField(
+            model_name="blooddonor",
+            name="blood_group",
+            field=models.CharField(
+                choices=[
+                    ("A+", "A+"),
+                    ("A-", "A-"),
+                    ("B+", "B+"),
+                    ("B-", "B-"),
+                    ("AB+", "AB+"),
+                    ("AB-", "AB-"),
+                    ("O+", "O+"),
+                    ("O-", "O-"),
+                    ("BB", "BB"),
+                    ("Don't Know", "Don't Know"),
+                ],
+                max_length=20,
+            ),
+        ),
         migrations.AlterField(
             model_name="bloodrequest",
             name="blood_group",
