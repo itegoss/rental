@@ -157,7 +157,7 @@
       gap: 4px;
       flex-wrap: nowrap;
       min-width: 0;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .nav-links,
@@ -193,8 +193,8 @@
 
     /* Equipment Rental Dropdown */
     .nav-dropdown-wrapper {
-      position: relative;
-      display: inline-block;
+      position: relative !important;
+      display: inline-block !important;
     }
 
     .nav-dropdown-toggle {
@@ -212,32 +212,37 @@
       align-items: center;
       gap: 6px;
       transition: background var(--transition), color var(--transition);
+      user-select: none;
     }
 
     .nav-dropdown-wrapper:hover .nav-dropdown-toggle,
-    .nav-dropdown-toggle:hover {
+    .nav-dropdown-toggle:hover,
+    .nav-dropdown-toggle[aria-expanded="true"] {
       background: rgba(255, 255, 255, 0.15);
       color: #fff;
     }
 
     .nav-dropdown-menu {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      min-width: 200px;
-      background: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-      border: 1px solid var(--border);
-      padding: 8px 0;
+      position: absolute !important;
+      top: calc(100% + 4px) !important;
+      left: 0 !important;
+      min-width: 210px !important;
+      background: #ffffff !important;
+      border-radius: 12px !important;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18) !important;
+      border: 1px solid var(--border) !important;
+      padding: 8px 0 !important;
       display: none;
-      z-index: 2000;
+      z-index: 99999 !important;
       animation: dropIn 0.18s ease;
     }
 
-    .nav-dropdown-wrapper:hover .nav-dropdown-menu,
+    .nav-dropdown-wrapper:hover > .nav-dropdown-menu,
+    .nav-dropdown-wrapper:focus-within > .nav-dropdown-menu,
     .nav-dropdown-menu.show {
-      display: block;
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
     }
 
     .nav-dropdown-item {
@@ -251,6 +256,11 @@
       text-decoration: none;
       transition: all 0.2s ease;
       border-radius: 0 !important;
+    }
+
+    .nav-dropdown-item:hover {
+      background: #f1f5f9 !important;
+      color: var(--primary) !important;
     }
 
     .nav-dropdown-item i {
@@ -2000,38 +2010,28 @@
         });
       });
 
-      // ── ADMIN DESKTOP DROPDOWNS ──
-      const adminEqBtn = document.getElementById('adminEqDropToggle');
-      const adminEqMenu = document.getElementById('adminEqDropMenu');
-      if (adminEqBtn && adminEqMenu) {
-        adminEqBtn.addEventListener('click', function (e) {
+      // ── DESKTOP NAVBAR DROPDOWNS (ALL TOGGLES) ──
+      document.querySelectorAll('.nav-dropdown-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
           e.stopPropagation();
-          const show = adminEqMenu.classList.toggle('show');
-          adminEqBtn.setAttribute('aria-expanded', show);
-        });
-        document.addEventListener('click', function (e) {
-          if (!adminEqMenu.contains(e.target) && !adminEqBtn.contains(e.target)) {
-            adminEqMenu.classList.remove('show');
-            adminEqBtn.setAttribute('aria-expanded', 'false');
+          const wrapper = this.closest('.nav-dropdown-wrapper');
+          const menu = wrapper ? wrapper.querySelector('.nav-dropdown-menu') : null;
+          if (menu) {
+            const isShow = menu.classList.toggle('show');
+            btn.setAttribute('aria-expanded', isShow);
+            document.querySelectorAll('.nav-dropdown-menu.show').forEach(m => {
+              if (m !== menu) m.classList.remove('show');
+            });
           }
         });
-      }
+      });
 
-      const umBtn = document.getElementById('adminUserMgmtToggle');
-      const umMenu = document.getElementById('adminUserMgmtMenu');
-      if (umBtn && umMenu) {
-        umBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          const show = umMenu.classList.toggle('show');
-          umBtn.setAttribute('aria-expanded', show);
-        });
-        document.addEventListener('click', function (e) {
-          if (!umMenu.contains(e.target) && !umBtn.contains(e.target)) {
-            umMenu.classList.remove('show');
-            umBtn.setAttribute('aria-expanded', 'false');
-          }
-        });
-      }
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('.nav-dropdown-wrapper')) {
+          document.querySelectorAll('.nav-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+          document.querySelectorAll('.nav-dropdown-toggle').forEach(b => b.setAttribute('aria-expanded', 'false'));
+        }
+      });
 
       const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
       tooltipTriggerList.forEach(function (tooltipTriggerEl) {
