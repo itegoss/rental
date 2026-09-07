@@ -85,6 +85,8 @@ db_name = os.getenv('DB_NAME', 'kys')
 db_user = os.getenv('DB_USER', 'postgres')
 db_password = os.getenv('DB_PASSWORD', 'admin')
 
+use_postgres = os.getenv('USE_POSTGRES', 'false').lower() in ('true', '1', 'yes')
+
 # When running locally on Windows and DB_HOST points to Cloud SQL Unix socket
 if sys.platform == 'win32' and db_host and db_host.startswith('/cloudsql/'):
     db_host = os.getenv('DB_HOST_LOCAL', '127.0.0.1')
@@ -92,7 +94,7 @@ if sys.platform == 'win32' and db_host and db_host.startswith('/cloudsql/'):
     db_name = os.getenv('DB_NAME_LOCAL', 'kys')
     db_password = os.getenv('DB_PASSWORD_LOCAL', 'admin')
 
-if 'test' in sys.argv:
+if 'test' in sys.argv or not use_postgres:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

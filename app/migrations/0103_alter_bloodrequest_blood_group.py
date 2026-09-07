@@ -3,6 +3,12 @@
 from django.db import migrations, models
 
 
+def alter_columns_if_postgres(apps, schema_editor):
+    if schema_editor.connection.vendor == 'postgresql':
+        with schema_editor.connection.cursor() as cursor:
+            cursor.execute("ALTER TABLE app_blooddonor ALTER COLUMN blood_group TYPE varchar(20);")
+            cursor.execute("ALTER TABLE app_bloodrequest ALTER COLUMN blood_group TYPE varchar(20);")
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,14 +16,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql="ALTER TABLE app_blooddonor ALTER COLUMN blood_group TYPE varchar(20);",
-            reverse_sql="ALTER TABLE app_blooddonor ALTER COLUMN blood_group TYPE varchar(5);"
-        ),
-        migrations.RunSQL(
-            sql="ALTER TABLE app_bloodrequest ALTER COLUMN blood_group TYPE varchar(20);",
-            reverse_sql="ALTER TABLE app_bloodrequest ALTER COLUMN blood_group TYPE varchar(5);"
-        ),
+        migrations.RunPython(alter_columns_if_postgres, reverse_code=migrations.RunPython.noop),
         migrations.AlterField(
             model_name="blooddonor",
             name="blood_group",
