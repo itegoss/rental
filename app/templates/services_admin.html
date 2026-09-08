@@ -83,6 +83,30 @@
     <div class="underline-bar"></div>
   </div>
 
+  <div class="report-card">
+    <div class="report-header">
+      <i class="fas fa-file-alt report-icon"></i>
+      <h2>Generate Medical Services Report</h2>
+    </div>
+    <form method="GET" action="{% url 'medical_services' %}" class="report-form">
+      <input type="hidden" name="export" value="csv">
+      {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+      <div class="report-inputs">
+        <div class="input-group">
+          <label for="srv_start_date">START DATE</label>
+          <input type="date" id="srv_start_date" name="start_date">
+        </div>
+        <div class="input-group">
+          <label for="srv_end_date">END DATE</label>
+          <input type="date" id="srv_end_date" name="end_date">
+        </div>
+        <button type="submit" class="report-btn" data-bs-toggle="tooltip" title="Download Report">
+          <i class="fas fa-download"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+
   <!-- Toolbar: search left, Add Service button right -->
   <div class="table-tools services-toolbar-row">
     <form class="items-search" method="GET" action="{% url 'medical_services' %}">

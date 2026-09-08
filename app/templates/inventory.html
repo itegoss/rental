@@ -2,437 +2,59 @@
 {% load static %}
 {% block title %}Inventory Management — Sick Bed Services{% endblock %}
 {% block content %}
+
+
+
 <style>
-  .inventory-page {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 40px 20px;
-  }
+  {% include 'admin_table_css.html' %}
 
-  .inventory-head {
-    text-align: center;
-    margin-bottom: 44px;
-  }
+  .inventory-head h1 span { color: var(--accent-gold, #D4AF37); }
 
-  .inventory-head h1 {
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: var(--text);
-    margin-bottom: 10px;
-  }
-
-  .inventory-head h1 span {
-    color: var(--primary);
-  }
-
-  .inventory-head p {
-    color: var(--muted);
-    font-size: 0.97rem;
-  }
-
-  .underline-bar {
-    width: 80px;
-    height: 5px;
-    background: linear-gradient(90deg, var(--primary), #ff6b6b);
-    border-radius: 4px;
-    margin: 12px auto 0;
-  }
-
-  .items-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 26px;
-  }
-
-  .items-search {
-    flex: 1;
-    position: relative;
-    max-width: 520px;
-  }
-
-  .items-search i {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    font-size: 0.92rem;
-  }
-
-  .items-search input {
-    width: 100%;
-    height: 48px;
-    padding: 0 18px 0 44px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: #fff;
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 0.94rem;
-    box-shadow: 0 8px 24px rgba(17, 24, 39, 0.06);
-    outline: none;
-  }
-
-  .items-search input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(236, 36, 39, 0.1);
-  }
-
-  .btn-add-item {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 9px;
-    height: 48px;
-    padding: 0 20px;
-    border: 0;
-    border-radius: 999px;
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: #fff;
-    font-family: var(--font);
-    font-weight: 800;
-    font-size: 0.92rem;
-    cursor: pointer;
-    white-space: nowrap;
-    box-shadow: 0 10px 24px rgba(236, 36, 39, 0.22);
-  }
-
-  .btn-add-item:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 14px 30px rgba(236, 36, 39, 0.28);
-  }
-
-  .items-table-wrap {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
-    overflow: hidden;
-  }
-
-  .items-table-scroll {
-    overflow-x: auto;
-  }
-
-  .items-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 1000px;
-  }
-
-  .items-table thead {
-    background: #B84A5A !important;
-    background-color: #B84A5A !important;
-    color: #fff;
-  }
-
-  .items-table thead th {
-    background: #B84A5A !important;
-    background-color: #B84A5A !important;
-    color: #ffffff !important;
-    padding: 12px 14px;
-    text-align: left;
-    font-size: 14px;
-    font-weight: 800;
-    text-transform: none;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-    line-height: 1.2;
-  }
-
-  .items-table tbody td {
-    padding: 8px 12px;
-    border-top: 1px solid var(--border);
-    font-size: 13px;
-    vertical-align: middle;
-    line-height: 1.25;
-    white-space: normal;
-    word-break: break-word;
-    overflow-wrap: anywhere;
-  }
-
-  .items-table tbody tr {
-    height: 46px;
-    min-height: 46px;
-  }
-
-  .items-table tbody tr:hover {
-    background: #fafafa;
-  }
-
-  .item-name-cell {
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  .price-cell {
-    color: var(--primary);
-    font-weight: 700;
-  }
-
-  .qty-cell {
-    text-align: center;
-  }
-
-  .table-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-    width: 100%;
-  }
-
-  .table-actions form {
-    display: inline-flex;
-    align-items: center;
-    white-space: nowrap;
-  }
-
-  .table-actions a,
-  .table-actions button {
-    min-width: 40px;
-    height: 40px;
-    padding: 0;
-    border: none;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-    line-height: 1;
-    white-space: nowrap;
-  }
-
-  .table-actions i {
-    font-size: 13px;
-  }
-
-  .btn-edit-item {
-    background: #3b82f6;
-    color: #fff;
-  }
-
-  .btn-edit-item:hover {
-    background: #2563eb;
-  }
-
-  .btn-delete-item-table {
-    background: #dc2626;
-    color: #fff;
-    border: none;
-  }
-
-  .btn-delete-item-table:hover {
-    background: #b91c1c;
-  }
-
-  .item-drawer-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9200;
-    display: none;
-    background: rgba(17, 24, 39, 0.48);
-  }
-
-  .item-drawer-overlay.open {
-    display: block;
-  }
-
-  .item-drawer {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: min(760px, 100%);
-    height: 100%;
-    overflow-y: auto;
-    background: #fff;
-    box-shadow: -20px 0 60px rgba(17, 24, 39, 0.25);
-    transform: translateX(100%);
-    transition: transform 0.25s ease;
-  }
-
-  .item-drawer-overlay.open .item-drawer {
-    transform: translateX(0);
-  }
-
-  .item-drawer-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    padding: 24px 28px;
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: #fff;
-  }
-
-  .item-drawer-head h2 {
-    margin: 0;
-    font-size: 1.3rem;
-    font-weight: 800;
-  }
-
-  .item-drawer-close {
-    width: 40px;
-    height: 40px;
-    border: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.18);
-    color: #fff;
-    cursor: pointer;
-    font-size: 1.15rem;
-  }
-
-  .item-add-form {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 22px;
-    padding: 26px 28px 30px;
-  }
-
-  .form-fields {
-    display: grid;
-    gap: 14px;
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-  }
-
-  .item-field label {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--muted);
-    font-size: 0.78rem;
-    font-weight: 800;
-    text-transform: uppercase;
-  }
-
-  .item-field input,
-  .item-field textarea {
-    width: 100%;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: #fafafa;
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 0.93rem;
-    outline: none;
-  }
-
-  .item-field input {
-    height: 44px;
-    padding: 0 12px;
-  }
-
-  .item-field textarea {
-    min-height: 108px;
-    padding: 12px;
-    resize: vertical;
-  }
-
-  .item-field input:focus,
-  .item-field textarea:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(236, 36, 39, 0.1);
-  }
-
-  .check-field {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: #fafafa;
-  }
-
-  .check-field input {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--primary);
-  }
-
-  .check-field span {
-    color: var(--text);
-    font-weight: 700;
-    font-size: 0.92rem;
-  }
-
-  .drawer-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    grid-column: 1 / -1;
-    padding-top: 4px;
-  }
-
-  .btn-secondary,
-  .btn-save-item {
-    height: 44px;
-    padding: 0 18px;
-    border-radius: 999px;
-    font-family: var(--font);
-    font-weight: 800;
-    cursor: pointer;
-  }
-
-  .btn-secondary {
-    border: 1px solid var(--border);
-    background: #fff;
-    color: var(--muted);
-  }
-
-  .btn-secondary:hover {
-    background: #f3f4f6;
-  }
-
-  .btn-save-item {
-    border: 0;
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: #fff;
-    box-shadow: 0 10px 24px rgba(236, 36, 39, 0.22);
-  }
-
-  .btn-save-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 14px 30px rgba(236, 36, 39, 0.28);
-  }
-
-  @media(max-width:640px) {
-    .inventory-page {
-      padding: 20px;
-    }
-
-    .inventory-head h1 {
-      font-size: 1.7rem;
-    }
-
-    .items-toolbar {
-      display: grid;
-      grid-template-columns: 1fr;
-    }
-
-    .btn-add-item {
-      width: 100%;
-    }
-
-    .item-add-form {
-      padding: 20px;
-    }
-
-    .form-row {
-      grid-template-columns: 1fr;
-    }
-  }
+  .items-table-wrap { background: #fff; border-radius: 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.06); overflow: hidden; }
+  .items-table-scroll { overflow-x: auto; }
+  .items-table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+  .items-table thead, .items-table thead th { background: #B84A5A !important; background-color: #B84A5A !important; color: #ffffff !important; }
+  .items-table thead th { padding: 12px 14px; text-align: left; font-size: 14px; font-weight: 800; text-transform: none; letter-spacing: 0.5px; white-space: nowrap; line-height: 1.2; }
+  .items-table tbody td { padding: 8px 12px; border-top: 1px solid var(--border); font-size: 13px; vertical-align: middle; line-height: 1.25; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
+  .items-table tbody tr { height: 46px; min-height: 46px; }
+  .items-table tbody tr:hover { background: #fafafa; }
+  .item-name-cell { font-weight: 700; color: var(--text); }
+  .price-cell { color: var(--primary); font-weight: 700; }
+  .qty-cell { text-align: center; }
+  .btn-edit-item { background: #3b82f6; color: #fff; }
+  .btn-edit-item:hover { background: #2563eb; }
+  .btn-delete-item-table { background: #dc2626; color: #fff; border: none; }
+  .btn-delete-item-table:hover { background: #b91c1c; }
+  .report-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(220,38,38,0.35); }
+  .report-btn:disabled { background: #d1d5db !important; color: #9ca3af !important; cursor: not-allowed; box-shadow: none; pointer-events: none; }
+  .item-drawer-overlay { position: fixed; inset: 0; z-index: 9200; display: none; background: rgba(17,24,39,0.48); }
+  .item-drawer-overlay.open { display: block; }
+  .item-drawer { position: absolute; top: 0; right: 0; width: min(760px,100%); height: 100%; overflow-y: auto; background: #fff; box-shadow: -20px 0 60px rgba(17,24,39,0.25); transform: translateX(100%); transition: transform 0.25s ease; }
+  .item-drawer-overlay.open .item-drawer { transform: translateX(0); }
+  .item-drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 24px 28px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; }
+  .item-drawer-head h2 { margin: 0; font-size: 1.3rem; font-weight: 800; }
+  .item-drawer-close { width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgba(255,255,255,0.18); color: #fff; cursor: pointer; font-size: 1.15rem; }
+  .item-add-form { display: grid; grid-template-columns: 1fr; gap: 22px; padding: 26px 28px 30px; }
+  .form-fields { display: grid; gap: 14px; }
+  .form-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+  .item-field label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 0.78rem; font-weight: 800; text-transform: uppercase; }
+  .item-field input, .item-field textarea { width: 100%; border: 1px solid var(--border); border-radius: 10px; background: #fafafa; color: var(--text); font-family: var(--font); font-size: 0.93rem; outline: none; }
+  .item-field input { height: 44px; padding: 0 12px; }
+  .item-field textarea { min-height: 108px; padding: 12px; resize: vertical; }
+  .item-field input:focus, .item-field textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(236,36,39,0.1); }
+  .item-field input[readonly], .item-field textarea[readonly] { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; border-color: #e5e7eb; }
+  .check-field { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: #fafafa; }
+  .check-field input { width: 18px; height: 18px; accent-color: var(--primary); }
+  .check-field span { color: var(--text); font-weight: 700; font-size: 0.92rem; }
+  .drawer-actions { display: flex; justify-content: flex-end; gap: 12px; grid-column: 1 / -1; padding-top: 4px; }
+  .btn-secondary, .btn-save-item { height: 44px; padding: 0 18px; border-radius: 999px; font-family: var(--font); font-weight: 800; cursor: pointer; }
+  .btn-secondary { border: 1px solid var(--border); background: #fff; color: var(--muted); }
+  .btn-secondary:hover { background: #f3f4f6; }
+  .btn-save-item { border: 0; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; box-shadow: 0 10px 24px rgba(236,36,39,0.22); }
+  .btn-save-item:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(236,36,39,0.28); }
+  .btn-add-item { display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: 48px; padding: 0 20px; border: 0; border-radius: 999px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; font-family: var(--font); font-weight: 800; font-size: 0.92rem; cursor: pointer; white-space: nowrap; box-shadow: 0 10px 24px rgba(236,36,39,0.22); }
+  .btn-add-item:hover { transform: translateY(-1px); box-shadow: 0 14px 30px rgba(236,36,39,0.28); }
+  @media(max-width:640px) { .form-row { grid-template-columns: 1fr; } .item-add-form { padding: 20px; } .btn-add-item { width: 100%; } }
 </style>
 
 <div class="inventory-page">
@@ -442,10 +64,63 @@
     <div class="underline-bar"></div>
   </div>
 
+
+  <!-- <div class="report-card">
+    <div class="report-header">
+      <i class="fas fa-file-alt report-icon"></i>
+      <h2>Generate Donors Report</h2>
+    </div>
+    <form method="GET" action="{% url 'be_donor' %}" class="report-form">
+      <input type="hidden" name="export" value="csv">
+      {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+      <div class="report-inputs">
+        <div class="input-group">
+          <label for="dnr_start_date">START DATE</label>
+          <input type="date" id="dnr_start_date" name="start_date">
+        </div>
+        <div class="input-group">
+          <label for="dnr_end_date">END DATE</label>
+          <input type="date" id="dnr_end_date" name="end_date">
+        </div>
+        <button type="submit" class="report-btn" id="dnrDownloadBtn" disabled data-bs-toggle="tooltip"
+          title="Select both dates to download">
+          <i class="fas fa-download"></i>
+        </button>
+      </div>
+    </form>
+  </div> -->
+
+
+  <div class="report-card">
+    <div class="report-header">
+      <i class="fas fa-file-alt report-icon"></i>
+      <h2>Generate Inventory Report</h2>
+    </div>
+    <form method="GET" action="{% url 'inventory' %}" class="report-form">
+      <input type="hidden" name="export" value="csv">
+      {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+      <div class="report-inputs">
+        <div class="input-group">
+          <label for="inv_start_date">START DATE</label>
+          <input type="date" id="inv_start_date" name="start_date">
+        </div>
+        <div class="input-group">
+          <label for="inv_end_date">END DATE</label>
+          <input type="date" id="inv_end_date" name="end_date">
+        </div>
+        <button type="submit" class="report-btn" id="invDownloadBtn" disabled data-bs-toggle="tooltip"
+          title="Select both dates to download">
+          <i class="fas fa-download"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+
   <div class="items-toolbar">
     <form class="items-search" method="GET" action="{% url 'inventory' %}">
       <i class="fas fa-search"></i>
-      <input type="search" name="q" value="{{ search_query }}" placeholder="Search rental items..." aria-label="Search rental items">
+      <input type="search" name="q" value="{{ search_query }}" placeholder="Search rental items..."
+        aria-label="Search rental items">
     </form>
     <button type="button" class="btn-add-item" onclick="openItemDrawer()">
       <i class="fas fa-plus"></i> Add New Item
@@ -503,28 +178,23 @@
             </td>
             <td>
               <div class="table-actions">
-                <button type="button" class="btn-edit-item" onclick="openEditDrawer(this)"
-                  data-id="{{ item.id }}"
-                  data-title="{{ item.title }}"
-                  data-description="{{ item.description }}"
-                  data-price_per_day="{{ item.price_per_day }}"
-                  data-deposit="{{ item.deposit }}"
+                <button type="button" class="btn-edit-item" onclick="openEditDrawer(this)" data-id="{{ item.id }}"
+                  data-title="{{ item.title }}" data-description="{{ item.description }}"
+                  data-price_per_day="{{ item.price_per_day }}" data-deposit="{{ item.deposit }}"
                   data-total_quantity="{{ item.total_quantity }}"
                   data-available_quantity="{{ item.available_quantity }}"
                   data-booked_quantity="{{ item.booked_quantity }}"
                   data-available="{% if item.available %}true{% else %}false{% endif %}"
                   data-next_available_date="{{ item.next_available_date|date:'Y-m-d'|default:'' }}"
-                  data-item_qty="{{ item.item_qty }}"
-                  data-price="{{ item.price }}"
+                  data-item_qty="{{ item.item_qty }}" data-price="{{ item.price }}"
                   data-donation="{% if item.donation %}true{% else %}false{% endif %}"
                   data-donor_name="{{ item.donor_name|default:'' }}"
                   data-donor_contact="{{ item.donor_contact|default:'' }}"
-                  data-image_url="{% if item.image %}{{ item.image.url }}{% endif %}"
-                  title="Edit"
-                >
+                  data-image_url="{% if item.image %}{{ item.image.url }}{% endif %}" title="Edit">
                   <i class="fas fa-edit"></i>
                 </button>
-                <a href="{% url 'delete_inventory_item' item.id %}" class="btn-delete-item-table" onclick="return confirm('Are you sure do you want to delete this record?');" title="Delete">
+                <a href="{% url 'delete_inventory_item' item.id %}" class="btn-delete-item-table"
+                  onclick="return confirm('Are you sure do you want to delete this record?');" title="Delete">
                   <i class="fas fa-trash"></i>
                 </a>
               </div>
@@ -545,14 +215,15 @@
     <div class="pagination-bar" style="margin-top: 24px;">
       <div class="page-info">
         {% if page_obj.paginator.count %}
-          Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
+        Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} records
         {% else %}
-          Showing 0 records
+        Showing 0 records
         {% endif %}
       </div>
       <div class="page-buttons">
         {% if page_obj.has_previous %}
-        <a class="page-btn" aria-label="Previous page" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+        <a class="page-btn" aria-label="Previous page"
+          href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
           <i class="fas fa-chevron-left"></i>
         </a>
         {% else %}
@@ -562,15 +233,18 @@
         {% endif %}
 
         {% for num in page_obj.paginator.page_range %}
-          {% if num == page_obj.number %}
-            <span class="page-btn active" aria-current="page">{{ num }}</span>
-          {% else %}
-            <a class="page-btn" aria-label="Page {{ num }}" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
-          {% endif %}
+        {% if num == page_obj.number %}
+        <span class="page-btn active" aria-current="page">{{ num }}</span>
+        {% else %}
+        <a class="page-btn" aria-label="Page {{ num }}"
+          href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ num }}">{{
+          num }}</a>
+        {% endif %}
         {% endfor %}
 
         {% if page_obj.has_next %}
-        <a class="page-btn" aria-label="Next page" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+        <a class="page-btn" aria-label="Next page"
+          href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value|urlencode }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
           <i class="fas fa-chevron-right"></i>
         </a>
         {% else %}
@@ -691,7 +365,8 @@
         <div class="form-row">
           <div class="item-field">
             <label for="editPricePerDay">Price per Day</label>
-            <input id="editPricePerDay" type="number" name="price_per_day" min="0" step="0.01" placeholder="0.00" required>
+            <input id="editPricePerDay" type="number" name="price_per_day" min="0" step="0.01" placeholder="0.00"
+              required>
           </div>
           <div class="item-field">
             <label for="editDeposit">Deposit</label>
@@ -756,7 +431,8 @@
 
         <div class="item-field">
           <label for="editImage">Image</label>
-          <div id="editCurrentImageContainer" style="margin-bottom: 8px; font-size: 0.85rem; color: var(--muted); font-weight: bold;"></div>
+          <div id="editCurrentImageContainer"
+            style="margin-bottom: 8px; font-size: 0.85rem; color: var(--muted); font-weight: bold;"></div>
           <input id="editImage" type="file" name="image" accept="image/*">
         </div>
       </div>
@@ -774,7 +450,7 @@
     const drawer = document.getElementById('itemDrawerOverlay');
     if (drawer) drawer.classList.add('open');
   }
-  
+
   function closeItemDrawer() {
     const drawer = document.getElementById('itemDrawerOverlay');
     if (drawer) drawer.classList.remove('open');
@@ -868,9 +544,9 @@
     const total = parseInt(editTotalQtyInput.value, 10) || 0;
     const booked = parseInt(editBookedQtyInput.value, 10) || 0;
     const availableQty = Math.max(total - booked, 0);
-    
+
     editAvailableQtyInput.value = availableQty;
-    
+
     if (availableQty > 0) {
       editAvailableCheckbox.checked = true;
       editNextAvailableDate.value = '';
@@ -888,5 +564,39 @@
     editTotalQtyInput.addEventListener('input', updateEditCalculations);
     editBookedQtyInput.addEventListener('input', updateEditCalculations);
   }
+
+  // ── Report download button: enable only when both dates filled ──
+  const invStartDate = document.getElementById('inv_start_date');
+  const invEndDate = document.getElementById('inv_end_date');
+  const invDownloadBtn = document.getElementById('invDownloadBtn');
+
+  function toggleDownloadBtn() {
+    if (invStartDate && invEndDate && invDownloadBtn) {
+      invDownloadBtn.disabled = !(invStartDate.value && invEndDate.value);
+      invDownloadBtn.title = invDownloadBtn.disabled
+        ? 'Select both dates to download'
+        : 'Download Report';
+    }
+  }
+
+  if (invStartDate) invStartDate.addEventListener('change', toggleDownloadBtn);
+  if (invEndDate) invEndDate.addEventListener('change', toggleDownloadBtn);
+
+  // ── Donors Report download button ──
+  const dnrStartDate = document.getElementById('dnr_start_date');
+  const dnrEndDate = document.getElementById('dnr_end_date');
+  const dnrDownloadBtn = document.getElementById('dnrDownloadBtn');
+
+  function toggleDnrBtn() {
+    if (dnrStartDate && dnrEndDate && dnrDownloadBtn) {
+      dnrDownloadBtn.disabled = !(dnrStartDate.value && dnrEndDate.value);
+      dnrDownloadBtn.title = dnrDownloadBtn.disabled
+        ? 'Select both dates to download'
+        : 'Download Report';
+    }
+  }
+
+  if (dnrStartDate) dnrStartDate.addEventListener('change', toggleDnrBtn);
+  if (dnrEndDate) dnrEndDate.addEventListener('change', toggleDnrBtn);
 </script>
 {% endblock %}

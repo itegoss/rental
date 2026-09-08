@@ -449,6 +449,23 @@ def inventory(request):
     if search_query:
         items = items.filter(title__icontains=search_query)
 
+    if request.GET.get('export') == 'csv':
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
+        if start_date_str:
+            items = items.filter(created_at__date__gte=start_date_str)
+        if end_date_str:
+            items = items.filter(created_at__date__lte=end_date_str)
+        import csv
+        from django.http import HttpResponse
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="inventory.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['ID', 'Title', 'Description', 'Price Per Day', 'Deposit', 'Total Quantity', 'Available Quantity', 'Booked Quantity'])
+        for item in items:
+            writer.writerow([item.id, item.title, item.description, item.rent_per_day, item.deposit, item.quantity, item.available_quantity, item.booked_quantity])
+        return response
+
     paginator = Paginator(items, 20)
     page_obj = paginator.get_page(request.GET.get('page'))
 
@@ -2039,6 +2056,24 @@ def users(request):
             Q(email__icontains=q)
         )
 
+    if request.GET.get('export') == 'csv':
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
+        if start_date_str:
+            users = users.filter(date_joined__date__gte=start_date_str)
+        if end_date_str:
+            users = users.filter(date_joined__date__lte=end_date_str)
+        import csv
+        from django.http import HttpResponse
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="users.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['ID', 'Username', 'Email', 'Superuser', 'Staff', 'Roles'])
+        for u in users:
+            user_roles = ", ".join([a.role.name for a in u.role_assignments.all()]) or "No role assigned"
+            writer.writerow([u.id, u.username, u.email or '-', 'Yes' if u.is_superuser else 'No', 'Yes' if u.is_staff else 'No', user_roles])
+        return response
+
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'assign_role':
@@ -2059,6 +2094,8 @@ def users(request):
                     target_role = Role.objects.filter(id=role_id_int).first()
                     if not target_user or not target_role:
                         messages.error(request, "Invalid user or role selected.")
+                    elif target_user.is_superuser:
+                        messages.error(request, "Roles cannot be assigned to superusers.")
                     else:
                         from django.db import transaction
                         try:
@@ -2117,6 +2154,21 @@ def roles(request):
     page_size = str(page_size_int)
 
     roles = Role.objects.all().order_by('name')
+    if q:
+        roles = roles.filter(name__icontains=q)
+
+    if request.GET.get('export') == 'csv':
+        import csv
+        from django.http import HttpResponse
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="roles.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['ID', 'Role Name', 'Description', 'Permissions'])
+        for r in roles:
+            perms = ", ".join(r.permission_list)
+            writer.writerow([r.id, r.name, r.description or '-', perms])
+        return response
+
     edit_role = None
     edit_role_id = request.GET.get('edit')
     if edit_role_id:
@@ -2503,6 +2555,12 @@ def request_blood(request):
             )
 
         if request.GET.get('export') == 'csv':
+            start_date_str = request.GET.get('start_date')
+            end_date_str = request.GET.get('end_date')
+            if start_date_str:
+                qs = qs.filter(created_at__date__gte=start_date_str)
+            if end_date_str:
+                qs = qs.filter(created_at__date__lte=end_date_str)
             import csv
             from django.http import HttpResponse
             response = HttpResponse(content_type='text/csv; charset=utf-8')
@@ -2968,6 +3026,23 @@ def organize_camp(request):
                 Q(contact_number__icontains=q) |
                 Q(proposed_venue__icontains=q)
             )
+
+        if request.GET.get('export') == 'csv':
+            start_date_str = request.GET.get('start_date')
+            end_date_str = request.GET.get('end_date')
+            if start_date_str:
+                qs = qs.filter(created_at__date__gte=start_date_str)
+            if end_date_str:
+                qs = qs.filter(created_at__date__lte=end_date_str)
+            import csv
+            from django.http import HttpResponse
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="camps.csv"'
+            writer = csv.writer(response)
+            writer.writerow(['ID', 'Organizer Name', 'Organization', 'Contact Number', 'Email', 'Proposed Date', 'Proposed Venue', 'Expected Donors', 'Status', 'Submitted Date'])
+            for c in qs:
+                writer.writerow([c.id, c.organizer_name, c.organization_name or '-', c.contact_number, c.email or '-', c.proposed_date.strftime('%d %b, %Y') if c.proposed_date else '-', c.proposed_venue, c.expected_donors, c.status, c.created_at.strftime('%d %b, %Y') if c.created_at else '-'])
+            return response
         paginator = Paginator(qs, page_size_int)
         page_obj = paginator.get_page(request.GET.get('page'))
         return render(request, 'camps_admin.html', {'page_obj': page_obj, 'search_query': q, 'page_size': page_size})
@@ -3082,6 +3157,23 @@ def be_donor(request):
                 Q(area_of_residence__icontains=q) |
                 Q(blood_group__icontains=q)
             )
+
+        if request.GET.get('export') == 'csv':
+            start_date_str = request.GET.get('start_date')
+            end_date_str = request.GET.get('end_date')
+            if start_date_str:
+                qs = qs.filter(created_at__date__gte=start_date_str)
+            if end_date_str:
+                qs = qs.filter(created_at__date__lte=end_date_str)
+            import csv
+            from django.http import HttpResponse
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="blood_donors.csv"'
+            writer = csv.writer(response)
+            writer.writerow(['ID', 'Full Name', 'Contact Number', 'Blood Group', 'Gender', 'Area of Residence', 'Last Donation Date', 'Is Available'])
+            for d in qs:
+                writer.writerow([d.id, d.get_full_name(), d.contact_number, d.blood_group, d.gender or '-', d.area_of_residence, d.last_donation_date.strftime('%d %b, %Y') if d.last_donation_date else '-', 'Yes' if d.is_available else 'No'])
+            return response
         paginator = Paginator(qs, page_size_int)
         page_obj = paginator.get_page(request.GET.get('page'))
         return render(request, 'donors_admin.html', {'page_obj': page_obj, 'search_query': q, 'page_size': page_size})
@@ -3113,6 +3205,24 @@ def medical_services(request):
                 Q(contacts__contact_name__icontains=q) |
                 Q(contacts__contact_number__icontains=q)
             ).distinct()
+
+        if request.GET.get('export') == 'csv':
+            start_date_str = request.GET.get('start_date')
+            end_date_str = request.GET.get('end_date')
+            if start_date_str:
+                qs = qs.filter(created_at__date__gte=start_date_str)
+            if end_date_str:
+                qs = qs.filter(created_at__date__lte=end_date_str)
+            import csv
+            from django.http import HttpResponse
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="medical_services.csv"'
+            writer = csv.writer(response)
+            writer.writerow(['ID', 'Service Name', 'Description', 'Status', 'Contacts'])
+            for s in qs:
+                contacts_str = "; ".join([f"{c.service_name}: {c.contact_name} ({c.contact_number})" for c in s.contacts.all()])
+                writer.writerow([s.id, s.name, s.description, 'Active' if s.is_active else 'Inactive', contacts_str])
+            return response
         paginator = Paginator(qs, page_size_int)
         page_obj = paginator.get_page(request.GET.get('page'))
         return render(request, 'services_admin.html', {'page_obj': page_obj, 'search_query': q, 'page_size': page_size})
@@ -3308,6 +3418,23 @@ def volunteer_event(request):
                 Q(email__icontains=q) |
                 Q(area_of_residence__icontains=q)
             )
+
+        if request.GET.get('export') == 'csv':
+            start_date_str = request.GET.get('start_date')
+            end_date_str = request.GET.get('end_date')
+            if start_date_str:
+                qs = qs.filter(created_at__date__gte=start_date_str)
+            if end_date_str:
+                qs = qs.filter(created_at__date__lte=end_date_str)
+            import csv
+            from django.http import HttpResponse
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="volunteers.csv"'
+            writer = csv.writer(response)
+            writer.writerow(['ID', 'Full Name', 'Contact Number', 'Email', 'Area of Residence', 'Event Interest', 'Skills/Remarks', 'Registration Date'])
+            for v in qs:
+                writer.writerow([v.id, v.full_name, v.contact_number, v.email, v.area_of_residence, v.event_interest or 'General', v.skills_remarks or '-', v.created_at.strftime('%d %b, %Y') if v.created_at else '-'])
+            return response
         paginator = Paginator(qs, page_size_int)
         page_obj = paginator.get_page(request.GET.get('page'))
         return render(request, 'volunteers_admin.html', {'page_obj': page_obj, 'search_query': q, 'page_size': page_size})

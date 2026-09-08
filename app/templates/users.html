@@ -59,9 +59,38 @@
     transition: all 0.25s ease;
   }
 
+  .modern-role-select:disabled {
+    background: #e5e7eb !important;
+    color: #9ca3af !important;
+    cursor: not-allowed !important;
+    border-color: #d1d5db !important;
+  }
+
+  .btn-icon-assign:disabled,
+  .btn-icon-assign.btn-disabled {
+    background: #e5e7eb !important;
+    color: #9ca3af !important;
+    border: 1px solid #d1d5db !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+  }
+
+  .btn-icon-assign:disabled i,
+  .btn-icon-assign.btn-disabled i {
+    color: #9ca3af !important;
+  }
+
   .btn-icon-assign:hover {
     transform: translateY(-2px) scale(1.05);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+  }
+
+  .btn-icon-assign:disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
   }
 
   .btn-icon-remove {
@@ -102,6 +131,30 @@
     <div class="underline-bar"></div>
   </div>
 
+
+  <div class="report-card">
+    <div class="report-header">
+      <i class="fas fa-file-alt report-icon"></i>
+      <h2>Generate Users Report</h2>
+    </div>
+    <form method="GET" action="{% url 'users' %}" class="report-form">
+      <input type="hidden" name="export" value="csv">
+      {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+      <div class="report-inputs">
+        <div class="input-group">
+          <label for="user_start_date">START DATE</label>
+          <input type="date" id="user_start_date" name="start_date">
+        </div>
+        <div class="input-group">
+          <label for="user_end_date">END DATE</label>
+          <input type="date" id="user_end_date" name="end_date">
+        </div>
+        <button type="submit" class="report-btn" data-bs-toggle="tooltip" title="Download Report">
+          <i class="fas fa-download"></i>
+        </button>
+      </div>
+    </form>
+  </div>
 
   <!-- SEARCH + SHOW -->
 
@@ -263,6 +316,7 @@
                   <select
                     name="role_id"
                     class="modern-role-select"
+                    {% if user.is_superuser %}disabled{% endif %}
                   >
 
                     <option value="">
@@ -282,9 +336,10 @@
 
                   <button
                     type="submit"
-                    class="btn-icon-assign"
+                    class="btn-icon-assign {% if user.is_superuser %}btn-disabled{% endif %}"
                     data-bs-toggle="tooltip"
-                    title="Assign Role"
+                    title="{% if user.is_superuser %}Superusers cannot be assigned roles{% else %}Assign Role{% endif %}"
+                    {% if user.is_superuser %}disabled{% endif %}
                   >
                     <i class="fas fa-user-plus"></i>
                   </button>

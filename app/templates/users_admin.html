@@ -35,6 +35,23 @@
     transition: all 0.22s ease;
   }
 
+  .btn-icon-assign:disabled,
+  .btn-icon-assign.btn-disabled {
+    background: #e5e7eb !important;
+    color: #9ca3af !important;
+    border: 1px solid #d1d5db !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+  }
+
+  .btn-icon-assign:disabled i,
+  .btn-icon-assign.btn-disabled i {
+    color: #9ca3af !important;
+  }
+
   .btn-icon-assign:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
@@ -112,13 +129,13 @@
                   {% csrf_token %}
                   <input type="hidden" name="action" value="assign_role">
                   <input type="hidden" name="user_id" value="{{ user.id }}">
-                  <select name="role_id" style="min-width:180px;">
+                  <select name="role_id" style="min-width:180px;" {% if user.is_superuser %}disabled{% endif %}>
                     <option value="">Assign role</option>
                     {% for role in roles %}
                     <option value="{{ role.id }}">{{ role.name }}</option>
                     {% endfor %}
                   </select>
-                  <button type="submit" class="btn-icon-assign" title="Assign Role"><i class="fas fa-user-plus"></i></button>
+                  <button type="submit" class="btn-icon-assign {% if user.is_superuser %}btn-disabled{% endif %}" title="{% if user.is_superuser %}Superusers cannot be assigned roles{% else %}Assign Role{% endif %}" {% if user.is_superuser %}disabled{% endif %}><i class="fas fa-user-plus"></i></button>
                 </form>
                 {% for assignment in user.role_assignments.all %}
                 <form method="POST" action="{% url 'users' %}">

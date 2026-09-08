@@ -1106,15 +1106,15 @@
       {% csrf_token %}
       <div class="report-inputs">
         <div class="input-group">
-          <label for="report_start_date">Start Date</label>
+          <label for="report_start_date">START DATE</label>
           <input type="date" id="report_start_date" name="start_date" required>
         </div>
         <div class="input-group">
-          <label for="report_end_date">End Date</label>
+          <label for="report_end_date">END DATE</label>
           <input type="date" id="report_end_date" name="end_date" required>
         </div>
-        <button type="submit" class="btn-primary-red report-btn">
-          <i class="fas fa-download"></i> Download Report
+        <button type="submit" class="report-btn" data-bs-toggle="tooltip" title="Download Report">
+          <i class="fas fa-download"></i>
         </button>
       </div>
     </form>
@@ -1126,6 +1126,7 @@
       <i class="fas fa-search"></i>
       <input type="search" id="bookingSearch" placeholder="Search by order, item, date, customer, status">
     </div>
+
     <label class="page-size" for="pageSize">
       Show
       <select id="pageSize">
