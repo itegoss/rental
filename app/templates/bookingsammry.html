@@ -1422,15 +1422,15 @@
                 {% if rr.is_return_requested %}
                 <!-- Return Pending -->
                 <a href="{% url 'approve_return_order' booking.order_id %}" class="act-btn act-approve"
-                  data-tooltip="Approve Return"><i class="fas fa-check"></i> Approve Return</a>
+                  data-tooltip="Approve Return"><i class="fas fa-check"></i></a>
                 <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"><i
-                    class="fas fa-ban"></i> Cancel</a>
+                    class="fas fa-ban"></i></a>
                 {% elif rr.status == "pending" %}
                 <!-- Booking Pending -->
                 <a href="{% url 'approve_order' booking.order_id %}" class="act-btn act-approve"
-                  data-tooltip="Approve Booking"><i class="fas fa-check"></i> Approve</a>
+                  data-tooltip="Approve Booking"><i class="fas fa-check"></i></a>
                 <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"><i
-                    class="fas fa-ban"></i> Cancel</a>
+                    class="fas fa-ban"></i></a>
                 {% elif rr.status == "approved" %}
                 <!-- Approved -->
                 <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return" data-tooltip="Return"
