@@ -161,11 +161,9 @@ def build_booking_receipt_breakdown(rental, related_rentals):
 
     if rental.is_delivery_paid:
         delivery_paid = delivery_charge
-        unpaid_delivery = delivery_charge - mathematical_delivery_paid
-        amount_remaining = max(final_total_amount - amount_paid - unpaid_delivery, Decimal("0"))
     else:
         delivery_paid = mathematical_delivery_paid
-        amount_remaining = max(final_total_amount - amount_paid, Decimal("0"))
+    amount_remaining = max(final_total_amount - amount_paid, Decimal("0"))
 
     original_days = (rental.end_date - rental.start_date).days + 1 if rental.start_date and rental.end_date else 0
     total_extra_days = sum((ext["extra_days"] for ext in extension_history), 0)

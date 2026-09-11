@@ -69,7 +69,7 @@ class Inventory(models.Model):
         from django.db.models import Sum
         from django.utils import timezone
         try:
-            booked = self.rentalrequest_set.filter(status='approved', is_returned=False).aggregate(total=Sum('quantity'))['total'] or 0
+            booked = self.rentalrequest_set.filter(status__in=['approved', 'delivered'], is_returned=False).aggregate(total=Sum('quantity'))['total'] or 0
             self.booked_quantity = booked
             new_available = max((self.total_quantity or 0) - booked, 0)
             self.available_quantity = new_available
@@ -159,6 +159,7 @@ class History(models.Model):
         choices=[
             ('pending', 'Pending'),
             ('approved', 'Approved'),
+            ('delivered', 'Delivered'),
             ('rejected', 'Rejected'),
             ('cancelled', 'Cancelled'),
         ],
@@ -234,16 +235,8 @@ class History(models.Model):
 
         # Calculate remaining amount
         if not getattr(self, '_amount_remaining_manually_changed', False):
-            rent_deposit_total = rent_dec + (deposit_dec * self.quantity)
             paid_dec = Decimal(str(self.amount_paid or '0'))
-            mathematical_delivery_paid = max(paid_dec - rent_deposit_total, Decimal("0"))
-            mathematical_delivery_paid = min(mathematical_delivery_paid, delivery_dec)
-
-            if self.is_delivery_paid:
-                unpaid_delivery = delivery_dec - mathematical_delivery_paid
-                self.amount_remaining = max(self.total_amount - paid_dec - unpaid_delivery, Decimal('0'))
-            else:
-                self.amount_remaining = max(self.total_amount - paid_dec, Decimal('0'))
+            self.amount_remaining = max(self.total_amount - paid_dec, Decimal('0'))
             
         super().save(*args, **kwargs)
 

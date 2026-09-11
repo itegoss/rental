@@ -404,6 +404,11 @@
     color: #4b5563;
   }
 
+  .s-delivered {
+    background: #ccfbf1;
+    color: #0f766e;
+  }
+
   .act-btn {
     display: inline-flex;
     align-items: center;
@@ -524,6 +529,221 @@
     background: #059669;
     transform: translateY(-1px);
     color: #fff;
+  }
+
+  .act-deliver {
+    background: #0d9488;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  }
+
+  .act-deliver:hover {
+    background: #0f766e;
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  /* Deliver Modal Styles */
+  .deliver-modal-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 30px;
+    max-width: 520px;
+    width: 92%;
+    text-align: left;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    animation: scaleIn 0.25s ease;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  .deliver-modal-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .deliver-modal-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: #ccfbf1;
+    color: #0d9488;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+  .deliver-modal-title h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.18rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .deliver-modal-title span {
+    font-size: 0.83rem;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .deliver-breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .breakdown-box {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .breakdown-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+  }
+  .breakdown-value {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1e293b;
+  }
+  .total-payable-banner {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border: 1.5px solid #86efac;
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .total-payable-banner .tp-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #166534;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .total-payable-banner .tp-val {
+    font-size: 1.38rem;
+    font-weight: 900;
+    color: #15803d;
+  }
+  .deliver-input-section {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 18px;
+  }
+  .deliver-input-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .deliver-input-header label {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .quick-pay-btns {
+    display: flex;
+    gap: 6px;
+  }
+  .btn-quick-fill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    cursor: pointer;
+    color: #475569;
+    transition: all 0.15s;
+  }
+  .btn-quick-fill:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+  .deliver-paid-input-wrap {
+    position: relative;
+    margin-bottom: 14px;
+  }
+  .deliver-paid-input-wrap span.currency-prefix {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: 800;
+    color: #64748b;
+    font-size: 1.1rem;
+  }
+  .deliver-paid-input {
+    width: 100%;
+    padding: 11px 14px 11px 34px;
+    border: 2px solid #cbd5e1;
+    border-radius: 10px;
+    font-family: var(--font);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.2s;
+    background: #fff;
+  }
+  .deliver-paid-input:focus {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  }
+  .remaining-calc-card {
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s;
+  }
+  .remaining-calc-card.is-cleared {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+  }
+  .remaining-calc-card.is-due {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+  }
+  .remaining-calc-card.is-overpaid {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+  }
+  .remaining-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+  .remaining-val {
+    font-size: 1.18rem;
+    font-weight: 900;
+  }
+  .remaining-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
   }
 
   .report-card {
@@ -1175,7 +1395,7 @@
             <td class="col-item" data-value="{{ rr.display_item_title }}"><span class="item-name">{{ rr.display_item_title }}</span></td>
             <td class="col-qty" data-value="{{ rr.quantity }}">{{ rr.quantity }}</td>
             <td class="col-status"
-              data-value="{% if rr.is_returned %}Returned{% elif rr.is_return_requested %}Return Pending{% elif rr.status == 'pending' %}Booking Pending{% elif rr.status == 'rejected' %}Booking Rejected{% elif rr.status == 'cancelled' %}Cancelled{% elif rr.status == 'approved' %}Approved{% else %}Pending{% endif %}">
+              data-value="{% if rr.is_returned %}Returned{% elif rr.is_return_requested %}Return Pending{% elif rr.status == 'pending' %}Booking Pending{% elif rr.status == 'rejected' %}Booking Rejected{% elif rr.status == 'cancelled' %}Cancelled{% elif rr.status == 'approved' %}Approved{% elif rr.status == 'delivered' %}Delivered{% else %}Pending{% endif %}">
               {% if rr.is_returned %}
               <span class="s-badge s-returned"><i class="fas fa-check-circle"></i> Returned</span>
               {% elif rr.is_return_requested %}
@@ -1188,6 +1408,8 @@
               <span class="s-badge s-cancelled"><i class="fas fa-ban"></i> Cancelled</span>
               {% elif rr.status == "approved" %}
               <span class="s-badge s-approved"><i class="fas fa-check-circle"></i> Approved</span>
+              {% elif rr.status == "delivered" %}
+              <span class="s-badge s-delivered"><i class="fas fa-truck"></i> Delivered</span>
               {% else %}
               <span class="s-badge s-pending"><i class="fas fa-clock"></i> Pending</span>
               {% endif %}
@@ -1218,6 +1440,24 @@
                   data-tooltip="Extend" aria-label="Extend"><i class="fas fa-calendar-plus"></i> </a>
                 <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"
                   aria-label="Cancel"><i class="fas fa-ban"></i> </a>
+                <button type="button" class="act-btn act-deliver" data-tooltip="Delivered" aria-label="Delivered"
+                  data-order-id="{{ booking.order_id }}"
+                  data-rent="{{ booking.total_rent }}"
+                  data-deposit="{{ booking.total_deposit }}"
+                  data-delivery="{{ booking.delivery_charge }}"
+                  data-total="{{ booking.total_payable }}"
+                  data-paid="{{ booking.amount_paid }}"
+                  data-renter="{% if rr.renter_name %}{{ rr.renter_name }}{% elif booking.customer %}{{ booking.customer.username }}{% endif %}"
+                  onclick="openDeliverModalFromBtn(event, this)"><i class="fas fa-truck"></i> </button>
+                <a href="{% url 'view_rental' rr.id %}" class="act-btn act-view" data-tooltip="Receipt"
+                  aria-label="Receipt"><i class="fas fa-eye"></i> </a>
+                {% elif rr.status == "delivered" %}
+                <!-- Delivered -->
+                <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return" data-tooltip="Return"
+                  data-deposit="{{ booking.total_deposit }}"
+                  onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> </a>
+                <a href="{% url 'extend_return_date' booking.order_id %}" class="act-btn act-extend"
+                  data-tooltip="Extend" aria-label="Extend"><i class="fas fa-calendar-plus"></i> </a>
                 <a href="{% url 'view_rental' rr.id %}" class="act-btn act-view" data-tooltip="Receipt"
                   aria-label="Receipt"><i class="fas fa-eye"></i> </a>
                 {% endif %}
@@ -1230,15 +1470,17 @@
                 {% else %}
                 <!-- Customer Actions -->
                 {% if not rr.is_returned %}
-                {% if rr.status == "approved" %}
+                {% if rr.status == "approved" or rr.status == "delivered" %}
                 {% if not rr.is_return_requested %}
                 <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return"
                   data-tooltip="Request Return" data-deposit="{{ booking.total_deposit }}"
                   onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> </a>
                 <a href="{% url 'extend_return_date' booking.order_id %}" class="act-btn act-extend"
                   data-tooltip="Extend" aria-label="Extend"><i class="fas fa-calendar-plus"></i> </a>
+                {% if rr.status == "approved" %}
                 <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"
                   aria-label="Cancel"><i class="fas fa-ban"></i> </a>
+                {% endif %}
                 {% endif %}
                 <a href="{% url 'view_rental' rr.id %}" class="act-btn act-view" data-tooltip="Receipt"
                   aria-label="Receipt"><i class="fas fa-eye"></i> </a>
@@ -1324,6 +1566,117 @@
       <button class="act-btn act-view" onclick="submitDepositChoice(false)"><i class="fas fa-wallet"></i> Not
         interested</button>
     </div>
+  </div>
+</div>
+
+<!-- Delivered Modal -->
+<div class="d-modal-overlay" id="deliverModal">
+  <div class="deliver-modal-card">
+    <button class="d-close" type="button" onclick="closeDeliverModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+    <div class="deliver-modal-head">
+      <div class="deliver-modal-icon"><i class="fas fa-truck"></i></div>
+      <div class="deliver-modal-title">
+        <h3>Mark Order as Delivered</h3>
+        <span id="deliverOrderSubtitle">Order #</span>
+      </div>
+    </div>
+
+    <!-- Order Bill Summary Bar -->
+    <div style="background: #f1f5f9; border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+      <span style="font-size: 0.88rem; font-weight: 700; color: #475569;">
+        <i class="fas fa-file-invoice-dollar" style="color: var(--primary);"></i> Total Order Amount:
+      </span>
+      <span style="font-size: 1.25rem; font-weight: 900; color: var(--primary);">
+        ₹<span id="deliverOrderBillTotal">0.00</span>
+      </span>
+    </div>
+
+    <!-- Form for submitting delivery -->
+    <form id="deliverOrderForm" method="POST" action="">
+      {% csrf_token %}
+      
+      <!-- 3 Input Fields Container: Rent, Deposit, Delivery Charges -->
+      <div style="background: #f8fafc; border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="font-size: 0.82rem; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="fas fa-coins" style="color: #0d9488;"></i> Payment Received Fields
+          </span>
+          <div class="quick-pay-btns">
+            <button type="button" class="btn-quick-fill" onclick="fillAllExpected()">Pay Full</button>
+            <button type="button" class="btn-quick-fill" onclick="clearAllFields()">₹0 All</button>
+          </div>
+        </div>
+
+        <!-- 1. Rent Field -->
+        <div style="margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label for="deliverRentInput" style="font-size: 0.82rem; font-weight: 700; color: #475569;">
+              Rent Amount
+            </label>
+            <span style="font-size: 0.76rem; color: var(--muted); font-weight: 600;">Due: ₹<span id="deliverExpectedRent">0.00</span></span>
+          </div>
+          <div class="deliver-paid-input-wrap" style="margin-bottom: 0;">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="deliverRentInput" name="rent_paid" class="deliver-paid-input" min="0" step="0.01" placeholder="0.00" oninput="updateDeliverCalculations()">
+          </div>
+        </div>
+
+        <!-- 2. Deposit Field -->
+        <div style="margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label for="deliverDepositInput" style="font-size: 0.82rem; font-weight: 700; color: #475569;">
+              Deposit
+            </label>
+            <span style="font-size: 0.76rem; color: var(--muted); font-weight: 600;">Due: ₹<span id="deliverExpectedDeposit">0.00</span></span>
+          </div>
+          <div class="deliver-paid-input-wrap" style="margin-bottom: 0;">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="deliverDepositInput" name="deposit_paid" class="deliver-paid-input" min="0" step="0.01" placeholder="0.00" oninput="updateDeliverCalculations()">
+          </div>
+        </div>
+
+        <!-- 3. Delivery Charges Field -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label for="deliverDeliveryInput" style="font-size: 0.82rem; font-weight: 700; color: #475569;">
+              Delivery Charges
+            </label>
+            <span style="font-size: 0.76rem; color: var(--muted); font-weight: 600;">Due: ₹<span id="deliverExpectedDelivery">0.00</span></span>
+          </div>
+          <div class="deliver-paid-input-wrap" style="margin-bottom: 0;">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="deliverDeliveryInput" name="delivery_paid" class="deliver-paid-input" min="0" step="0.01" placeholder="0.00" oninput="updateDeliverCalculations()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Calculations Summary Card -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+        <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 12px 14px;">
+          <div style="font-size: 0.74rem; font-weight: 700; color: #166534; text-transform: uppercase;">Total Paid</div>
+          <div style="font-size: 1.25rem; font-weight: 900; color: #15803d;">₹<span id="deliverTotalPaidDisplay">0.00</span></div>
+        </div>
+        <div id="deliverRemainingCard" class="remaining-calc-card is-cleared" style="border-radius: 12px; padding: 12px 14px;">
+          <div>
+            <div class="remaining-label" id="deliverRemainingLabel" style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase;">Remaining Due</div>
+            <div class="remaining-val" id="deliverRemainingDisplay" style="font-size: 1.25rem; font-weight: 900;">₹0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery Notes / Remarks -->
+      <div class="d-field" style="margin-bottom: 20px;">
+        <label for="deliverNotes" style="font-weight: 700; font-size: 0.78rem; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; display: block;">Delivery Notes / Remarks (Optional)</label>
+        <input type="text" id="deliverNotes" name="notes" style="width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: var(--font); font-size: 0.9rem; outline: none; box-sizing: border-box;">
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button type="button" class="act-btn act-cancel" style="padding: 10px 20px; font-size: 0.88rem;" onclick="closeDeliverModal()">Cancel</button>
+        <button type="submit" class="act-btn act-deliver" style="padding: 10px 24px; font-size: 0.88rem; background: #0d9488; color: #fff; font-weight: 800;">
+          <i class="fas fa-check-circle"></i> Confirm Delivery
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -1634,5 +1987,144 @@
     const booked = Math.max(0, total - available);
     document.getElementById('bookedQuantity').value = booked;
   });
+
+  // Deliver Modal Functions
+  let currentDeliverTotal = 0;
+
+  function openDeliverModalFromBtn(event, btn) {
+    if (event) event.preventDefault();
+    openDeliverModal(
+      event,
+      btn.dataset.orderId,
+      btn.dataset.rent,
+      btn.dataset.deposit,
+      btn.dataset.delivery,
+      btn.dataset.total,
+      btn.dataset.paid,
+      btn.dataset.renter
+    );
+  }
+
+  function openDeliverModal(event, orderId, rent, deposit, delivery, total, paid, renter) {
+    if (event) event.preventDefault();
+    const form = document.getElementById('deliverOrderForm');
+    if (form) {
+      form.action = '/deliver-order/' + encodeURIComponent(orderId) + '/';
+    }
+
+    currentExpectedRent = parseFloat(rent || '0') || 0;
+    currentExpectedDeposit = parseFloat(deposit || '0') || 0;
+    currentExpectedDelivery = parseFloat(delivery || '0') || 0;
+    let totalNum = parseFloat(total || '0') || 0;
+    if (totalNum <= 0) {
+      totalNum = currentExpectedRent + currentExpectedDeposit + currentExpectedDelivery;
+    }
+    currentExpectedTotal = totalNum;
+
+    const paidNum = parseFloat(paid || '0') || 0;
+
+    const subtitle = document.getElementById('deliverOrderSubtitle');
+    if (subtitle) {
+      subtitle.textContent = 'Order #' + orderId + (renter ? ' • ' + renter : '');
+    }
+
+    document.getElementById('deliverOrderBillTotal').textContent = currentExpectedTotal.toFixed(2);
+    document.getElementById('deliverExpectedRent').textContent = currentExpectedRent.toFixed(2);
+    document.getElementById('deliverExpectedDeposit').textContent = currentExpectedDeposit.toFixed(2);
+    document.getElementById('deliverExpectedDelivery').textContent = currentExpectedDelivery.toFixed(2);
+
+    const rentInput = document.getElementById('deliverRentInput');
+    const depositInput = document.getElementById('deliverDepositInput');
+    const deliveryInput = document.getElementById('deliverDeliveryInput');
+
+    if (paidNum >= currentExpectedTotal && currentExpectedTotal > 0) {
+      rentInput.value = currentExpectedRent.toFixed(2);
+      depositInput.value = currentExpectedDeposit.toFixed(2);
+      deliveryInput.value = currentExpectedDelivery.toFixed(2);
+    } else if (paidNum > 0) {
+      let rem = paidNum;
+      let rPaid = Math.min(rem, currentExpectedRent);
+      rem -= rPaid;
+      let dPaid = Math.min(rem, currentExpectedDeposit);
+      rem -= dPaid;
+      let delPaid = Math.min(rem, currentExpectedDelivery);
+      rentInput.value = rPaid.toFixed(2);
+      depositInput.value = dPaid.toFixed(2);
+      deliveryInput.value = delPaid.toFixed(2);
+    } else {
+      rentInput.value = currentExpectedRent.toFixed(2);
+      depositInput.value = currentExpectedDeposit.toFixed(2);
+      deliveryInput.value = currentExpectedDelivery.toFixed(2);
+    }
+
+    updateDeliverCalculations();
+
+    document.getElementById('deliverModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDeliverModal() {
+    const modal = document.getElementById('deliverModal');
+    if (modal) modal.classList.remove('open');
+    document.body.style.overflow = 'auto';
+  }
+
+  function fillAllExpected() {
+    document.getElementById('deliverRentInput').value = currentExpectedRent.toFixed(2);
+    document.getElementById('deliverDepositInput').value = currentExpectedDeposit.toFixed(2);
+    document.getElementById('deliverDeliveryInput').value = currentExpectedDelivery.toFixed(2);
+    updateDeliverCalculations();
+  }
+
+  function clearAllFields() {
+    document.getElementById('deliverRentInput').value = '0.00';
+    document.getElementById('deliverDepositInput').value = '0.00';
+    document.getElementById('deliverDeliveryInput').value = '0.00';
+    updateDeliverCalculations();
+  }
+
+  function updateDeliverCalculations() {
+    const rVal = parseFloat(document.getElementById('deliverRentInput').value || '0') || 0;
+    const dVal = parseFloat(document.getElementById('deliverDepositInput').value || '0') || 0;
+    const delVal = parseFloat(document.getElementById('deliverDeliveryInput').value || '0') || 0;
+
+    const totalPaid = rVal + dVal + delVal;
+    document.getElementById('deliverTotalPaidDisplay').textContent = totalPaid.toFixed(2);
+
+    const baki = currentExpectedTotal - totalPaid;
+    const card = document.getElementById('deliverRemainingCard');
+    const label = document.getElementById('deliverRemainingLabel');
+    const display = document.getElementById('deliverRemainingDisplay');
+
+    if (Math.abs(baki) < 0.01) {
+      card.className = 'remaining-calc-card is-cleared';
+      label.textContent = 'Remaining Due';
+      label.style.color = '#15803d';
+      display.textContent = '₹0.00';
+      display.style.color = '#15803d';
+    } else if (baki >= 0.01) {
+      card.className = 'remaining-calc-card is-due';
+      label.textContent = 'Remaining Due';
+      label.style.color = '#b45309';
+      display.textContent = '₹' + baki.toFixed(2);
+      display.style.color = '#b45309';
+    } else {
+      const extra = Math.abs(baki);
+      card.className = 'remaining-calc-card is-overpaid';
+      label.textContent = 'Advance / Extra Paid';
+      label.style.color = '#1d4ed8';
+      display.textContent = '₹' + extra.toFixed(2);
+      display.style.color = '#1d4ed8';
+    }
+  }
+
+  const delivModalOverlay = document.getElementById('deliverModal');
+  if (delivModalOverlay) {
+    delivModalOverlay.addEventListener('click', e => {
+      if (e.target === delivModalOverlay) {
+        closeDeliverModal();
+      }
+    });
+  }
 </script>
 {% endblock %}

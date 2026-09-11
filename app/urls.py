@@ -31,6 +31,7 @@ urlpatterns = [
     path('paymentmethod/', views.paymentmethod, name='paymentmethod'),
     path('generate_receipt/',views.generate_receipt, name='generate_receipt'),
     path("approve-order/<str:order_id>/", views.approve_order, name="approve_order"),
+    path("deliver-order/<str:order_id>/", views.deliver_order, name="deliver_order"),
     path("terms/", views.terms, name="terms"),
     path("services/", views.services, name="services"),
     path('request-blood/', views.request_blood, name='request_blood'),

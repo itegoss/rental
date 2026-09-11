@@ -1369,6 +1369,93 @@ def approve_order(request, order_id):
 @login_required
 @user_passes_test(lambda u: user_has_permission(u, 'can_access_inventory'))
 @transaction.atomic
+def deliver_order(request, order_id):
+    if request.method != "POST":
+        return redirect("bookingsammry")
+
+    orders = History.objects.select_for_update().filter(order_id=order_id, is_returned=False)
+    if not orders.exists():
+        messages.error(request, "Order not found or already returned.")
+        return redirect("bookingsammry")
+
+    order_rows = list(orders)
+    total_rent = sum((item.total_rent for item in order_rows), Decimal("0"))
+    total_deposit = sum((item.deposit * item.quantity for item in order_rows), Decimal("0"))
+    first_item = order_rows[0]
+    delivery_charge = first_item.delivery_charge if first_item.delivery_charge else Decimal("0")
+    total_payable = total_rent + total_deposit + delivery_charge
+
+    # Parse amounts from entered fields (Rent, Deposit, Delivery Charges) or single amount_paid
+    rent_input = request.POST.get("rent_paid", "").strip()
+    deposit_input = request.POST.get("deposit_paid", "").strip()
+    delivery_input = request.POST.get("delivery_paid", "").strip()
+    paid_input = request.POST.get("amount_paid", "").strip()
+
+    if rent_input or deposit_input or delivery_input:
+        try:
+            r_val = Decimal(rent_input) if rent_input else Decimal("0")
+        except Exception:
+            r_val = Decimal("0")
+        try:
+            d_val = Decimal(deposit_input) if deposit_input else Decimal("0")
+        except Exception:
+            d_val = Decimal("0")
+        try:
+            del_val = Decimal(delivery_input) if delivery_input else Decimal("0")
+        except Exception:
+            del_val = Decimal("0")
+        new_paid = max(Decimal("0"), r_val + d_val + del_val)
+    elif paid_input:
+        try:
+            new_paid = max(Decimal("0"), Decimal(paid_input))
+        except Exception:
+            new_paid = sum((item.amount_paid for item in order_rows), Decimal("0"))
+    else:
+        new_paid = sum((item.amount_paid for item in order_rows), Decimal("0"))
+
+    remaining = max(Decimal("0"), total_payable - new_paid)
+
+    for idx, item in enumerate(order_rows):
+        item.status = "delivered"
+        if idx == 0:
+            item.amount_paid = new_paid
+            item.amount_remaining = remaining
+            item._amount_remaining_manually_changed = True
+            if new_paid >= total_payable:
+                item.is_delivery_paid = True
+            elif new_paid >= (total_rent + total_deposit):
+                item.is_delivery_paid = True
+        else:
+            item.amount_paid = Decimal("0")
+            item.amount_remaining = Decimal("0")
+            item._amount_remaining_manually_changed = True
+        item.save()
+
+    for item in Inventory.objects.filter(rentalrequest_set__order_id=order_id).distinct():
+        try:
+            item.update_availability()
+        except Exception:
+            pass
+
+    try:
+        send_notification(
+            title=f"Order Delivered: {order_id}",
+            message=f"Order {order_id} has been marked as delivered by {request.user.username}. Paid: Rs. {new_paid:.2f}, Remaining: Rs. {remaining:.2f}.",
+            notification_type='booking',
+            link=f"/admin/app/history/?order_id={order_id}",
+            order_id=order_id,
+            rental=first_item
+        )
+    except Exception as e:
+        print(f"[notification error] {e}")
+
+    messages.success(request, f"Order {order_id} marked as Delivered successfully! Paid: Rs. {new_paid:.2f}, Remaining: Rs. {remaining:.2f}")
+    return redirect("bookingsammry")
+
+
+@login_required
+@user_passes_test(lambda u: user_has_permission(u, 'can_access_inventory'))
+@transaction.atomic
 def approve_return_order(request, order_id):
     rentals = History.objects.select_for_update().filter(order_id=order_id, is_returned=False)
     if not rentals.exists():
@@ -1612,13 +1699,24 @@ def bookingsammry(request):
     booking_summaries = []
 
     for order_id, items in grouped.items():
+        total_rent = sum((item.total_rent for item in items), Decimal("0"))
         total_deposit = sum((item.deposit * item.quantity for item in items), Decimal("0"))
+        first_item = items[0]
+        delivery_charge = first_item.delivery_charge if first_item.delivery_charge else Decimal("0")
+        total_payable = total_rent + total_deposit + delivery_charge
+        amount_paid = sum((item.amount_paid for item in items), Decimal("0"))
+        amount_remaining = max(total_payable - amount_paid, Decimal("0"))
 
         booking_summaries.append({
             "order_id": order_id,
             "date": items[0].start_date,
             "items": items,
+            "total_rent": total_rent,
             "total_deposit": total_deposit,
+            "delivery_charge": delivery_charge,
+            "total_payable": total_payable,
+            "amount_paid": amount_paid,
+            "amount_remaining": amount_remaining,
             "customer": items[0].user if user_has_any_permission(request.user) else None,
         })
 
@@ -2594,6 +2692,7 @@ def request_blood(request):
             'page_obj': page_obj,
             'search_query': q,
             'page_size': page_size,
+            'status_choices': BloodRequest.STATUS_CHOICES,
             'active_employees': User.objects.filter(
                 Q(role_assignments__isnull=False) | Q(is_staff=True) | Q(is_superuser=True),
                 is_active=True
@@ -2684,33 +2783,36 @@ def admin_view_blood_request(request, request_id):
 
 
 @login_required
-@user_passes_test(lambda u: user_has_permission(u, 'can_manage_blood_requests'))
 def assign_blood_request_employee(request, request_id):
     req = get_object_or_404(BloodRequest, id=request_id)
-    if request.method != 'POST':
-        messages.error(request, 'Invalid assignment request.')
+    is_allowed = (
+        request.user.is_superuser
+        or request.user.is_staff
+        or user_has_permission(request.user, 'can_manage_blood_requests')
+    )
+    if not is_allowed:
+        messages.error(request, "You do not have permission to assign blood requests.")
+        return redirect('index')
+
+    employee_id = request.POST.get('assigned_employee')
+    if not employee_id:
+        messages.error(request, 'Please select an employee.')
         return redirect('request_blood')
 
-    form = AssignEmployeeForm(request.POST)
-    if not form.is_valid():
-        messages.error(request, 'Please select a valid active user.')
+    try:
+        employee = User.objects.get(id=employee_id, is_active=True)
+    except User.DoesNotExist:
+        messages.error(request, 'Selected employee does not exist.')
         return redirect('request_blood')
-
-    employee = form.cleaned_data['assigned_employee']
-    prev_employee = req.assigned_employee
 
     req.assigned_employee = employee
     req.assigned_by = request.user
     req.assigned_at = timezone.now()
-    if req.status in {'Pending', 'Accepted'}:
-        req.status = 'Assigned'
+    req.status = 'Assigned'
     req.updated_by = request.user
-    if form.cleaned_data.get('remarks'):
-        req.remarks = form.cleaned_data.get('remarks')
     req.save()
+    req.append_status_history('Assigned', changed_by=request.user, note=f'Assigned to {employee.username}')
 
-    note_text = f'Reassigned to {employee.username}' if prev_employee else f'Assigned to {employee.username}'
-    req.append_status_history('Assigned', changed_by=request.user, note=note_text)
     try:
         send_notification(
             title='Blood Request Assigned',
@@ -2800,7 +2902,7 @@ def admin_edit_blood_request_status(request, request_id):
                 req.status = 'Searching'
             elif req.status == 'Searching':
                 req.status = 'Blood Available'
-            elif req.status == 'Blood Available':
+            elif req.status in {'Blood Available', 'Fulfilled'}:
                 req.status = 'Ready for Pickup'
             elif req.status == 'Ready for Pickup':
                 req.status = 'Received'
@@ -2813,34 +2915,127 @@ def admin_edit_blood_request_status(request, request_id):
             req.save()
             req.append_status_history(req.status, changed_by=request.user, note='Workflow advanced')
             messages.success(request, f'Status updated to {req.status}.')
-        elif action == 'ready_for_pickup':
-            if req.status != 'Blood Available':
-                messages.error(request, 'Only blood-available requests can be marked ready for pickup.')
-            else:
-                req.status = 'Ready for Pickup'
-                req.updated_by = request.user
-                req.save()
-                req.append_status_history('Ready for Pickup', changed_by=request.user, note='Marked ready for pickup')
+        elif action in ('searching', 'employee_searching'):
+            req.status = 'Searching'
+            req.updated_by = request.user
+            req.remarks = request.POST.get('remarks', req.remarks)
+            req.save()
+            req.append_status_history('Searching', changed_by=request.user, note='Marked searching for blood')
+            if req.created_by:
                 try:
                     send_notification(
-                        title='Blood Ready for Pickup',
-                        message=f'Blood for {req.patient_name} is ready for pickup.',
+                        title='Blood Search Update',
+                        message=f'Blood request for {req.patient_name} is now searching.',
                         notification_type='info',
                         link=f'/request-blood/view/{req.id}/',
-                        user=req.created_by
+                        recipient=req.created_by,
                     )
                 except Exception:
                     pass
-                messages.success(request, 'Marked ready for pickup.')
+            messages.success(request, 'Status updated to Searching.')
+        elif action in ('blood_available', 'employee_blood_available'):
+            req.status = 'Blood Available'
+            req.updated_by = request.user
+            req.remarks = request.POST.get('remarks', req.remarks)
+            req.save()
+            req.append_status_history('Blood Available', changed_by=request.user, note='Marked blood available')
+            if req.created_by:
+                try:
+                    send_notification(
+                        title='Blood Available',
+                        message=f'Blood is available for patient {req.patient_name}.',
+                        notification_type='info',
+                        link=f'/request-blood/view/{req.id}/',
+                        recipient=req.created_by,
+                    )
+                except Exception:
+                    pass
+            messages.success(request, 'Status updated to Blood Available.')
+        elif action == 'ready_for_pickup':
+            req.status = 'Ready for Pickup'
+            req.updated_by = request.user
+            req.save()
+            req.append_status_history('Ready for Pickup', changed_by=request.user, note='Marked ready for pickup')
+            if req.created_by:
+                try:
+                    send_notification(
+                        title='Blood Ready for Pickup',
+                        message=f'Blood for patient {req.patient_name} is ready for pickup.',
+                        notification_type='info',
+                        link=f'/request-blood/view/{req.id}/',
+                        recipient=req.created_by,
+                    )
+                except Exception:
+                    pass
+            messages.success(request, 'Marked ready for pickup.')
+        elif action in ('mark_customer_received', 'user_received'):
+            if not req.blood_group:
+                messages.error(request, 'Blood group is required before marking as received.')
+                return redirect('request_blood')
+            if not req.blood_component:
+                messages.error(request, 'Blood component is required before marking as received.')
+                return redirect('request_blood')
+            if req.status not in {'Fulfilled', 'Ready for Pickup', 'Blood Available'}:
+                messages.error(request, 'Blood request must be in Fulfilled status before marking as received.')
+                return redirect('request_blood')
+            req.status = 'Received'
+            req.updated_by = request.user
+            req.save()
+            req.append_status_history('Received', changed_by=request.user, note='Blood received by customer — confirmed by admin')
+            if req.created_by:
+                try:
+                    send_notification(
+                        title='Blood Received Confirmation',
+                        message=f'Blood for patient {req.patient_name} has been confirmed as received. Thank you!',
+                        notification_type='info',
+                        link=f'/request-blood/view/{req.id}/',
+                        recipient=req.created_by,
+                    )
+                except Exception:
+                    pass
+            messages.success(request, 'Blood marked as received by customer. You can now complete the request.')
         elif action == 'complete':
-            if req.status != 'Received':
-                messages.error(request, 'Only received requests can be completed.')
-            else:
-                req.status = 'Completed'
+            req.status = 'Completed'
+            req.updated_by = request.user
+            req.save()
+            req.append_status_history('Completed', changed_by=request.user, note='Completed by admin')
+            if req.created_by:
+                try:
+                    send_notification(
+                        title='Blood Request Completed',
+                        message=f'Your blood request for patient {req.patient_name} has been completed.',
+                        notification_type='info',
+                        link=f'/request-blood/view/{req.id}/',
+                        recipient=req.created_by,
+                    )
+                except Exception:
+                    pass
+            messages.success(request, 'Request completed.')
+        elif action in ('change_status', 'set_status'):
+            new_status = request.POST.get('new_status')
+            valid_statuses = [c[0] for c in BloodRequest.STATUS_CHOICES]
+            if new_status in valid_statuses:
+                req.status = new_status
                 req.updated_by = request.user
+                remarks_val = request.POST.get('remarks')
+                if remarks_val:
+                    req.remarks = remarks_val
                 req.save()
-                req.append_status_history('Completed', changed_by=request.user, note='Completed by admin')
-                messages.success(request, 'Request completed.')
+                req.append_status_history(new_status, changed_by=request.user, note=f'Status updated to {new_status} by admin')
+                if req.created_by:
+                    try:
+                        send_notification(
+                            title=f'Blood Request Update: {new_status}',
+                            message=f'Your blood request for patient {req.patient_name} status was updated to {new_status}.',
+                            notification_type='info',
+                            link=f'/request-blood/view/{req.id}/',
+                            recipient=req.created_by,
+                        )
+                    except Exception:
+                        pass
+                messages.success(request, f'Status successfully updated to {new_status}.')
+            else:
+                messages.error(request, 'Invalid status selected.')
         elif action == 'cancel':
             if req.status in {'Completed', 'Cancelled', 'Rejected'}:
                 messages.error(request, 'This request is already completed, cancelled, or rejected.')
@@ -2877,55 +3072,6 @@ def admin_edit_blood_request_status(request, request_id):
                     except Exception:
                         pass
                 messages.success(request, 'Blood request cancelled successfully.')
-        elif action == 'employee_searching':
-            if req.assigned_employee_id != request.user.id:
-                messages.error(request, 'You are not assigned to this request.')
-            else:
-                req.status = 'Searching'
-                req.updated_by = request.user
-                req.remarks = request.POST.get('remarks', req.remarks)
-                req.save()
-                req.append_status_history('Searching', changed_by=request.user, note='Employee continued searching')
-                try:
-                    send_notification(
-                        title='Blood Search Update',
-                        message=f'Employee updated request for {req.patient_name} to Searching.',
-                        notification_type='info',
-                        link=f'/request-blood/view/{req.id}/',
-                        user=req.created_by
-                    )
-                except Exception:
-                    pass
-                messages.success(request, 'Status updated to Searching.')
-        elif action == 'employee_blood_available':
-            if req.assigned_employee_id != request.user.id:
-                messages.error(request, 'You are not assigned to this request.')
-            else:
-                req.status = 'Blood Available'
-                req.updated_by = request.user
-                req.remarks = request.POST.get('remarks', req.remarks)
-                req.save()
-                req.append_status_history('Blood Available', changed_by=request.user, note='Employee marked blood available')
-                try:
-                    send_notification(
-                        title='Blood Available',
-                        message=f'Blood is available for {req.patient_name}.',
-                        notification_type='info',
-                        link=f'/request-blood/view/{req.id}/',
-                        user=req.created_by
-                    )
-                except Exception:
-                    pass
-                messages.success(request, 'Status updated to Blood Available.')
-        elif action == 'user_received':
-            if req.status != 'Ready for Pickup':
-                messages.error(request, 'Only ready-for-pickup requests can be marked received.')
-            else:
-                req.status = 'Received'
-                req.updated_by = request.user
-                req.save()
-                req.append_status_history('Received', changed_by=request.user, note='User marked received')
-                messages.success(request, 'Blood marked as received.')
         elif action == 'edit':
             return edit_blood_request(request, request_id)
         else:
