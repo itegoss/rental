@@ -118,11 +118,16 @@
   }
 
   .logo-container {
-    width: 60px;
+    width: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .logo-container img {
     width: 100%;
+    max-height: 85px;
+    object-fit: contain;
   }
 
   .receipt-title {
@@ -131,9 +136,13 @@
   }
 
   .receipt-title h2 {
-    font-size: 15px;
-    margin: 0;
-    color: #1b8a4b;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #065f46;
+    margin-left: -30%;
+    text-transform: uppercase;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .receipt-title p {
@@ -144,6 +153,7 @@
   .receipt-title h3 {
     font-size: 16px;
     margin: 2px 0;
+    margin-left: -30%;
     color: #1b8a4b;
   }
 
@@ -368,7 +378,7 @@
   <div class="receipt-container">
     <div class="receipt-header">
       <div class="logo-container">
-        <img src="/static/images/logo2.png" alt="Logo">
+        <img src="/static/images/Hemoaid_logo1.png" alt="Logo">
       </div>
       <div class="receipt-title">
         <h2>HEMOAID</h2>
@@ -514,8 +524,10 @@
           <p>{{ rental.address|default:"Take Away – Nearest Hub" }}</p>
         </div>
         <div style="margin-top:auto; padding-top:10px;">
-          <div style="font-size:11px;text-align:center;margin-bottom:4px;color:#555;">You hereby agree to all terms &amp;
-            conditions mentioned on our booking portal <a href="https://sickbed.itegoss.in" target="_blank" style="color:#1b8a4b;font-weight:600;text-decoration:underline;">Sickbed</a></div>
+          <div style="font-size:11px;text-align:center;margin-bottom:4px;color:#555;">You hereby agree to all terms
+            &amp;
+            conditions mentioned on our booking portal <a href="https://sickbed.itegoss.in" target="_blank"
+              style="color:#1b8a4b;font-weight:600;text-decoration:underline;">Sickbed</a></div>
           <div class="thank-you">Thank you for booking with us.</div>
         </div>
       </div>
