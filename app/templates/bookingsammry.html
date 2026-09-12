@@ -201,6 +201,206 @@
     width: 180px;
   }
 
+  .status-th-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    user-select: none;
+  }
+
+  .status-th-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+
+  .status-filter-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: default;
+  }
+
+  .status-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    line-height: 1;
+  }
+
+  .status-filter-btn:hover {
+    background: rgba(255, 255, 255, 0.28);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
+  }
+
+  .status-filter-btn.is-active {
+    background: #ffffff;
+    color: var(--primary);
+    border-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .status-filter-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+    width: 210px;
+    z-index: 1050;
+    padding: 8px;
+    animation: filterFadeIn 0.18s ease-out;
+    text-align: left;
+    font-weight: normal;
+  }
+
+  .status-filter-dropdown.show {
+    display: block;
+  }
+
+  @keyframes filterFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .filter-dropdown-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px 8px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .filter-dropdown-head span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text);
+  }
+
+  .filter-all-btn {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+
+  .filter-all-btn:hover {
+    background: #fef2f2;
+    text-decoration: underline;
+  }
+
+  .filter-dropdown-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-top: 6px;
+  }
+
+  .filter-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 9px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    margin: 0;
+    user-select: none;
+  }
+
+  .filter-dropdown-item:hover {
+    background: #f8fafc;
+  }
+
+  .filter-dropdown-item input[type="radio"] {
+    display: none;
+  }
+
+  .filter-radio-mark {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.18s ease;
+  }
+
+  .filter-dropdown-item input[type="radio"]:checked + .filter-radio-mark {
+    border-color: var(--primary);
+    background: var(--primary);
+  }
+
+  .filter-dropdown-item input[type="radio"]:checked + .filter-radio-mark::after {
+    content: '';
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #ffffff;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .filter-dropdown-item .s-badge {
+    margin: 0;
+    font-size: 0.74rem;
+    padding: 4px 10px;
+  }
+
+  .filter-dropdown-sep {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 4px 0;
+  }
+
+  .filter-all-text {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .filter-dropdown-item:hover .filter-all-text {
+    color: var(--text);
+  }
+
   .bookings-table th.col-action,
   .bookings-table td.col-action {
     width: 290px;
@@ -1372,7 +1572,50 @@
             {% endif %}
             <th class="col-item" data-sort="text">Item <i class="fas fa-sort sort-icon"></i></th>
             <th class="col-qty" data-sort="number">Quantity <i class="fas fa-sort sort-icon"></i></th>
-            <th class="col-status" data-sort="text">Status <i class="fas fa-sort sort-icon"></i></th>
+            <th class="col-status" data-sort="text">
+              <div class="status-th-content">
+                <span class="status-th-title">Status <i class="fas fa-sort sort-icon"></i></span>
+                <div class="status-filter-wrap" id="statusFilterWrap">
+                  <button type="button" class="status-filter-btn is-active" id="statusFilterBtn" title="Filtered: Delivered (Click to change)" aria-label="Filter status">
+                    <i class="fas fa-filter"></i>
+                  </button>
+                  <div class="status-filter-dropdown" id="statusFilterDropdown">
+                    <div class="filter-dropdown-head">
+                      <span><i class="fas fa-filter"></i> Filter Status</span>
+                      <button type="button" class="filter-all-btn" id="filterResetAllBtn">Reset All</button>
+                    </div>
+                    <div class="filter-dropdown-menu">
+                      <label class="filter-dropdown-item" data-value="delivered">
+                        <input type="radio" name="tblStatusFilter" value="delivered" checked>
+                        <span class="filter-radio-mark"></span>
+                        <span class="s-badge s-delivered"><i class="fas fa-truck"></i> Delivered</span>
+                      </label>
+                      <label class="filter-dropdown-item" data-value="approved">
+                        <input type="radio" name="tblStatusFilter" value="approved">
+                        <span class="filter-radio-mark"></span>
+                        <span class="s-badge s-approved"><i class="fas fa-check-circle"></i> Approved</span>
+                      </label>
+                      <label class="filter-dropdown-item" data-value="pending">
+                        <input type="radio" name="tblStatusFilter" value="pending">
+                        <span class="filter-radio-mark"></span>
+                        <span class="s-badge s-pending"><i class="fas fa-clock"></i> Pending</span>
+                      </label>
+                      <label class="filter-dropdown-item" data-value="returned">
+                        <input type="radio" name="tblStatusFilter" value="returned">
+                        <span class="filter-radio-mark"></span>
+                        <span class="s-badge s-returned"><i class="fas fa-check-circle"></i> Returned</span>
+                      </label>
+                      <div class="filter-dropdown-sep"></div>
+                      <label class="filter-dropdown-item filter-all-item" data-value="all">
+                        <input type="radio" name="tblStatusFilter" value="all">
+                        <span class="filter-radio-mark"></span>
+                        <span class="filter-all-text"><i class="fas fa-list-ul"></i> All Statuses</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </th>
             <th class="col-action no-sort">Action</th>
           </tr>
         </thead>
@@ -1717,9 +1960,37 @@
       return aValue.localeCompare(bValue, undefined, { numeric: true, sensitivity: 'base' });
     }
 
-    function applySearch() {
-      const query = searchInput.value.trim().toLowerCase();
-      filteredRows = rows.filter(row => row.textContent.toLowerCase().includes(query));
+    let currentStatusFilter = 'delivered'; // Default status is Delivered
+
+    function matchesStatus(row, filterVal) {
+      if (!filterVal || filterVal === 'all') return true;
+      const statusCell = row.querySelector('.col-status');
+      if (!statusCell) return true;
+      const val = (statusCell.dataset.value || statusCell.textContent || '').trim().toLowerCase();
+      
+      if (filterVal === 'delivered') {
+        return val.includes('delivered');
+      }
+      if (filterVal === 'approved') {
+        return val.includes('approved');
+      }
+      if (filterVal === 'pending') {
+        return val.includes('pending');
+      }
+      if (filterVal === 'returned') {
+        return val.includes('returned') || val === 'return';
+      }
+      return val.includes(filterVal.toLowerCase());
+    }
+
+    function applyFilters() {
+      const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+      filteredRows = rows.filter(row => {
+        const matchesSearch = !query || row.textContent.toLowerCase().includes(query);
+        const matchesStat = matchesStatus(row, currentStatusFilter);
+        return matchesSearch && matchesStat;
+      });
+
       currentPage = 1;
       if (sortColumn !== null) {
         const header = bookingsTable.querySelectorAll('th')[sortColumn];
@@ -1778,6 +2049,18 @@
       tableBody.appendChild(noResultsRow);
 
       if (totalRows === 0) {
+        let emptyMsg = 'No bookings match your search.';
+        if (currentStatusFilter !== 'all') {
+          const cap = currentStatusFilter.charAt(0).toUpperCase() + currentStatusFilter.slice(1);
+          emptyMsg = `No bookings found with status "<strong>${cap}</strong>". <button type="button" id="btnClearEmptyFilter" style="margin-left: 8px; background: none; border: none; color: var(--primary); font-weight: 800; cursor: pointer; text-decoration: underline; font-family: inherit;">Show All Bookings</button>`;
+        }
+        noResultsRow.querySelector('td').innerHTML = emptyMsg;
+        const clearBtn = document.getElementById('btnClearEmptyFilter');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => {
+            setStatusFilter('all');
+          });
+        }
         pageInfo.textContent = 'Showing 0 bookings';
         pageButtons.innerHTML = '';
       } else {
@@ -1786,8 +2069,72 @@
       }
     }
 
+    function setStatusFilter(val) {
+      currentStatusFilter = val;
+      const radio = document.querySelector(`input[name="tblStatusFilter"][value="${val}"]`);
+      if (radio) radio.checked = true;
+
+      const btn = document.getElementById('statusFilterBtn');
+      if (btn) {
+        if (val === 'all') {
+          btn.classList.remove('is-active');
+          btn.title = 'Filter by Status';
+        } else {
+          const cap = val.charAt(0).toUpperCase() + val.slice(1);
+          btn.classList.add('is-active');
+          btn.title = `Filtered: ${cap} (Click to change)`;
+        }
+      }
+      applyFilters();
+    }
+
+    const filterBtn = document.getElementById('statusFilterBtn');
+    const filterDropdown = document.getElementById('statusFilterDropdown');
+    const filterResetAll = document.getElementById('filterResetAllBtn');
+
+    if (filterBtn && filterDropdown) {
+      filterBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        filterDropdown.classList.toggle('show');
+      });
+
+      filterDropdown.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+
+      document.querySelectorAll('input[name="tblStatusFilter"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          setStatusFilter(e.target.value);
+          filterDropdown.classList.remove('show');
+        });
+      });
+
+      if (filterResetAll) {
+        filterResetAll.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setStatusFilter('all');
+          filterDropdown.classList.remove('show');
+        });
+      }
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#statusFilterWrap')) {
+          filterDropdown.classList.remove('show');
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          filterDropdown.classList.remove('show');
+        }
+      });
+    }
+
     bookingsTable.querySelectorAll('th:not(.no-sort)').forEach(header => {
-      header.addEventListener('click', () => {
+      header.addEventListener('click', (e) => {
+        if (e.target.closest('#statusFilterWrap')) {
+          return;
+        }
         const columnIndex = header.cellIndex;
         sortDirection = sortColumn === columnIndex && sortDirection === 'asc' ? 'desc' : 'asc';
         sortColumn = columnIndex;
@@ -1800,9 +2147,13 @@
       });
     });
 
-    searchInput.addEventListener('input', applySearch);
-    pageSizeSelect.addEventListener('change', () => { currentPage = 1; renderTable(); });
-    renderTable();
+    if (searchInput) {
+      searchInput.addEventListener('input', applyFilters);
+    }
+    if (pageSizeSelect) {
+      pageSizeSelect.addEventListener('change', () => { currentPage = 1; renderTable(); });
+    }
+    applyFilters();
   }
 
   let depositReturnHref = null;
@@ -2095,6 +2446,7 @@
     const card = document.getElementById('deliverRemainingCard');
     const label = document.getElementById('deliverRemainingLabel');
     const display = document.getElementById('deliverRemainingDisplay');
+    const badge = document.getElementById('deliverStatusBadge');
 
     if (Math.abs(baki) < 0.01) {
       card.className = 'remaining-calc-card is-cleared';
@@ -2102,12 +2454,22 @@
       label.style.color = '#15803d';
       display.textContent = '₹0.00';
       display.style.color = '#15803d';
+      if (badge) {
+        badge.style.background = '#dcfce7';
+        badge.style.color = '#166534';
+        badge.innerHTML = '<i class="fas fa-check-circle"></i> Fully Paid';
+      }
     } else if (baki >= 0.01) {
       card.className = 'remaining-calc-card is-due';
       label.textContent = 'Remaining Due';
       label.style.color = '#b45309';
       display.textContent = '₹' + baki.toFixed(2);
       display.style.color = '#b45309';
+      if (badge) {
+        badge.style.background = '#fef3c7';
+        badge.style.color = '#92400e';
+        badge.innerHTML = '<i class="fas fa-exclamation-circle"></i> ₹' + baki.toFixed(2) + ' Due';
+      }
     } else {
       const extra = Math.abs(baki);
       card.className = 'remaining-calc-card is-overpaid';
@@ -2115,6 +2477,11 @@
       label.style.color = '#1d4ed8';
       display.textContent = '₹' + extra.toFixed(2);
       display.style.color = '#1d4ed8';
+      if (badge) {
+        badge.style.background = '#dbeafe';
+        badge.style.color = '#1e40af';
+        badge.innerHTML = '<i class="fas fa-info-circle"></i> Extra Paid';
+      }
     }
   }
 
