@@ -6,7 +6,7 @@ def rental_receipt_visibility(request):
     if request.user.is_authenticated:
         last_rental_id = History.objects.filter(
             user_id=request.user.id,
-            status="approved"
+            status__in=["approved", "delivered"]
         ).order_by('-id').values_list('id', flat=True).first()
 
         if last_rental_id:

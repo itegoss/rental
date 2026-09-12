@@ -688,6 +688,100 @@ class DynamicReturnDeliveryChargeTests(TestCase):
         self.assertEqual(rental.total_amount, Decimal("400.00"))
 
 
+class DeliverOrderTests(TestCase):
+    def setUp(self):
+        from datetime import date
+        self.user = User.objects.create_user(username='deliver_user', password='password123', email='deliver@example.com')
+        self.admin = User.objects.create_user(username='deliver_admin', password='password123', is_staff=True, is_superuser=True)
+        
+        self.item = Inventory.objects.create(
+            title="Hospital Bed",
+            price_per_day=Decimal("100.00"),
+            deposit=Decimal("500.00"),
+            total_quantity=5,
+            available_quantity=5,
+            booked_quantity=0,
+            available=True
+        )
+        self.rental = History.objects.create(
+            user=self.user,
+            rental_item=self.item,
+            start_date=date(2026, 8, 1),
+            end_date=date(2026, 8, 5), # 5 days -> 5 * 100 = 500 rent
+            quantity=1,
+            deposit=Decimal("500.00"),
+            delivery_option='delivery',
+            delivery_charge=Decimal("200.00"),
+            payment_method='cod',
+            status='approved',
+            is_returned=False,
+            order_id='ORD-DELIV-001',
+            amount_paid=Decimal("0.00")
+        )
+
+    def test_deliver_order_updates_status_and_calculations(self):
+        # Total payable = 500 rent + 500 deposit + 200 delivery = 1200
+        self.client.login(username='deliver_admin', password='password123')
+        
+        # User pays 700 on delivery
+        response = self.client.post(
+            reverse('deliver_order', args=['ORD-DELIV-001']),
+            {'amount_paid': '700.00', 'notes': 'Received partial cash on delivery'}
+        )
+        self.assertEqual(response.status_code, 302)
+        
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.status, 'delivered')
+        self.assertEqual(self.rental.amount_paid, Decimal("700.00"))
+        # Total 1200 - 700 paid = 500 remaining
+        self.assertEqual(self.rental.amount_remaining, Decimal("500.00"))
+        
+        # Now deliver with full payment 1200
+        response2 = self.client.post(
+            reverse('deliver_order', args=['ORD-DELIV-001']),
+            {'amount_paid': '1200.00'}
+        )
+        self.assertEqual(response2.status_code, 302)
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.status, 'delivered')
+        self.assertEqual(self.rental.amount_paid, Decimal("1200.00"))
+        self.assertEqual(self.rental.amount_remaining, Decimal("0.00"))
+        self.assertTrue(self.rental.is_delivery_paid)
+
+    def test_bookingsammry_page_delivered_action(self):
+        self.client.login(username='deliver_admin', password='password123')
+        response = self.client.get(reverse('bookingsammry'))
+        self.assertEqual(response.status_code, 200)
+        # Verify deliver modal markup and button exist
+        self.assertContains(response, 'id="deliverModal"')
+        self.assertContains(response, 'act-deliver')
+        self.assertContains(response, 'openDeliverModal')
+        self.assertContains(response, 'deliverRentInput')
+        self.assertContains(response, 'deliverDepositInput')
+        self.assertContains(response, 'deliverDeliveryInput')
+
+    def test_deliver_order_with_individual_fields(self):
+        self.client.login(username='deliver_admin', password='password123')
+        # Total payable = 500 rent + 500 deposit + 200 delivery = 1200
+        # Customer pays: rent 500, deposit 250, delivery 200 -> total paid 950, baki 250
+        response = self.client.post(
+            reverse('deliver_order', args=['ORD-DELIV-001']),
+            {
+                'rent_paid': '500.00',
+                'deposit_paid': '250.00',
+                'delivery_paid': '200.00',
+                'notes': 'Partial deposit collected'
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.status, 'delivered')
+        self.assertEqual(self.rental.amount_paid, Decimal("950.00"))
+        self.assertEqual(self.rental.amount_remaining, Decimal("250.00"))
+
+
+
+
 
 
 
