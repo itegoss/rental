@@ -36,13 +36,45 @@ from .models import History
 from .whatsapp_service import send_whatsapp_template
 
 
-def send_booking_whatsapp(booking_id):
-    booking = History.objects.get(id=booking_id)
+def send_booking_whatsapp(booking_id, force=False):
+    booking = None
+    if isinstance(booking_id, History) or (hasattr(booking_id, "rental_item") and hasattr(booking_id, "order_id")):
+        booking = booking_id
+    elif isinstance(booking_id, int) or (isinstance(booking_id, str) and booking_id.isdigit()):
+        booking = History.objects.filter(id=int(booking_id)).first()
+    elif isinstance(booking_id, str):
+        booking = History.objects.filter(order_id=booking_id).first()
 
-    requestor_name = booking.renter_name or ""
-    order_id = booking.order_id or ""
-    request_type = booking.rental_item.title if booking.rental_item else "Medical Equipment"
-    phone = booking.phone or ""
+    if not booking:
+        booking = History.objects.get(id=booking_id)
+
+    # Resolve renter name with user fallback
+    requestor_name = getattr(booking, "renter_name", None)
+    if not requestor_name and hasattr(booking, "user") and booking.user:
+        requestor_name = (
+            booking.user.get_full_name()
+            or booking.user.username
+        )
+    requestor_name = requestor_name or "Customer"
+
+    order_id = getattr(booking, "order_id", "") or ""
+    request_type = (
+        booking.rental_item.title
+        if getattr(booking, "rental_item", None)
+        else "Medical Equipment"
+    )
+
+    # Resolve phone with UserDetail fallback
+    phone = getattr(booking, "phone", None)
+    if not phone and hasattr(booking, "user") and booking.user:
+        try:
+            from .models import UserDetail
+            ud = UserDetail.objects.filter(user=booking.user).first()
+            if ud and ud.phone:
+                phone = ud.phone
+        except Exception:
+            pass
+    phone = phone or ""
 
     status_map = {
         "pending": "received",
@@ -77,7 +109,7 @@ def send_booking_whatsapp(booking_id):
         template_name = "return_approved"
         event_key = f"return_approved:{order_id}"
     else:
-        template_name = f"booking_{whatsapp_status}"
+        template_name = "new_booking"
         event_key = f"booking_{whatsapp_status}:{order_id}"
 
     return send_whatsapp_template(
@@ -86,4 +118,5 @@ def send_booking_whatsapp(booking_id):
         variables=[requestor_name, order_id, request_type, whatsapp_status, "HEMOAID"],
         event_key=event_key,
         link=f"/admin/app/history/?order_id={order_id}",
+        force=force,
     )

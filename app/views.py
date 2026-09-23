@@ -1754,7 +1754,7 @@ def mark_returned(request, rental_id, item_id):
         rr.status = "return_request"
         rr.save(update_fields=["is_return_requested", "status"])
         try:
-            send_booking_whatsapp(rr.id)
+            send_booking_whatsapp(rr, force=True)
         except Exception as e:
             print(f"[whatsapp return_request error] {e}")
 
@@ -2100,7 +2100,7 @@ def return_order(request, order_id):
         print(f"[notification return request error] {e}")
 
     try:
-        send_booking_whatsapp(rental_rows[0].id)
+        send_booking_whatsapp(rental_rows[0], force=True)
     except Exception as e:
         print(f"[whatsapp return_request error] {e}")
 
@@ -2455,7 +2455,7 @@ def return_cart_item(request, cart_item_id):
         print(f"[notification cart return error] {e}")
 
     try:
-        send_booking_whatsapp(rr.id)
+        send_booking_whatsapp(rr, force=True)
     except Exception as e:
         print(f"[whatsapp return_request error] {e}")
 
