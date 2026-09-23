@@ -23,28 +23,28 @@
   <div class="auth-card">
     <div class="icon-circle"><i class="fas fa-shield-alt"></i></div>
     <h2>Verify OTP</h2>
-    <p class="sub">Enter the 6-digit OTP sent to your WhatsApp</p>
-    {% if debug_otp %}
-      <div class="debug-box">🔐 DEBUG OTP: {{ debug_otp }}</div>
-    {% endif %}
+    <p class="sub">Enter OTP sent to your WhatsApp</p>
     {% if messages %}
       {% for message in messages %}
-        <div style="background:#fef2f2;color:#991b1b;border-left:3px solid #dc2626;padding:10px 13px;border-radius:8px;font-size:0.85rem;margin-bottom:14px;">{{ message }}</div>
+        <div style="background:{% if message.tags == 'success' %}#f0fdf4{% elif message.tags == 'warning' %}#fffbeb{% else %}#fef2f2{% endif %};color:{% if message.tags == 'success' %}#166534{% elif message.tags == 'warning' %}#b45309{% else %}#991b1b{% endif %};border-left:3px solid {% if message.tags == 'success' %}#16a34a{% elif message.tags == 'warning' %}#f59e0b{% else %}#dc2626{% endif %};padding:10px 13px;border-radius:8px;font-size:0.85rem;margin-bottom:14px;">{{ message }}</div>
       {% endfor %}
     {% endif %}
     <form method="POST">
       {% csrf_token %}
       <div class="form-field">
-        <label>Mobile Number</label>
-        <input type="tel" name="mobile" value="{{ mobile }}" placeholder="Your mobile number" required>
+        <label>WhatsApp Mobile Number</label>
+        <input type="tel" name="mobile" value="{{ mobile }}" readonly style="background:#f1f5f9; cursor:not-allowed;" required>
       </div>
       <div class="form-field">
-        <label>OTP Code</label>
-        <input type="text" name="otp" placeholder="Enter 6-digit OTP" maxlength="6" required autocomplete="one-time-code">
+        <label>6-Digit OTP</label>
+        <input type="text" name="otp" placeholder="Enter 6-digit OTP" maxlength="6" pattern="\d{6}" required autofocus autocomplete="one-time-code" style="letter-spacing: 4px; font-size: 1.2rem; text-align: center; font-weight: 700;">
       </div>
-      <button type="submit" class="btn-submit"><i class="fas fa-check-circle"></i> Verify &amp; Login</button>
+      <button type="submit" class="btn-submit"><i class="fas fa-check-circle me-1"></i> Verify &amp; Sign In</button>
     </form>
-    <a href="{% url 'signin_mobile' %}" class="back-link">← Resend OTP</a>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px;">
+      <a href="{% url 'signin_mobile' %}" class="back-link" style="margin-top:0;">Change Number</a>
+      <a href="{% url 'signin_mobile' %}" class="back-link" style="margin-top:0;">Resend OTP</a>
+    </div>
   </div>
 </div>
 {% endblock %}

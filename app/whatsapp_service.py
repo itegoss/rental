@@ -5,6 +5,7 @@ import logging
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +120,15 @@ WHATSAPP_TEMPLATES = {
             "Your blood request {{2}} has been completed successfully."
         ),
         "variables": ["Requester's Name", "Blood Request ID"],
+    },
+    "login_otp": {
+        "name": "login_otp",
+        "description": "Triggered when user requests OTP for mobile number login",
+        "template": (
+            "Dear {{1}},\n\n"
+            "Your Sick Bed Services login OTP is {{2}}. This OTP is valid for 5 minutes. Do not share this OTP with anyone."
+        ),
+        "variables": ["User Name", "OTP Code"],
     },
 }
 
@@ -267,7 +277,14 @@ def record_notification_audit(
     try:
         from .models import Notification
 
-        rendered_text = render_template_text(template_name, variables)
+        safe_variables = list(variables or [])
+        if "otp" in str(template_name).lower():
+            # Redact actual OTP in permanent database audit log
+            safe_variables = [
+                "******" if (isinstance(v, str) and v.isdigit() and len(v) in (4, 6)) else v
+                for v in safe_variables
+            ]
+        rendered_text = render_template_text(template_name, safe_variables)
         audit_message = (
             f"Template: {template_name}\n"
             f"Phone: {phone_number}\n"
@@ -340,6 +357,15 @@ def send_whatsapp_template(
         origin_website = config["origin_website"]
         api_template_name = config["template_name"]
         button_value = config["button_value"]
+
+        # If a dedicated OTP template is configured, use it for login_otp
+        if "otp" in str(template_name).lower():
+            custom_otp_tmpl = (
+                getattr(settings, "WHATSAPP_OTP_TEMPLATE_NAME", None)
+                or os.environ.get("WHATSAPP_OTP_TEMPLATE_NAME")
+            )
+            if custom_otp_tmpl:
+                api_template_name = custom_otp_tmpl
 
         if not auth_token:
             logger.error("[whatsapp error] WHATSAPP_ACCESS_TOKEN is missing")
@@ -869,3 +895,37 @@ def send_blood_request_notification(blood_request, status=None, force=False):
         return send_blood_request_cancelled_notification(blood_request, force=force)
     else:
         return send_new_blood_request_notification(blood_request, force=force)
+
+
+# ------------------------------------------------------------------------------
+# 12. LOGIN OTP VIA WHATSAPP
+# ------------------------------------------------------------------------------
+def send_login_otp_whatsapp(phone_number, otp, user=None, force=True):
+    """
+    Sends a 6-digit secure login OTP to the user's WhatsApp number using the
+    project's existing 11za WhatsApp API integration.
+
+    Template: login_otp (or WHATSAPP_OTP_TEMPLATE_NAME / utility_dear_284305)
+    Variables:
+      {{1}} = Requester / User Name
+      {{2}} = 6-digit OTP code
+      {{3}} = "login OTP"
+      {{4}} = "valid for 5 minutes"
+      {{5}} = "Sick Bed Services"
+    """
+    name = "Customer"
+    if user:
+        name = user.get_full_name() or user.username or "Customer"
+
+    # Per-minute event key with force=True ensures delivery without duplicate rejection
+    event_key = f"login_otp:{phone_number}:{int(timezone.now().timestamp() // 60)}"
+
+    return send_whatsapp_template(
+        phone_number=phone_number,
+        template_name="login_otp",
+        variables=[name, str(otp), "login OTP", "valid for 5 minutes", "Sick Bed Services"],
+        event_key=event_key,
+        user=user,
+        force=force,
+    )
+

@@ -261,6 +261,14 @@
 
   <div class="auth-form-side">
     <div class="auth-box">
+      {% if messages %}
+        <ul class="msg-list">
+          {% for message in messages %}
+            <li class="{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}success{% else %}{{ message.tags }}{% endif %}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
       {% if user.is_authenticated %}
         <p style="text-align:center; color: var(--success); font-weight:600; margin-bottom:16px;">
           <i class="fas fa-check-circle"></i> Welcome, {{ user.username }}!
@@ -295,6 +303,10 @@
 
       <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn-google">
         <i class="fab fa-google"></i> Continue with Google
+      </a>
+
+      <a href="{% url 'signin_mobile' %}" class="btn-google" style="margin-top: 10px;">
+        <i class="fab fa-whatsapp" style="color: #25D366; font-size: 1.15rem;"></i> Sign in using mobile number
       </a>
 
       <div class="auth-links">

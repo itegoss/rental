@@ -120,7 +120,10 @@ from .whatsapp_service import (
     send_blood_request_fulfilled_notification,
     send_blood_request_received_notification,
     send_blood_request_completed_notification,
+    send_login_otp_whatsapp,
 )
+import secrets
+import hashlib
 from .whatsapp import send_booking_whatsapp
 
 
@@ -144,48 +147,6 @@ def logout(request):
 
 def signup(request):
     if request.method == 'POST':
-        if request.POST.get('otp'):
-            mobile = request.POST.get('mobile')
-            otp = request.POST.get('otp')
-
-            otp_data = request.session.get('otp_data')
-            if not otp_data:
-                messages.error(request, "No OTP session found. Please register again.")
-                return redirect('signup')
-
-            digits = re.sub(r"\D", "", str(mobile or ""))
-            try:
-                exp = datetime.fromisoformat(otp_data.get('expires'))
-            except Exception:
-                exp = None
-
-            if exp and timezone.now() > exp:
-                request.session.pop('otp_data', None)
-                messages.error(request, "OTP expired. Please register again.")
-                return redirect('signup')
-
-            if digits != otp_data.get('mobile') or otp != otp_data.get('otp'):
-                messages.error(request, "Invalid OTP or mobile number.")
-                ctx = {'show_otp': True, 'mobile': digits}
-                if getattr(settings, 'DEBUG', False):
-                    ctx['debug_otp'] = otp_data.get('otp')
-                return render(request, 'signup.html', ctx)
-
-            username = otp_data.get('username')
-            try:
-                user = User.objects.get(username=username)
-            except User.DoesNotExist:
-                messages.error(request, "User not found; please register again.")
-                return redirect('signup')
-
-            ab = getattr(settings, 'AUTHENTICATION_BACKENDS', None)
-            backend = ab[0] if ab else 'django.contrib.auth.backends.ModelBackend'
-            user.backend = backend
-            login(request, user)
-            request.session.pop('otp_data', None)
-            messages.success(request, "Registration complete and logged in.")
-            return redirect('index')
-
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
@@ -200,10 +161,11 @@ def signup(request):
         elif User.objects.filter(username=username).exists():
             field_errors['username'] = "Username already taken."
 
+        clean_mob = ""
         if not mobile:
             field_errors['mobile'] = "Mobile number is required."
         else:
-            clean_mob = re.sub(r'\D', '', mobile)
+            clean_mob = re.sub(r'\D', '', str(mobile))
             if len(clean_mob) != 10:
                 field_errors['mobile'] = "Contact number must be exactly 10 digits."
 
@@ -235,6 +197,19 @@ def signup(request):
         user.save()
 
         try:
+            UserDetail.objects.update_or_create(
+                user=user,
+                defaults={
+                    'phone': clean_mob,
+                    'email': email or None,
+                    'id_proof_type': '',
+                    'id_proof_number': '',
+                }
+            )
+        except Exception as e:
+            print(f"[signup user_detail error] {e}")
+
+        try:
             send_notification(
                 title="New User Registered",
                 message=f"New user registered: {user.username} ({user.email}).",
@@ -244,25 +219,8 @@ def signup(request):
         except Exception as e:
             print(f"[notification signup error] {e}")
 
-        digits = re.sub(r"\D", "", str(mobile or ""))
-        otp = str(random.randint(100000, 999999))
-        expires = (timezone.now() + timedelta(minutes=5)).isoformat()
-
-        request.session['otp_data'] = {
-            'mobile': digits,
-            'otp': otp,
-            'expires': expires,
-            'username': username,
-        }
-
-        message = f"Your QuickNest OTP is {otp}. It expires in 5 minutes."
-        send_whatsapp_message(digits, message)
-
-        messages.success(request, "Account created. OTP sent via WhatsApp (simulated if not configured).")
-        ctx = {'show_otp': True, 'mobile': digits}
-        if getattr(settings, 'DEBUG', False):
-            ctx['debug_otp'] = otp
-        return render(request, 'signup.html', ctx)
+        messages.success(request, "Account created successfully! Please sign in.")
+        return redirect('signin')
 
     if request.user.is_authenticated:
         return redirect('index')
@@ -310,90 +268,238 @@ def signin(request):
     return render(request, 'signin.html')
 
 
-def signin_mobile(request):
-    """Start login via mobile number. Generates OTP and sends via WhatsApp.
-    - POST with `mobile` sends OTP and shows verify page
-    - GET renders a simple mobile input form
+def find_user_by_mobile(raw_phone):
     """
+    Validates and searches for an active user by their 10-digit Indian mobile number.
+    Checks UserDetail.phone (with/without +91/91/0 prefix) and User.username.
+    Returns (user, 10_digit_phone) or (None, 10_digit_phone/None).
+    """
+    if not raw_phone:
+        return None, None
+
+    clean_digits = re.sub(r"\D", "", str(raw_phone).strip())
+    if len(clean_digits) == 12 and clean_digits.startswith("91"):
+        phone10 = clean_digits[2:]
+    elif len(clean_digits) == 11 and clean_digits.startswith("0"):
+        phone10 = clean_digits[1:]
+    elif len(clean_digits) == 10:
+        phone10 = clean_digits
+    else:
+        return None, None
+
+    # Must be valid 10-digit Indian mobile number starting with 6, 7, 8, or 9
+    if not re.match(r"^[6-9]\d{9}$", phone10):
+        return None, phone10
+
+    # 1. Search in UserDetail
+    ud = UserDetail.objects.filter(
+        Q(phone=phone10)
+        | Q(phone=f"91{phone10}")
+        | Q(phone=f"+91{phone10}")
+        | Q(phone=f"0{phone10}")
+        | Q(phone__endswith=phone10)
+    ).select_related('user').filter(user__is_active=True).first()
+    if ud and ud.user:
+        return ud.user, phone10
+
+    # 2. Search in User username
+    user = User.objects.filter(
+        Q(username=phone10)
+        | Q(username=f"91{phone10}")
+        | Q(username=f"+91{phone10}")
+    ).filter(is_active=True).first()
+    if user:
+        return user, phone10
+
+    return None, phone10
+
+
+def signin_mobile(request):
+    """
+    Mobile number WhatsApp OTP sign-in initiation.
+    - Validates 10-digit Indian mobile number.
+    - Does NOT require prior registration (works like Google sign-in).
+    - If user exists, associates with existing user.
+    - If user does not exist, OTP is still sent; user account will be created upon OTP verification.
+    - Enforces 60-second resend cooldown.
+    - Generates cryptographically secure 6-digit OTP.
+    - Stores salted SHA-256 hash in session (no plain text OTP stored).
+    - Dispatches OTP via existing WhatsApp service/11za API.
+    """
+    if request.user.is_authenticated:
+        return redirect('index')
+
     if request.method == 'POST':
-        mobile = request.POST.get('mobile')
+        mobile = (request.POST.get('mobile') or '').strip()
         if not mobile:
-            messages.error(request, "Please enter a mobile number.")
-            return redirect('signin_mobile')
+            messages.error(request, "Please enter your WhatsApp mobile number.")
+            return render(request, 'signin_mobile.html')
 
-        digits = re.sub(r"\D", "", mobile)
-        if not digits:
-            messages.error(request, "Enter a valid mobile number.")
-            return redirect('signin_mobile')
+        user, phone10 = find_user_by_mobile(mobile)
+        if not phone10:
+            messages.error(request, "Please enter a valid 10-digit Indian mobile number.")
+            return render(request, 'signin_mobile.html', {'mobile': mobile})
 
-        otp = str(random.randint(100000, 999999))
-        expires = (timezone.now() + timedelta(minutes=5)).isoformat()
+        # Resend cooldown (60 seconds)
+        now_ts = timezone.now().timestamp()
+        existing_otp = request.session.get('login_otp_data')
+        if existing_otp and existing_otp.get('mobile') == phone10:
+            last_sent = existing_otp.get('last_sent_at', 0)
+            elapsed = now_ts - last_sent
+            if elapsed < 60:
+                remaining = int(60 - elapsed)
+                messages.warning(request, f"Please wait {remaining} seconds before requesting a new OTP.")
+                return redirect('verify_otp')
 
-        request.session['otp_data'] = {
-            'mobile': digits,
-            'otp': otp,
-            'expires': expires,
+        # Generate secure 6-digit OTP using secrets
+        otp = f"{secrets.SystemRandom().randint(100000, 999999)}"
+        salt = secrets.token_hex(8)
+        otp_hash = hashlib.sha256(f"{otp}:{salt}".encode()).hexdigest()
+
+        # Dispatch OTP to user's WhatsApp number using existing WhatsApp service
+        res = send_login_otp_whatsapp(phone10, otp, user=user, force=True)
+        if not res.get('success'):
+            messages.error(request, "Failed to deliver OTP to your WhatsApp number. Please check your number or try again later.")
+            return render(request, 'signin_mobile.html', {'mobile': mobile})
+
+        # Store in session (expires in 5 minutes, salted hash only)
+        request.session['login_otp_data'] = {
+            'user_id': user.id if user else None,
+            'mobile': phone10,
+            'otp_hash': otp_hash,
+            'otp_salt': salt,
+            'expires_at': now_ts + 300,  # 5 minutes
+            'last_sent_at': now_ts,
+            'attempts': 0,
         }
+        request.session.modified = True
 
-        message = f"Your QuickNest OTP is {otp}. It expires in 5 minutes."
-        send_whatsapp_message(digits, message)
-
-        messages.success(request, "OTP sent via WhatsApp (simulated if not configured).")
+        messages.success(request, f"OTP sent to WhatsApp number ending in {phone10[-4:]}.")
         return redirect('verify_otp')
 
     return render(request, 'signin_mobile.html')
 
+
 def verify_otp(request):
-    """Verify OTP entered by user and log them in (creates user if needed)."""
-    otp_data = request.session.get('otp_data')
+    """
+    Verifies the 6-digit OTP sent via WhatsApp and signs in the user.
+    - If user exists: logs in to existing user account (does not create duplicate).
+    - If user does not exist: auto-registers new Django user with unique username,
+      saves verified mobile to UserDetail, and logs in automatically.
+    - Enforces 5-minute expiry.
+    - Limits incorrect attempts to 3.
+    - Invalidates session OTP immediately upon verification.
+    """
+    if request.user.is_authenticated:
+        return redirect('index')
+
+    otp_data = request.session.get('login_otp_data')
 
     if request.method == 'POST':
-        mobile = request.POST.get('mobile')
-        otp = request.POST.get('otp')
+        otp = (request.POST.get('otp') or '').strip()
+        mobile = (request.POST.get('mobile') or '').strip()
 
         if not otp_data:
             messages.error(request, "No OTP request found. Please request a new OTP.")
             return redirect('signin_mobile')
 
-        digits = re.sub(r"\D", "", mobile or "")
-
-        if digits != otp_data.get('mobile'):
-            messages.error(request, "Mobile number mismatch.")
-            return redirect('signin_mobile')
-        try:
-            exp = datetime.fromisoformat(otp_data.get('expires'))
-        except Exception:
-            exp = None
-
-        if exp and timezone.now() > exp:
-            request.session.pop('otp_data', None)
-            messages.error(request, "OTP expired. Please request a new one.")
+        now_ts = timezone.now().timestamp()
+        if now_ts > otp_data.get('expires_at', 0):
+            request.session.pop('login_otp_data', None)
+            messages.error(request, "OTP has expired. Please request a new one.")
             return redirect('signin_mobile')
 
-        if otp and otp == otp_data.get('otp'):
-            username = otp_data.get('mobile')
-            try:
-                user = User.objects.get(username=username)
-            except User.DoesNotExist:
-                user = User.objects.create_user(username=username)
+        # Check maximum attempts (limit 3 attempts)
+        attempts = otp_data.get('attempts', 0) + 1
+        otp_data['attempts'] = attempts
+        if attempts > 3:
+            request.session.pop('login_otp_data', None)
+            messages.error(request, "Maximum OTP verification attempts exceeded. Please request a new OTP.")
+            return redirect('signin_mobile')
+
+        # Verify OTP using salted SHA-256 hash comparison
+        salt = otp_data.get('otp_salt', '')
+        expected_hash = otp_data.get('otp_hash', '')
+        computed_hash = hashlib.sha256(f"{otp}:{salt}".encode()).hexdigest()
+
+        if computed_hash == expected_hash:
+            phone10 = otp_data.get('mobile')
+            user_id = otp_data.get('user_id')
+            request.session.pop('login_otp_data', None)
+
+            # Re-check user existence to prevent duplicate user creation
+            user = None
+            if user_id:
+                user = User.objects.filter(id=user_id, is_active=True).first()
+            if not user and phone10:
+                user, _ = find_user_by_mobile(phone10)
+
+            # If user does not exist, auto-register new account
+            if not user:
+                base_username = f"user_{phone10}"
+                username = base_username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"user_{phone10}_{counter}"
+                    counter += 1
+
+                user = User(
+                    username=username,
+                    is_active=True,
+                )
                 user.set_unusable_password()
                 user.save()
+
+                UserDetail.objects.update_or_create(
+                    user=user,
+                    defaults={
+                        'phone': phone10,
+                        'id_proof_type': '',
+                        'id_proof_number': '',
+                    }
+                )
+
+                try:
+                    send_notification(
+                        title="New User Registered via Mobile",
+                        message=f"New user registered via WhatsApp OTP: {user.username} ({phone10}).",
+                        notification_type='user',
+                        link=f"/admin/auth/user/{user.id}/change/"
+                    )
+                except Exception as e:
+                    print(f"[notification mobile signup error] {e}")
+            else:
+                # Ensure existing user has verified phone saved in UserDetail
+                ud = UserDetail.objects.filter(user=user).first()
+                if not ud:
+                    UserDetail.objects.create(
+                        user=user,
+                        phone=phone10,
+                        id_proof_type='',
+                        id_proof_number='',
+                    )
+                elif not ud.phone:
+                    ud.phone = phone10
+                    ud.save()
+
+            if not user.is_active:
+                messages.error(request, "Your account is inactive. Please contact support.")
+                return redirect('signin')
 
             ab = getattr(settings, 'AUTHENTICATION_BACKENDS', None)
             backend = ab[0] if ab else 'django.contrib.auth.backends.ModelBackend'
             user.backend = backend
             login(request, user)
-            request.session.pop('otp_data', None)
+            messages.success(request, f"Welcome, {user.get_full_name() or user.username}!")
             return redirect('index')
         else:
-            messages.error(request, "Invalid OTP.")
-            return redirect('verify_otp')
+            request.session.modified = True
+            remaining = 3 - attempts
+            messages.error(request, f"Invalid OTP. {remaining} attempt(s) remaining.")
+            return render(request, 'verify_otp.html', {'mobile': otp_data.get('mobile', '')})
 
-    mobile_prefill = otp_data.get('mobile') if otp_data else ''
-    ctx = {'mobile': mobile_prefill}
-    if getattr(settings, 'DEBUG', False) and otp_data:
-        ctx['debug_otp'] = otp_data.get('otp')
-    return render(request, 'verify_otp.html', ctx)
+    mobile_prefill = otp_data.get('mobile', '') if otp_data else ''
+    return render(request, 'verify_otp.html', {'mobile': mobile_prefill})
 
 
 def forgot(request):
