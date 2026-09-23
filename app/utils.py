@@ -668,9 +668,10 @@ def send_whatsapp_message(mobile, message):
     mobile: string digits or with leading +countrycode
     message: text to send
     """
+    print(f"[DEBUG WA - utils] Stage A: send_whatsapp_message entered | mobile={mobile}")
     m = re.sub(r"\D", "", str(mobile or ""))
     if not m:
-        print("[whatsapp] no mobile provided; message not sent")
+        print("[DEBUG WA - utils] Stage B Failed: Exits before API request - no mobile provided")
         return False
 
     if len(m) == 10:
@@ -693,23 +694,28 @@ def send_whatsapp_message(mobile, message):
                 "type": "text",
                 "text": {"body": message}
             }
+            print(f"[DEBUG WA - utils] Stage C Passed: Meta Cloud API request about to be sent | URL={url} | To={to_clean}")
             resp = requests.post(url, json=payload, headers=headers, timeout=10)
             try:
                 body = resp.json()
             except Exception:
                 body = resp.text
+            print(f"[DEBUG WA - utils] API response status code: {resp.status_code}")
+            print(f"[DEBUG WA - utils] API response body: {body}")
             if resp.status_code in (200, 201):
-                print(f"[whatsapp cloud sent] To: {to_number} Response: {body}")
+                print(f"[DEBUG WA - utils] Stage D/E: Meta Cloud API sent to {to_number}")
                 return True
             else:
-                print(f"[whatsapp cloud error] status={resp.status_code} body={body}")
+                print(f"[DEBUG WA - utils] Stage D Failed: Meta Cloud API status={resp.status_code}")
         except Exception as e:
-            print(f"[whatsapp cloud exception] {e}")
+            print(f"[DEBUG WA - utils] Stage D Failed: Meta Cloud exception {e}")
+    else:
+        print(f"[DEBUG WA - utils] Stage C Failed: Meta Cloud API configuration missing (WHATSAPP_PHONE_ID={phone_id})")
 
     try:
         from twilio.rest import Client
     except Exception:
-        print(f"[whatsapp simulated] To: {to_number} Message: {message}")
+        print(f"[DEBUG WA - utils] [whatsapp simulated] To: {to_number} Message: {message}")
         return True
 
     sid = getattr(settings, "TWILIO_ACCOUNT_SID", None)
@@ -717,16 +723,17 @@ def send_whatsapp_message(mobile, message):
     from_whatsapp = getattr(settings, "TWILIO_WHATSAPP_FROM", None)
 
     if not all([sid, token, from_whatsapp]):
+        print(f"[DEBUG WA - utils] Stage C Failed: Twilio configuration missing (sid={bool(sid)}, token={bool(token)}, from={bool(from_whatsapp)})")
         print(f"[whatsapp config missing] To: {to_number} Message: {message}")
         return True
 
     try:
         client = Client(sid, token)
         client.messages.create(body=message, from_=from_whatsapp, to=to_number)
-        print(f"[whatsapp sent] To: {to_number}")
+        print(f"[DEBUG WA - utils] Stage D/E: Twilio WhatsApp sent to {to_number}")
         return True
     except Exception as e:
-        print(f"[whatsapp error] {e}")
+        print(f"[DEBUG WA - utils] Stage D Failed: Twilio error {e}")
         return False
 
 def generate_rental_report_pdf(queryset, start_date, end_date):

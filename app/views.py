@@ -107,6 +107,17 @@ def ensure_module_access(request, permission_name):
     return None
 from .forms import BloodRequestForm, CampOrganizerForm, BloodDonorForm, EventVolunteerForm, AssignEmployeeForm
 from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, receipt_filename, send_whatsapp_message, send_notification, build_booking_receipt_breakdown
+from .whatsapp_service import (
+    send_new_booking_notification,
+    send_cancel_booking_notification,
+    send_return_request_notification,
+    send_return_approved_notification,
+    send_return_date_extended_notification,
+    send_new_blood_request_notification,
+    send_blood_request_accepted_notification,
+    send_blood_request_cancelled_notification,
+    send_blood_request_fulfilled_notification,
+)
 
 def index(request):
     # Reminder and overdue notification logic has been moved out of the homepage
@@ -882,27 +893,6 @@ def paymentmethod(request):
                 is_delivery_paid=rental_delivery_paid,
             )
 
-            try:
-                to_phone = rental.phone
-                if not to_phone:
-                    try:
-                        ud = UserDetail.objects.filter(user_id=request.user.id).first()
-                        to_phone = ud.phone if ud else None
-                    except Exception:
-                        to_phone = None
-
-                if to_phone:
-                    to_digits = re.sub(r"\D", "", str(to_phone))
-                    customer_name = rental.renter_name or (request.user.get_full_name() or request.user.username)
-                    msg = (
-                        f"Hi {customer_name}, your rental request {rental.order_id} for '{item.title}' "
-                        f"(Qty: {rental.quantity}) from {rental.start_date} to {rental.end_date} has been submitted. "
-                        "We'll notify you when it's confirmed. - HEMOAID"
-                    )
-                    send_whatsapp_message(to_digits, msg)
-            except Exception as e:
-                print(f"[whatsapp notify error] {e}")
-
             created_rentals.append(rental)
 
         print("HISTORY CREATED")
@@ -921,6 +911,11 @@ def paymentmethod(request):
             )
         except Exception as e:
             print(f"[notification booking error] {e}")
+
+        try:
+            send_new_booking_notification(created_rentals[0])
+        except Exception as e:
+            print(f"[whatsapp new_booking error] {e}")
 
         cart.delete()
 
@@ -1488,6 +1483,11 @@ def approve_return_order(request, order_id):
     except Exception as e:
         print(f"[notification error] {e}")
 
+    try:
+        send_return_approved_notification(rentals[0])
+    except Exception as e:
+        print(f"[whatsapp return_approved error] {e}")
+
     messages.success(request, "Return approved successfully.")
     return redirect("bookingsammry")
 
@@ -1542,10 +1542,14 @@ def userdetail(request):
         id_proof_number = request.POST.get("id_proof_number", "").strip()
 
         if is_admin and not request.session.get("details_filled"):
+            phone = (request.POST.get("phone") or "").strip()
+            if not phone:
+                messages.error(request, "Phone number is required.")
+                return redirect("userdetail")
             request.session["renter_name"] = request.POST.get("name") or request.user.username
             request.session["renter_email"] = request.POST.get("email", "").strip()
             request.session["patient_name"] = request.POST.get("patient_name")
-            request.session["phone"] = request.POST.get("phone")
+            request.session["phone"] = phone
             request.session["address"] = request.POST.get("address")
             request.session["pincode"] = request.POST.get("pincode")
             request.session["start_date"] = request.POST.get("start_date")
@@ -1575,6 +1579,9 @@ def userdetail(request):
                 return redirect("cart")
 
         phone = request.POST.get("phone", "").strip()
+        if not phone:
+            messages.error(request, "Phone number is required.")
+            return redirect("userdetail")
         address = request.POST.get("address", "").strip()
         pincode = request.POST.get("pincode", "").strip()
         email = request.POST.get("email", "").strip()
@@ -1893,6 +1900,11 @@ def extend_return_date(request, order_id):
         except Exception as e:
             print(f"[notification extend return error] {e}")
 
+        try:
+            send_return_date_extended_notification(first_rental, extension_id=extension_no)
+        except Exception as e:
+            print(f"[whatsapp return_date_extended error] {e}")
+
         messages.success(request, f"Return date extended to {new_date.strftime('%d %b %Y')}. Charges have been updated.")
         return redirect("bookingsammry")
 
@@ -2031,6 +2043,11 @@ def return_order(request, order_id):
         except Exception as e:
             print(f"[notification direct return error] {e}")
 
+        try:
+            send_return_approved_notification(rental_rows[0])
+        except Exception as e:
+            print(f"[whatsapp return_approved error] {e}")
+
         messages.success(request, "Order marked as returned successfully.")
         return redirect("bookingsammry")
 
@@ -2068,6 +2085,11 @@ def return_order(request, order_id):
         )
     except Exception as e:
         print(f"[notification return request error] {e}")
+
+    try:
+        send_return_request_notification(rental_rows[0])
+    except Exception as e:
+        print(f"[whatsapp return_request error] {e}")
 
     if donate_deposit:
         messages.success(
@@ -2116,6 +2138,11 @@ def cancel_order(request, order_id):
         )
     except Exception as e:
         print(f"[notification cancel error] {e}")
+
+    try:
+        send_cancel_booking_notification(rentals.first())
+    except Exception as e:
+        print(f"[whatsapp cancel_booking error] {e}")
 
     messages.success(request, "Booking cancelled successfully.")
     return redirect('bookingsammry')
@@ -2414,6 +2441,11 @@ def return_cart_item(request, cart_item_id):
     except Exception as e:
         print(f"[notification cart return error] {e}")
 
+    try:
+        send_return_request_notification(rr)
+    except Exception as e:
+        print(f"[whatsapp return_request error] {e}")
+
     messages.success(request, "Return request sent to admin for approval.")
     return redirect("userdetail")
 
@@ -2452,18 +2484,18 @@ def return_receipt(request, order_id):
     return_pickup_charge = max((rr.return_pickup_charge for rr in all_order_rentals), default=Decimal("0"))
     
     total_rent_with_extensions = breakdown["original_total_rent"] + breakdown["extension_total"]
-    total_amount = total_rent_with_extensions + delivery_charge + return_pickup_charge + donation_amount
+    total_amount = total_rent_with_extensions + delivery_charge + return_pickup_charge + final_deposit
     amount_paid = breakdown["amount_paid"]
 
-    net_balance = amount_paid - total_amount
-    if rental.deposit_donated:
+    if amount_paid < total_amount:
+        amount_remaining = total_amount - amount_paid
         refund_amount = Decimal("0")
-    elif net_balance > 0:
-        refund_amount = min(net_balance, final_deposit)
+    elif amount_paid > total_amount:
+        amount_remaining = Decimal("0")
+        refund_amount = Decimal("0") if rental.deposit_donated else (amount_paid - total_amount)
     else:
+        amount_remaining = Decimal("0")
         refund_amount = Decimal("0")
-
-    amount_remaining = max(total_amount - amount_paid, Decimal("0"))
 
     context = {
         "order": rental,          
@@ -2591,14 +2623,10 @@ def request_blood(request):
 
         send_submission_email("New Blood Request Received", details, attachment=blood_request.prescription if blood_request.prescription else None)
 
-        whatsapp_msg = (
-            f"Hello {blood_request.coordinator_name},\n\n"
-            f"Thank you for submitting a blood request for patient {blood_request.patient_name} ({blood_request.blood_group}). "
-            f"Our team is reviewing the request and will match with available blood banks/donors.\n\n"
-            f"Regards,\nHEMOAID Team"
-        )
-
-        send_whatsapp_message(blood_request.coordinator_contact, whatsapp_msg)
+        try:
+            send_new_blood_request_notification(blood_request)
+        except Exception as e:
+            print(f"[whatsapp new_blood_request error] {e}")
 
         if request.user.is_authenticated:
             try:
@@ -2745,6 +2773,12 @@ def edit_blood_request(request, request_id):
                 except Exception:
                     pass
 
+            if blood_request.status in ('Fulfilled', 'Completed'):
+                try:
+                    send_blood_request_fulfilled_notification(blood_request)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_fulfilled error] {e}")
+
             if blood_request.assigned_employee and blood_request.assigned_employee != request.user:
                 try:
                     send_notification(
@@ -2885,6 +2919,11 @@ def admin_edit_blood_request_status(request, request_id):
                     req.save()
                     req.append_status_history('Accepted', changed_by=request.user, note='Accepted by admin')
                     messages.success(request, 'Request accepted.')
+
+                try:
+                    send_blood_request_accepted_notification(req)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_accepted error] {e}")
         elif action == 'reject':
             if req.status in {'Completed', 'Rejected'}:
                 messages.error(request, 'This request cannot be rejected again.')
@@ -2914,6 +2953,13 @@ def admin_edit_blood_request_status(request, request_id):
             req.updated_by = request.user
             req.save()
             req.append_status_history(req.status, changed_by=request.user, note='Workflow advanced')
+
+            if req.status in ('Fulfilled', 'Completed'):
+                try:
+                    send_blood_request_fulfilled_notification(req)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_fulfilled error] {e}")
+
             messages.success(request, f'Status updated to {req.status}.')
         elif action in ('searching', 'employee_searching'):
             req.status = 'Searching'
@@ -3010,6 +3056,12 @@ def admin_edit_blood_request_status(request, request_id):
                     )
                 except Exception:
                     pass
+
+            try:
+                send_blood_request_fulfilled_notification(req)
+            except Exception as e:
+                print(f"[whatsapp blood_request_fulfilled error] {e}")
+
             messages.success(request, 'Request completed.')
         elif action in ('change_status', 'set_status'):
             new_status = request.POST.get('new_status')
@@ -3033,6 +3085,23 @@ def admin_edit_blood_request_status(request, request_id):
                         )
                     except Exception:
                         pass
+
+                if new_status == 'Accepted':
+                    try:
+                        send_blood_request_accepted_notification(req)
+                    except Exception as e:
+                        print(f"[whatsapp blood_request_accepted error] {e}")
+                elif new_status in ('Fulfilled', 'Completed'):
+                    try:
+                        send_blood_request_fulfilled_notification(req)
+                    except Exception as e:
+                        print(f"[whatsapp blood_request_fulfilled error] {e}")
+                elif new_status == 'Cancelled':
+                    try:
+                        send_blood_request_cancelled_notification(req)
+                    except Exception as e:
+                        print(f"[whatsapp blood_request_cancelled error] {e}")
+
                 messages.success(request, f'Status successfully updated to {new_status}.')
             else:
                 messages.error(request, 'Invalid status selected.')
@@ -3060,6 +3129,11 @@ def admin_edit_blood_request_status(request, request_id):
                         )
                     except Exception:
                         pass
+
+                try:
+                    send_blood_request_cancelled_notification(req)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_cancelled error] {e}")
                 if req.assigned_employee and req.assigned_employee != request.user:
                     try:
                         send_notification(

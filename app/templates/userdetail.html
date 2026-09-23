@@ -26,6 +26,15 @@
 .form-help { display:block; margin-top:6px; color:var(--muted); font-size:0.78rem; line-height:1.35; text-transform:none; letter-spacing:0; }
 .btn-continue { display:block; width:100%; padding:14px; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; border:none; border-radius:12px; font-size:1rem; font-weight:700; font-family:var(--font); cursor:pointer; box-shadow:0 4px 14px rgba(236,36,39,0.28); transition:transform 0.2s,box-shadow 0.2s; margin-top:8px; }
 .btn-continue:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(236,36,39,0.36); }
+.text-danger { color: #dc2626; font-weight: 700; margin-left: 2px; }
+.whatsapp-hint-text {
+  color: #dc2626;
+  font-size: 12.5px;
+  font-weight: 500;
+  margin-top: 5px;
+  line-height: 1.35;
+  display: block;
+}
 @media(max-width:640px) { .ud-card-body { padding:24px 20px; } .ud-card-header { padding:22px 22px; } }
 </style>
 
@@ -68,13 +77,14 @@
               {% endif %}
             </div>
             <div class="form-group">
-              <label for="phone">Phone Number</label>
+              <label for="phone">Phone Number <span class="text-danger">*</span></label>
               {% if is_admin %}
-                <input type="text" id="phone" name="phone" maxlength="10" placeholder="10-digit mobile" required>
+                <input type="tel" id="phone" name="phone" maxlength="10" pattern="[0-9]{10}" placeholder="Enter WhatsApp number" required>
               {% else %}
-                <input type="text" id="phone" name="phone" maxlength="10"
-                       value="{{ request.session.user_phone|default:'' }}" placeholder="10-digit mobile" required>
+                <input type="tel" id="phone" name="phone" maxlength="10" pattern="[0-9]{10}"
+                       value="{{ request.session.user_phone|default:'' }}" placeholder="Enter WhatsApp number" required>
               {% endif %}
+              <div class="whatsapp-hint-text">Enter WhatsApp number for further updates</div>
             </div>
           </div>
         </div>

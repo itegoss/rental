@@ -87,16 +87,17 @@ if 'test' in sys.argv:
     }
 
 else:
-     DATABASES = {
-             'default': {
-                 'ENGINE': 'django.db.backends.postgresql',
-                 'NAME': os.getenv('DB_NAME'),
-                 'USER': os.getenv('DB_USER'),
-                 'PASSWORD': os.getenv('DB_PASSWORD'),
-                 'HOST': os.getenv('DB_HOST'),
-                 'PORT': os.getenv('DB_PORT'),
+    DATABASES = {
+     'default': {
+         'ENGINE': 'django.db.backends.postgresql',
+         'NAME': 'kys',
+         'USER': 'postgres',
+         'PASSWORD': 'admin',
+         'HOST': 'localhost',
+         'PORT': '5432',
      }
-     }
+ }
+
 
 
 
@@ -136,16 +137,19 @@ SOCIAL_AUTH_NEW_USER_REDIRECT_URL = "/"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "bhayander@kutchyuvaksangh.org")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "vuyx siqh uvvh rfjd")
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "bhayander@kutchyuvaksangh.org")
-ADMIN_EMAIL = "bhayander@kutchyuvaksangh.org"
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "")
+ADMIN_EMAIL = ""
 
 RAZORPAY_API_KEY = os.environ.get("RAZORPAY_API_KEY")
 RAZORPAY_API_SECRET = os.environ.get("RAZORPAY_API_SECRET")
 
-WHATSAPP_PHONE_ID = os.environ.get("WHATSAPP_PHONE_ID")
 WHATSAPP_ACCESS_TOKEN = os.environ.get("WHATSAPP_ACCESS_TOKEN")
+WHATSAPP_PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID") or os.environ.get("WHATSAPP_PHONE_ID")
+WHATSAPP_BUSINESS_ACCOUNT_ID = os.environ.get("WHATSAPP_BUSINESS_ACCOUNT_ID")
+WHATSAPP_API_VERSION = os.environ.get("WHATSAPP_API_VERSION", "v18.0")
+WHATSAPP_PHONE_ID = WHATSAPP_PHONE_NUMBER_ID
 
 TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
@@ -215,3 +219,10 @@ else:
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+
+import os
+
+WHATSAPP_API = os.getenv("WHATSAPP_API")
+WHATSAPP_ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
+

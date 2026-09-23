@@ -523,23 +523,33 @@ class ReturnReceiptCalculationTests(TestCase):
             available=True
         )
 
-    def test_refund_amount_deducts_rent_from_paid_amount(self):
+    def test_return_receipt_calculation_with_deposit_and_balance_due(self):
         from decimal import Decimal
         import datetime
         from django.utils import timezone
         from app.models import History
         
-        # Scenario: Deposit = 3500, Rent = 4070, Paid Amount = 4160
+        # User scenario:
+        # Rent Amount = 120 (6 days @ 20/day)
+        # Extension Rent = 0
+        # Delivery Charges = 500
+        # Return Delivery Charges = 500
+        # Deposit Total = 1500
+        # Total Amount = 120 + 0 + 500 + 500 + 1500 = 2620
+        # Paid Amount = 2000 -> Balance Due = 620, Refund = 0
         start = timezone.now().date()
-        end = start + datetime.timedelta(days=151) # 152 days
+        end = start + datetime.timedelta(days=5) # 6 days
         rental = History.objects.create(
             user=self.user,
             rental_item=self.item,
             start_date=start,
             end_date=end,
             quantity=1,
-            deposit=Decimal("3500.00"),
-            amount_paid=Decimal("4160.00"),
+            deposit=Decimal("1500.00"),
+            amount_paid=Decimal("2000.00"),
+            delivery_option='delivery',
+            delivery_charge=Decimal("500.00"),
+            return_pickup_charge=Decimal("500.00"),
             payment_method='cod',
             status='approved',
             is_returned=True,
@@ -550,30 +560,37 @@ class ReturnReceiptCalculationTests(TestCase):
         response = self.client.get(reverse('return_receipt', args=['ORD202607999']))
         self.assertEqual(response.status_code, 200)
         
-        # total_amount (rent for 152 days @ 20/day) = 3040
-        # If amount_paid = 4160, total charges = 3040. Refund = 4160 - 3040 = 1120.
-        self.assertEqual(response.context['amount_paid'], Decimal("4160.00"))
-        self.assertEqual(response.context['total_amount'], Decimal("3040.00"))
-        self.assertEqual(response.context['refund_amount'], Decimal("1120.00"))
-        self.assertEqual(response.context['amount_remaining'], Decimal("0.00"))
+        self.assertEqual(response.context['total_rent'], Decimal("120.00"))
+        self.assertEqual(response.context['total_deposit'], Decimal("1500.00"))
+        self.assertEqual(response.context['delivery_charge'], Decimal("500.00"))
+        self.assertEqual(response.context['return_pickup_charge'], Decimal("500.00"))
+        self.assertEqual(response.context['total_amount'], Decimal("2620.00"))
+        self.assertEqual(response.context['amount_paid'], Decimal("2000.00"))
+        self.assertEqual(response.context['amount_remaining'], Decimal("620.00"))
+        self.assertEqual(response.context['refund_amount'], Decimal("0.00"))
+        self.assertContains(response, "Balance Amount (Due):")
+        self.assertContains(response, "₹620.00")
 
-    def test_return_receipt_remaining_amount_when_rent_exceeds_paid(self):
+    def test_return_receipt_refund_when_paid_exceeds_total(self):
         from decimal import Decimal
         import datetime
         from django.utils import timezone
         from app.models import History
         
-        # Scenario: Rent = 4070, Paid Amount = 3500 (deposit only paid).
+        # Scenario: Total = 2620, Paid Amount = 3000 -> Refund = 380, Balance = 0
         start = timezone.now().date()
-        end = start + datetime.timedelta(days=151)
+        end = start + datetime.timedelta(days=5)
         rental = History.objects.create(
             user=self.user,
             rental_item=self.item,
             start_date=start,
             end_date=end,
             quantity=1,
-            deposit=Decimal("3500.00"),
-            amount_paid=Decimal("2000.00"),
+            deposit=Decimal("1500.00"),
+            amount_paid=Decimal("3000.00"),
+            delivery_option='delivery',
+            delivery_charge=Decimal("500.00"),
+            return_pickup_charge=Decimal("500.00"),
             payment_method='cod',
             status='approved',
             is_returned=True,
@@ -584,10 +601,49 @@ class ReturnReceiptCalculationTests(TestCase):
         response = self.client.get(reverse('return_receipt', args=['ORD202607998']))
         self.assertEqual(response.status_code, 200)
         
-        # total_amount = 3040. amount_paid = 2000.
-        # Remaining = 3040 - 2000 = 1040. Refund = 0.
+        self.assertEqual(response.context['total_amount'], Decimal("2620.00"))
+        self.assertEqual(response.context['amount_paid'], Decimal("3000.00"))
+        self.assertEqual(response.context['amount_remaining'], Decimal("0.00"))
+        self.assertEqual(response.context['refund_amount'], Decimal("380.00"))
+        self.assertContains(response, "Refund Amount:")
+        self.assertContains(response, "₹380.00")
+
+    def test_return_receipt_zero_balance_when_paid_equals_total(self):
+        from decimal import Decimal
+        import datetime
+        from django.utils import timezone
+        from app.models import History
+        
+        # Scenario: Total = 2620, Paid Amount = 2620 -> Balance = 0, Refund = 0
+        start = timezone.now().date()
+        end = start + datetime.timedelta(days=5)
+        rental = History.objects.create(
+            user=self.user,
+            rental_item=self.item,
+            start_date=start,
+            end_date=end,
+            quantity=1,
+            deposit=Decimal("1500.00"),
+            amount_paid=Decimal("2620.00"),
+            delivery_option='delivery',
+            delivery_charge=Decimal("500.00"),
+            return_pickup_charge=Decimal("500.00"),
+            payment_method='cod',
+            status='approved',
+            is_returned=True,
+            order_id='ORD202607997'
+        )
+        
+        self.client.login(username='testuser', password='password123')
+        response = self.client.get(reverse('return_receipt', args=['ORD202607997']))
+        self.assertEqual(response.status_code, 200)
+        
+        self.assertEqual(response.context['total_amount'], Decimal("2620.00"))
+        self.assertEqual(response.context['amount_paid'], Decimal("2620.00"))
+        self.assertEqual(response.context['amount_remaining'], Decimal("0.00"))
         self.assertEqual(response.context['refund_amount'], Decimal("0.00"))
-        self.assertEqual(response.context['amount_remaining'], Decimal("1040.00"))
+        self.assertContains(response, "Balance Amount:")
+        self.assertContains(response, "₹0")
 
 
 class DynamicReturnDeliveryChargeTests(TestCase):
@@ -652,13 +708,14 @@ class DynamicReturnDeliveryChargeTests(TestCase):
         self.assertEqual(response_receipt.status_code, 200)
         self.assertEqual(response_receipt.context['return_pickup_charge'], Decimal("350.00"))
         
-        # total_amount: 200 rent + 500 delivery + 350 return delivery + 0 donation = 1050
+        # total_amount: 200 rent + 500 delivery + 350 return delivery + 1500 deposit = 2550
         # final_deposit: 1500
         # amount_paid: 2200
-        # net_balance = amount_paid - total_amount = 2200 - 1050 = 1150
-        # refund_amount = min(net_balance, final_deposit) = min(1150, 1500) = 1150
-        self.assertEqual(response_receipt.context['refund_amount'], Decimal("1150.00"))
-        self.assertEqual(response_receipt.context['amount_remaining'], Decimal("0.00"))
+        # Paid Amount < Total Amount:
+        # Balance = Total Amount - Paid Amount = 2550 - 2200 = 350
+        self.assertEqual(response_receipt.context['total_amount'], Decimal("2550.00"))
+        self.assertEqual(response_receipt.context['refund_amount'], Decimal("0.00"))
+        self.assertEqual(response_receipt.context['amount_remaining'], Decimal("350.00"))
 
     def test_history_rent_field_edit(self):
         from datetime import date

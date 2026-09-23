@@ -590,13 +590,18 @@
             </tr>
             {% if amount_remaining > 0 %}
             <tr class="balance-row">
-              <td><strong>Balanced Amount:</strong></td>
+              <td><strong>Balance Amount (Due):</strong></td>
               <td class="text-right" style="color:#dc2626;font-weight:bold;">₹{{ amount_remaining }}</td>
+            </tr>
+            {% elif refund_amount > 0 %}
+            <tr class="balance-row">
+              <td><strong>Refund Amount:</strong></td>
+              <td class="text-right" style="color:green;font-weight:bold;">₹{{ refund_amount }}</td>
             </tr>
             {% else %}
             <tr class="balance-row">
-              <td><strong>Balanced Amount (Refund):</strong></td>
-              <td class="text-right" style="color:green;font-weight:bold;">₹{{ refund_amount }}</td>
+              <td><strong>Balance Amount:</strong></td>
+              <td class="text-right" style="color:green;font-weight:bold;">₹0</td>
             </tr>
             {% endif %}
           </tbody>
