@@ -21,6 +21,15 @@ WHATSAPP_TEMPLATES = {
         ),
         "variables": ["Customer Name", "Order ID / Order Number"],
     },
+    "booking_approved": {
+        "name": "booking_approved",
+        "description": "Triggered when a booking/order is approved by admin",
+        "template": (
+            "Dear {{1}},\n\n"
+            "Your order {{2}} for medical equipment has been approved. Our team will coordinate delivery/pickup."
+        ),
+        "variables": ["Customer Name", "Order ID / Order Number"],
+    },
     "cancel_booking": {
         "name": "cancel_booking",
         "description": "Triggered when an existing booking/order is cancelled",
@@ -531,6 +540,30 @@ def send_new_booking_notification(rental_or_order=None, customer_name=None, orde
         phone_number=phone,
         template_name="new_booking",
         variables=[name, oid, "medical equipment", "received", "HEMOAID"],
+        event_key=event_key,
+        user=usr,
+        link=f"/admin/app/history/?order_id={oid}",
+        force=force,
+    )
+
+
+# ------------------------------------------------------------------------------
+# 1B. BOOKING APPROVED BY ADMIN
+# ------------------------------------------------------------------------------
+def send_booking_approved_notification(rental_or_order=None, customer_name=None, order_id=None, phone_number=None, user=None, force=False):
+    """
+    Template: booking_approved
+    Variables: {{1}} = Customer Name, {{2}} = Order ID
+    Trigger: When an existing booking/order is approved by admin.
+    """
+    name, oid, phone, usr = _resolve_order_details(
+        rental_or_order, customer_name, order_id, phone_number, user
+    )
+    event_key = f"booking_approved:{oid}"
+    return send_whatsapp_template(
+        phone_number=phone,
+        template_name="booking_approved",
+        variables=[name, oid, "medical equipment", "accepted", "HEMOAID"],
         event_key=event_key,
         user=usr,
         link=f"/admin/app/history/?order_id={oid}",

@@ -109,6 +109,7 @@ from .forms import BloodRequestForm, CampOrganizerForm, BloodDonorForm, EventVol
 from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, receipt_filename, send_whatsapp_message, send_notification, build_booking_receipt_breakdown
 from .whatsapp_service import (
     send_new_booking_notification,
+    send_booking_approved_notification,
     send_cancel_booking_notification,
     send_return_request_notification,
     send_return_approved_notification,
@@ -1357,6 +1358,11 @@ def approve_order(request, order_id):
         )
     except Exception as e:
         print(f"[notification error] {e}")
+
+    try:
+        send_booking_approved_notification(first_order)
+    except Exception as e:
+        print(f"[whatsapp booking_approved error] {e}")
 
     messages.success(request, f"Order {order_id} approved successfully.")
     return redirect("bookingsammry")

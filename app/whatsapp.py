@@ -33,6 +33,7 @@ def send_whatsapp_test():
 
 
 from .models import History
+from .whatsapp_service import send_whatsapp_template
 
 
 def send_booking_whatsapp(booking_id):
@@ -56,10 +57,9 @@ def send_booking_whatsapp(booking_id):
         booking.status
     )
 
-    return send_whatsapp_message(
-        phone=phone,
-        requestor_name=requestor_name,
-        order_id=order_id,
-        request_type=request_type,
-        status=whatsapp_status,
+    return send_whatsapp_template(
+        phone_number=phone,
+        template_name=f"booking_{whatsapp_status}",
+        variables=[requestor_name, order_id, request_type, whatsapp_status, "HEMOAID"],
+        event_key=f"booking_{whatsapp_status}:{order_id}",
     )
