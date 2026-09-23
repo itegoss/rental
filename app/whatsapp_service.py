@@ -102,6 +102,24 @@ WHATSAPP_TEMPLATES = {
         ),
         "variables": ["Requester's Name", "Blood Request ID"],
     },
+    "blood_request_received": {
+        "name": "blood_request_received",
+        "description": "Triggered when blood is marked as received by the customer",
+        "template": (
+            "Dear {{1}},\n\n"
+            "Blood for your request {{2}} has been confirmed as received."
+        ),
+        "variables": ["Requester's Name", "Blood Request ID"],
+    },
+    "blood_request_completed": {
+        "name": "blood_request_completed",
+        "description": "Triggered when the blood request is marked as Completed",
+        "template": (
+            "Dear {{1}},\n\n"
+            "Your blood request {{2}} has been completed successfully."
+        ),
+        "variables": ["Requester's Name", "Blood Request ID"],
+    },
 }
 
 
@@ -762,3 +780,92 @@ def send_blood_request_fulfilled_notification(blood_request=None, requester_name
         link=f"/request-blood/view/{getattr(blood_request, 'id', '')}/" if blood_request and hasattr(blood_request, 'id') else None,
         force=force,
     )
+
+
+# ------------------------------------------------------------------------------
+# 10. BLOOD REQUEST RECEIVED (CUSTOMER RECEIVED)
+# ------------------------------------------------------------------------------
+def send_blood_request_received_notification(blood_request=None, requester_name=None, request_id=None, phone_number=None, force=False):
+    """
+    Template: blood_request_received
+    Variables: {{1}} = Requester's Name, {{2}} = Blood Request ID
+    Trigger: When the blood is marked as received by the customer.
+    WhatsApp var4 = "Blood Received"
+    """
+    name, req_id, phone, usr = _resolve_blood_request_details(
+        blood_request, requester_name, request_id, phone_number
+    )
+    event_key = f"blood_request_received:{req_id}"
+    return send_whatsapp_template(
+        phone_number=phone,
+        template_name="blood_request_received",
+        variables=[name, req_id, "blood request", "Blood Received", "HEMOAID"],
+        event_key=event_key,
+        user=usr,
+        link=f"/request-blood/view/{getattr(blood_request, 'id', '')}/" if blood_request and hasattr(blood_request, 'id') else None,
+        force=force,
+    )
+
+
+# ------------------------------------------------------------------------------
+# 11. BLOOD REQUEST COMPLETED
+# ------------------------------------------------------------------------------
+def send_blood_request_completed_notification(blood_request=None, requester_name=None, request_id=None, phone_number=None, force=False):
+    """
+    Template: blood_request_completed
+    Variables: {{1}} = Requester's Name, {{2}} = Blood Request ID
+    Trigger: When the blood request is marked as Completed.
+    WhatsApp var4 = "Completed"
+    """
+    name, req_id, phone, usr = _resolve_blood_request_details(
+        blood_request, requester_name, request_id, phone_number
+    )
+    event_key = f"blood_request_completed:{req_id}"
+    return send_whatsapp_template(
+        phone_number=phone,
+        template_name="blood_request_completed",
+        variables=[name, req_id, "blood request", "Completed", "HEMOAID"],
+        event_key=event_key,
+        user=usr,
+        link=f"/request-blood/view/{getattr(blood_request, 'id', '')}/" if blood_request and hasattr(blood_request, 'id') else None,
+        force=force,
+    )
+
+
+BLOOD_REQUEST_STATUS_MAP = {
+    "pending": "received",
+    "accepted": "accepted",
+    "fulfilled": "fulfilled",
+    "cancelled": "Cancel",
+    "rejected": "Cancel",
+    "received": "Blood Received",
+    "blood_received": "Blood Received",
+    "blood received": "Blood Received",
+    "completed": "Completed",
+}
+
+
+def send_blood_request_notification(blood_request, status=None, force=False):
+    """
+    Unified dispatcher for blood request status notifications.
+    Maps database status to WhatsApp status and dispatches via send_whatsapp_template.
+    """
+    current_status = status or getattr(blood_request, "status", None) or "pending"
+    normalized_key = str(current_status).strip().lower().replace(" ", "_")
+    wa_status = BLOOD_REQUEST_STATUS_MAP.get(
+        normalized_key,
+        BLOOD_REQUEST_STATUS_MAP.get(str(current_status).strip().lower(), current_status)
+    )
+
+    if wa_status == "Blood Received":
+        return send_blood_request_received_notification(blood_request, force=force)
+    elif wa_status == "Completed":
+        return send_blood_request_completed_notification(blood_request, force=force)
+    elif wa_status == "accepted":
+        return send_blood_request_accepted_notification(blood_request, force=force)
+    elif wa_status == "fulfilled":
+        return send_blood_request_fulfilled_notification(blood_request, force=force)
+    elif wa_status == "Cancel":
+        return send_blood_request_cancelled_notification(blood_request, force=force)
+    else:
+        return send_new_blood_request_notification(blood_request, force=force)

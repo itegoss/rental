@@ -120,3 +120,13 @@ def send_booking_whatsapp(booking_id, force=False):
         link=f"/admin/app/history/?order_id={order_id}",
         force=force,
     )
+
+
+from .whatsapp_service import (
+    BLOOD_REQUEST_STATUS_MAP,
+    send_blood_request_received_notification,
+    send_blood_request_completed_notification,
+    send_blood_request_notification,
+)
+
+send_blood_request_whatsapp = send_blood_request_notification

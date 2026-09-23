@@ -36,6 +36,8 @@ from .whatsapp_service import (
     send_blood_request_accepted_notification,
     send_blood_request_cancelled_notification,
     send_blood_request_fulfilled_notification,
+    send_blood_request_received_notification,
+    send_blood_request_completed_notification,
 )
 
 @admin.action(description="Approve Return")
@@ -564,6 +566,10 @@ class BloodRequestAdmin(admin.ModelAdmin):
                     send_blood_request_accepted_notification(obj)
                 elif obj.status == 'Fulfilled':
                     send_blood_request_fulfilled_notification(obj)
+                elif obj.status in ('Received', 'Blood Received'):
+                    send_blood_request_received_notification(obj)
+                elif obj.status == 'Completed':
+                    send_blood_request_completed_notification(obj)
                 elif obj.status == 'Cancelled':
                     send_blood_request_cancelled_notification(obj)
             except Exception as e:

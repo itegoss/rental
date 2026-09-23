@@ -118,6 +118,8 @@ from .whatsapp_service import (
     send_blood_request_accepted_notification,
     send_blood_request_cancelled_notification,
     send_blood_request_fulfilled_notification,
+    send_blood_request_received_notification,
+    send_blood_request_completed_notification,
 )
 from .whatsapp import send_booking_whatsapp
 
@@ -2786,11 +2788,21 @@ def edit_blood_request(request, request_id):
                 except Exception:
                     pass
 
-            if blood_request.status in ('Fulfilled', 'Completed'):
+            if blood_request.status == 'Fulfilled':
                 try:
                     send_blood_request_fulfilled_notification(blood_request)
                 except Exception as e:
                     print(f"[whatsapp blood_request_fulfilled error] {e}")
+            elif blood_request.status in ('Received', 'Blood Received'):
+                try:
+                    send_blood_request_received_notification(blood_request)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_received error] {e}")
+            elif blood_request.status == 'Completed':
+                try:
+                    send_blood_request_completed_notification(blood_request)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_completed error] {e}")
 
             if blood_request.assigned_employee and blood_request.assigned_employee != request.user:
                 try:
@@ -2967,11 +2979,21 @@ def admin_edit_blood_request_status(request, request_id):
             req.save()
             req.append_status_history(req.status, changed_by=request.user, note='Workflow advanced')
 
-            if req.status in ('Fulfilled', 'Completed'):
+            if req.status == 'Fulfilled':
                 try:
                     send_blood_request_fulfilled_notification(req)
                 except Exception as e:
                     print(f"[whatsapp blood_request_fulfilled error] {e}")
+            elif req.status in ('Received', 'Blood Received'):
+                try:
+                    send_blood_request_received_notification(req)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_received error] {e}")
+            elif req.status == 'Completed':
+                try:
+                    send_blood_request_completed_notification(req)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_completed error] {e}")
 
             messages.success(request, f'Status updated to {req.status}.')
         elif action in ('searching', 'employee_searching'):
@@ -3052,6 +3074,12 @@ def admin_edit_blood_request_status(request, request_id):
                     )
                 except Exception:
                     pass
+
+            try:
+                send_blood_request_received_notification(req)
+            except Exception as e:
+                print(f"[whatsapp blood_request_received error] {e}")
+
             messages.success(request, 'Blood marked as received by customer. You can now complete the request.')
         elif action == 'complete':
             req.status = 'Completed'
@@ -3071,9 +3099,9 @@ def admin_edit_blood_request_status(request, request_id):
                     pass
 
             try:
-                send_blood_request_fulfilled_notification(req)
+                send_blood_request_completed_notification(req)
             except Exception as e:
-                print(f"[whatsapp blood_request_fulfilled error] {e}")
+                print(f"[whatsapp blood_request_completed error] {e}")
 
             messages.success(request, 'Request completed.')
         elif action in ('change_status', 'set_status'):
@@ -3104,11 +3132,21 @@ def admin_edit_blood_request_status(request, request_id):
                         send_blood_request_accepted_notification(req)
                     except Exception as e:
                         print(f"[whatsapp blood_request_accepted error] {e}")
-                elif new_status in ('Fulfilled', 'Completed'):
+                elif new_status == 'Fulfilled':
                     try:
                         send_blood_request_fulfilled_notification(req)
                     except Exception as e:
                         print(f"[whatsapp blood_request_fulfilled error] {e}")
+                elif new_status in ('Received', 'Blood Received'):
+                    try:
+                        send_blood_request_received_notification(req)
+                    except Exception as e:
+                        print(f"[whatsapp blood_request_received error] {e}")
+                elif new_status == 'Completed':
+                    try:
+                        send_blood_request_completed_notification(req)
+                    except Exception as e:
+                        print(f"[whatsapp blood_request_completed error] {e}")
                 elif new_status == 'Cancelled':
                     try:
                         send_blood_request_cancelled_notification(req)

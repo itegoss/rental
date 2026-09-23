@@ -359,3 +359,119 @@ class BloodPortalTests(TestCase):
         self.assertEqual(response.status_code, 400)
         data = response.json()
         self.assertFalse(data['success'])
+
+
+from unittest.mock import patch
+
+@override_settings(STORAGES={'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'}, 'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
+class BloodRequestWhatsAppNotificationTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(username='wa_admin', password='password123', is_staff=True)
+        self.client = Client()
+        self.client.force_login(self.admin)
+        self.req = BloodRequest.objects.create(
+            patient_name='Rahul Sharma',
+            hospital_name='Apex Hospital',
+            hospital_area='Borivali',
+            blood_group='O+',
+            blood_component='Whole Blood (W.B.)',
+            coordinator_name='Varsha Patel',
+            coordinator_contact='9876543210',
+            consent=True,
+            status='Fulfilled',
+        )
+
+    @patch('app.whatsapp_service.send_whatsapp_template')
+    def test_mark_customer_received_triggers_whatsapp(self, mock_send):
+        mock_send.return_value = {'success': True}
+        response = self.client.post(
+            reverse('admin_edit_blood_request_status', args=[self.req.id]),
+            {'action': 'mark_customer_received'}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.req.refresh_from_db()
+        self.assertEqual(self.req.status, 'Received')
+
+        self.assertTrue(mock_send.called)
+        kwargs = mock_send.call_args.kwargs
+        self.assertEqual(kwargs['template_name'], 'blood_request_received')
+        variables = kwargs['variables']
+        self.assertEqual(variables[0], 'Varsha Patel')
+        self.assertEqual(variables[2], 'blood request')
+        self.assertEqual(variables[3], 'Blood Received')
+        self.assertEqual(variables[4], 'HEMOAID')
+
+    @patch('app.whatsapp_service.send_whatsapp_template')
+    def test_complete_action_triggers_whatsapp(self, mock_send):
+        mock_send.return_value = {'success': True}
+        self.req.status = 'Received'
+        self.req.save()
+
+        response = self.client.post(
+            reverse('admin_edit_blood_request_status', args=[self.req.id]),
+            {'action': 'complete'}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.req.refresh_from_db()
+        self.assertEqual(self.req.status, 'Completed')
+
+        self.assertTrue(mock_send.called)
+        kwargs = mock_send.call_args.kwargs
+        self.assertEqual(kwargs['template_name'], 'blood_request_completed')
+        variables = kwargs['variables']
+        self.assertEqual(variables[0], 'Varsha Patel')
+        self.assertEqual(variables[2], 'blood request')
+        self.assertEqual(variables[3], 'Completed')
+        self.assertEqual(variables[4], 'HEMOAID')
+
+    @patch('app.whatsapp_service.send_whatsapp_template')
+    def test_advance_to_received_and_completed_triggers_whatsapp(self, mock_send):
+        mock_send.return_value = {'success': True}
+        self.req.status = 'Ready for Pickup'
+        self.req.save()
+
+        # Advance to Received
+        response = self.client.post(
+            reverse('admin_edit_blood_request_status', args=[self.req.id]),
+            {'action': 'advance'}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.req.refresh_from_db()
+        self.assertEqual(self.req.status, 'Received')
+        self.assertTrue(mock_send.called)
+        kwargs = mock_send.call_args.kwargs
+        self.assertEqual(kwargs['variables'][3], 'Blood Received')
+
+        mock_send.reset_mock()
+
+        # Advance to Completed
+        response = self.client.post(
+            reverse('admin_edit_blood_request_status', args=[self.req.id]),
+            {'action': 'advance'}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.req.refresh_from_db()
+        self.assertEqual(self.req.status, 'Completed')
+        self.assertTrue(mock_send.called)
+        kwargs = mock_send.call_args.kwargs
+        self.assertEqual(kwargs['variables'][3], 'Completed')
+
+    @patch('app.whatsapp_service.send_whatsapp_template')
+    def test_status_mapping_and_dispatcher(self, mock_send):
+        from app.whatsapp_service import send_blood_request_notification, BLOOD_REQUEST_STATUS_MAP
+        mock_send.return_value = {'success': True}
+
+        # Test blood_received mapping
+        self.assertEqual(BLOOD_REQUEST_STATUS_MAP['blood_received'], 'Blood Received')
+        self.assertEqual(BLOOD_REQUEST_STATUS_MAP['received'], 'Blood Received')
+        self.assertEqual(BLOOD_REQUEST_STATUS_MAP['completed'], 'Completed')
+
+        send_blood_request_notification(self.req, status='blood_received', force=True)
+        self.assertTrue(mock_send.called)
+        self.assertEqual(mock_send.call_args.kwargs['variables'][3], 'Blood Received')
+
+        mock_send.reset_mock()
+        send_blood_request_notification(self.req, status='completed', force=True)
+        self.assertTrue(mock_send.called)
+        self.assertEqual(mock_send.call_args.kwargs['variables'][3], 'Completed')
+
