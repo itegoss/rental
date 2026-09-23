@@ -119,6 +119,8 @@ from .whatsapp_service import (
     send_blood_request_cancelled_notification,
     send_blood_request_fulfilled_notification,
 )
+from .whatsapp import send_booking_whatsapp
+
 
 def index(request):
     # Reminder and overdue notification logic has been moved out of the homepage
@@ -1749,7 +1751,12 @@ def mark_returned(request, rental_id, item_id):
     
     if not rr.is_return_requested:
         rr.is_return_requested = True
-        rr.save()
+        rr.status = "return_request"
+        rr.save(update_fields=["is_return_requested", "status"])
+        try:
+            send_booking_whatsapp(rr.id)
+        except Exception as e:
+            print(f"[whatsapp return_request error] {e}")
 
         admin_email = getattr(settings, 'ADMIN_EMAIL', None)
         subject = f'Return Request from {request.user.username}'
@@ -2059,7 +2066,7 @@ def return_order(request, order_id):
 
     for index, rr in enumerate(rental_rows):
         rr.is_return_requested = True
-        rr.status = "pending"      
+        rr.status = "return_request"      
         rr.deposit_donated = donate_deposit
         rr.donation_amount = donation_amount if index == 0 else Decimal("0")
         rr.donation_comment = donation_comment if index == 0 else ""
@@ -2093,7 +2100,7 @@ def return_order(request, order_id):
         print(f"[notification return request error] {e}")
 
     try:
-        send_return_request_notification(rental_rows[0])
+        send_booking_whatsapp(rental_rows[0].id)
     except Exception as e:
         print(f"[whatsapp return_request error] {e}")
 
@@ -2429,7 +2436,7 @@ def return_cart_item(request, cart_item_id):
         return redirect("userdetail")
 
     rr.is_return_requested = True
-    rr.status = "pending"
+    rr.status = "return_request"
     rr.save(update_fields=["is_return_requested", "status"])
 
     try:
@@ -2448,7 +2455,7 @@ def return_cart_item(request, cart_item_id):
         print(f"[notification cart return error] {e}")
 
     try:
-        send_return_request_notification(rr)
+        send_booking_whatsapp(rr.id)
     except Exception as e:
         print(f"[whatsapp return_request error] {e}")
 

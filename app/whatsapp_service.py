@@ -611,7 +611,7 @@ def send_return_request_notification(rental_or_order=None, customer_name=None, o
     return send_whatsapp_template(
         phone_number=phone,
         template_name="return_request",
-        variables=[name, oid, "medical equipment", "Returned", "HEMOAID"],
+        variables=[name, oid, "medical equipment", "Return Request", "HEMOAID"],
         event_key=event_key,
         user=usr,
         link=f"/admin/app/history/?order_id={oid}",

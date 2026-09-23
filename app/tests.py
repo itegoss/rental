@@ -717,6 +717,59 @@ class DynamicReturnDeliveryChargeTests(TestCase):
         self.assertEqual(response_receipt.context['refund_amount'], Decimal("0.00"))
         self.assertEqual(response_receipt.context['amount_remaining'], Decimal("350.00"))
 
+    def test_return_request_status_and_whatsapp_notification(self):
+        from unittest.mock import patch
+        self.client.login(username='testuser', password='password123')
+        
+        with patch('app.whatsapp.send_whatsapp_template') as mock_send:
+            mock_send.return_value = {'success': True}
+            response = self.client.get(
+                reverse('return_order', args=['ORD202607990']),
+                {'donate_deposit': 'false', 'return_delivery': 'false'}
+            )
+            self.assertIn(response.status_code, [200, 302])
+            self.rental.refresh_from_db()
+            
+            # 1. Booking status changes to return_request
+            self.assertEqual(self.rental.status, 'return_request')
+            self.assertTrue(self.rental.is_return_requested)
+            
+            # 2. send_booking_whatsapp called
+            self.assertTrue(mock_send.called)
+            kwargs = mock_send.call_args.kwargs
+            
+            # 3. & 4. whatsapp_status is Return Request
+            variables = kwargs.get('variables')
+            self.assertEqual(variables[3], 'Return Request')
+            self.assertEqual(variables[4], 'HEMOAID')
+            
+            # 5. Template used is return_request
+            self.assertEqual(kwargs.get('template_name'), 'return_request')
+            self.assertEqual(kwargs.get('event_key'), 'return_request:ORD202607990')
+
+    def test_return_cart_item_status_and_whatsapp_notification(self):
+        from unittest.mock import patch
+        self.client.login(username='testuser', password='password123')
+        
+        with patch('app.whatsapp.send_whatsapp_template') as mock_send:
+            mock_send.return_value = {'success': True}
+            response = self.client.get(
+                reverse('return_cart_item', args=[self.rental.id])
+            )
+            self.assertEqual(response.status_code, 302)
+            self.rental.refresh_from_db()
+            
+            self.assertEqual(self.rental.status, 'return_request')
+            self.assertTrue(self.rental.is_return_requested)
+            
+            self.assertTrue(mock_send.called)
+            kwargs = mock_send.call_args.kwargs
+            variables = kwargs.get('variables')
+            self.assertEqual(variables[3], 'Return Request')
+            self.assertEqual(variables[4], 'HEMOAID')
+            self.assertEqual(kwargs.get('template_name'), 'return_request')
+            self.assertEqual(kwargs.get('event_key'), 'return_request:ORD202607990')
+
     def test_history_rent_field_edit(self):
         from datetime import date
         from decimal import Decimal

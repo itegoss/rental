@@ -50,16 +50,40 @@ def send_booking_whatsapp(booking_id):
         "delivered": "fulfilled",
         "cancelled": "Cancel",
         "rejected": "Cancel",
+        "returned": "Returned",
+        "return_request": "Return Request",
+        "return_requested": "Return Request",
+        "return request": "Return Request",
     }
 
-    whatsapp_status = status_map.get(
-        booking.status,
-        booking.status
-    )
+    if getattr(booking, "is_return_requested", False) and not getattr(booking, "is_returned", False):
+        whatsapp_status = "Return Request"
+    else:
+        whatsapp_status = status_map.get(
+            booking.status,
+            booking.status
+        )
+
+    if whatsapp_status == "Return Request":
+        template_name = "return_request"
+        event_key = f"return_request:{order_id}"
+    elif whatsapp_status == "accepted":
+        template_name = "booking_approved"
+        event_key = f"booking_approved:{order_id}"
+    elif whatsapp_status == "Cancel":
+        template_name = "cancel_booking"
+        event_key = f"cancel_booking:{order_id}"
+    elif whatsapp_status == "Returned":
+        template_name = "return_approved"
+        event_key = f"return_approved:{order_id}"
+    else:
+        template_name = f"booking_{whatsapp_status}"
+        event_key = f"booking_{whatsapp_status}:{order_id}"
 
     return send_whatsapp_template(
         phone_number=phone,
-        template_name=f"booking_{whatsapp_status}",
+        template_name=template_name,
         variables=[requestor_name, order_id, request_type, whatsapp_status, "HEMOAID"],
-        event_key=f"booking_{whatsapp_status}:{order_id}",
+        event_key=event_key,
+        link=f"/admin/app/history/?order_id={order_id}",
     )
