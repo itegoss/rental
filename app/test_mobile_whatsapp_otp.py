@@ -174,8 +174,7 @@ class MobileWhatsAppOTPLoginTests(TestCase):
 
         # After verification: User account automatically created
         new_user = User.objects.filter(username__contains=new_mobile).first()
-        self.assertIsNotNone(new_user)
-        self.assertTrue(new_user.username.startswith('user_9988776655'))
+        self.assertTrue(new_user.username == new_mobile or new_user.username.startswith(f'user_{new_mobile}'))
         self.assertTrue(new_user.is_active)
 
         # Verified mobile saved in UserDetail
@@ -592,9 +591,9 @@ class UserManagementMobileUsersTests(TestCase):
         res_verify = self.client.post(reverse('verify_otp'), {'otp': otp_val})
         self.assertEqual(res_verify.status_code, 302)
 
-        # Confirm user was created
+        # Confirm user was created with mobile number in existing User table
         first_user = User.objects.get(userdetail__phone=mobile)
-        self.assertEqual(first_user.username, f"user_{mobile}")
+        self.assertIn(first_user.username, [mobile, f"user_{mobile}"])
         user_count_after_first_login = User.objects.count()
 
         # Update user details & create a booking
@@ -631,6 +630,19 @@ class UserManagementMobileUsersTests(TestCase):
             rent=3500,
             deposit=2000,
             total_amount=5500,
+        )
+
+        from app.models import BloodRequest
+        blood_req = BloodRequest.objects.create(
+            patient_name="Rohan Patient",
+            hospital_name="City Hospital",
+            hospital_area="Mumbai",
+            blood_group="O+",
+            units_required=2,
+            coordinator_name="Rohan Sharma",
+            coordinator_contact=mobile,
+            created_by=first_user,
+            status="pending",
         )
 
         # --- STEP 2: Logout ---
@@ -673,6 +685,11 @@ class UserManagementMobileUsersTests(TestCase):
         self.assertEqual(resp_bookings.status_code, 200)
         self.assertContains(resp_bookings, "Hospital Bed Model X")
         self.assertContains(resp_bookings, "Rohan Sharma")
+
+        # Check blood request remains linked to this same user
+        user_blood_reqs = BloodRequest.objects.filter(created_by_id=self.client.session['_auth_user_id'])
+        self.assertEqual(user_blood_reqs.count(), 1)
+        self.assertEqual(user_blood_reqs.first().patient_name, "Rohan Patient")
 
         # Check userdetail page loads user's saved profile data
         from app.models import Cart, CartItem

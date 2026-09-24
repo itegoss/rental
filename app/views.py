@@ -354,9 +354,10 @@ def consolidate_duplicate_users_by_mobile(phone10):
     def user_score(u):
         h_count = u.history_set.count()
         has_pwd = 1 if u.has_usable_password() else 0
+        exact_username = 2 if u.username == phone10 else (1 if u.username == f"user_{phone10}" else 0)
         has_name = 1 if (u.first_name or u.last_name) else 0
         joined = u.date_joined.timestamp() if u.date_joined else 0
-        return (h_count, has_pwd, has_name, -joined)
+        return (h_count, has_pwd, exact_username, has_name, -joined)
 
     candidate_users.sort(key=user_score, reverse=True)
     primary_user = candidate_users[0]
@@ -461,6 +462,12 @@ def consolidate_duplicate_users_by_mobile(phone10):
     if prim_ud.phone != phone10:
         prim_ud.phone = phone10
         prim_ud.save(update_fields=['phone'])
+
+    # Upgrade username to canonical phone10 if it was user_{phone10} or raw digits
+    if primary_user.username != phone10 and not User.objects.filter(username=phone10).exclude(id=primary_user.id).exists():
+        if primary_user.username.startswith('user_') or primary_user.username.isdigit():
+            primary_user.username = phone10
+            primary_user.save(update_fields=['username'])
 
     return primary_user
 
@@ -667,7 +674,8 @@ def verify_otp(request):
         computed_hash = hashlib.sha256(f"{otp}:{salt}".encode()).hexdigest()
 
         if computed_hash == expected_hash:
-            phone10 = otp_data.get('mobile')
+            raw_mobile = otp_data.get('mobile') or request.POST.get('mobile')
+            phone10 = normalize_phone_number(raw_mobile)
             user_id = otp_data.get('user_id')
             request.session.pop('login_otp_data', None)
 
@@ -678,14 +686,17 @@ def verify_otp(request):
             if not user and user_id:
                 user = User.objects.filter(id=user_id, is_active=True).first()
 
-            # If user does not exist, auto-register new account
+            # If user does not exist, auto-register new account with normalized mobile number
             if not user:
-                base_username = f"user_{phone10}"
-                username = base_username
-                counter = 1
-                while User.objects.filter(username=username).exists():
+                if not User.objects.filter(username=phone10).exists():
+                    username = phone10
+                elif not User.objects.filter(username=f"user_{phone10}").exists():
+                    username = f"user_{phone10}"
+                else:
+                    counter = 1
+                    while User.objects.filter(username=f"user_{phone10}_{counter}").exists():
+                        counter += 1
                     username = f"user_{phone10}_{counter}"
-                    counter += 1
 
                 user = User(
                     username=username,
@@ -713,6 +724,12 @@ def verify_otp(request):
                 except Exception as e:
                     print(f"[notification mobile signup error] {e}")
             else:
+                # If existing user has legacy 'user_<mobile>' username, upgrade to canonical mobile number
+                if user.username != phone10 and not User.objects.filter(username=phone10).exclude(id=user.id).exists():
+                    if user.username.startswith('user_') or user.username.isdigit():
+                        user.username = phone10
+                        user.save(update_fields=['username'])
+
                 # Ensure existing user has verified phone saved in UserDetail
                 ud = UserDetail.objects.filter(user=user).first()
                 if not ud:
@@ -2048,13 +2065,37 @@ def userdetail(request):
     if request.user.is_authenticated and not is_admin:
         load_user_profile_to_session(request, request.user)
 
+    ud = getattr(request.user, 'userdetail', None) if request.user.is_authenticated else None
+    latest_history = History.objects.filter(user=request.user).order_by('-created_at').first() if request.user.is_authenticated else None
+
+    renter_name_val = request.session.get("renter_name") or (request.user.get_full_name() or request.user.username if request.user.is_authenticated else "")
+    email_val = request.session.get("renter_email") or (request.user.email if request.user.is_authenticated else "") or (ud.email if ud else "")
+    patient_name_val = request.session.get("patient_name") or (ud.patient_name if ud else "") or getattr(latest_history, 'patient_name', '') or ""
+    phone_val = request.session.get("phone") or request.session.get("user_phone") or (ud.phone if ud else "") or getattr(latest_history, 'phone', '') or ""
+    id_proof_type_val = request.session.get("id_proof_type") or (ud.id_proof_type if ud else "") or getattr(latest_history, 'id_proof_type', '') or ""
+    id_proof_number_val = request.session.get("id_proof_number") or (ud.id_proof_number if ud else "") or getattr(latest_history, 'id_proof_number', '') or ""
+    address_val = request.session.get("address") or request.session.get("user_address") or (ud.address_line1 if ud else "") or getattr(latest_history, 'address', '') or ""
+    pincode_val = request.session.get("pincode") or request.session.get("user_pincode") or (ud.pincode if ud else "") or ""
+    start_date_val = request.session.get("start_date") or ""
+    end_date_val = request.session.get("end_date") or ""
+
     context = {
         "items": [],
         "rental_days": 0,
         "total_rent": 0,
         "total_deposit": 0,
         "total_amount": 0,
-        "is_admin": is_admin
+        "is_admin": is_admin,
+        "renter_name": renter_name_val,
+        "email": email_val,
+        "patient_name": patient_name_val,
+        "phone": phone_val,
+        "id_proof_type": id_proof_type_val,
+        "id_proof_number": id_proof_number_val,
+        "address": address_val,
+        "pincode": pincode_val,
+        "start_date": start_date_val,
+        "end_date": end_date_val,
     }
 
     if is_admin and not request.session.get("details_filled"):
