@@ -121,6 +121,8 @@ from .whatsapp_service import (
     send_blood_request_received_notification,
     send_blood_request_completed_notification,
     send_login_otp_whatsapp,
+    send_booking_receipt_whatsapp,
+    send_return_receipt_whatsapp,
 )
 import secrets
 import hashlib
@@ -1451,11 +1453,12 @@ def approve_order(request, order_id):
         item.update_availability()
     
     first_order = orders.first()
-    if not first_order.receipts.exists():
-        content_file = generate_receipt(first_order)
-        new_receipt = Receipt.objects.create(rental_request=first_order, receipt_type='booking')
-        new_receipt.file.save(receipt_filename(first_order), content_file)
-        new_receipt.save()
+    receipt_obj = first_order.receipts.filter(receipt_type='booking').order_by('-created_at').first()
+    if not receipt_obj:
+        content_file = generate_receipt(first_order, receipt_type='booking')
+        receipt_obj = Receipt.objects.create(rental_request=first_order, receipt_type='booking')
+        receipt_obj.file.save(receipt_filename(first_order, receipt_type='booking'), content_file)
+        receipt_obj.save()
 
     try:
         send_notification(
@@ -1473,6 +1476,11 @@ def approve_order(request, order_id):
         send_booking_approved_notification(first_order)
     except Exception as e:
         print(f"[whatsapp booking_approved error] {e}")
+
+    try:
+        send_booking_receipt_whatsapp(first_order)
+    except Exception as e:
+        print(f"[whatsapp booking_receipt error] {e}")
 
     messages.success(request, f"Order {order_id} approved successfully.")
     return redirect("bookingsammry")
@@ -1493,7 +1501,18 @@ def deliver_order(request, order_id):
     total_rent = sum((item.total_rent for item in order_rows), Decimal("0"))
     total_deposit = sum((item.deposit * item.quantity for item in order_rows), Decimal("0"))
     first_item = order_rows[0]
-    delivery_charge = first_item.delivery_charge if first_item.delivery_charge else Decimal("0")
+
+    del_opt = ""
+    delivery_charge_val = Decimal("0")
+    for item in order_rows:
+        if not del_opt and item.delivery_option:
+            del_opt = item.delivery_option
+        if delivery_charge_val == Decimal("0") and item.delivery_charge:
+            delivery_charge_val = item.delivery_charge
+
+    del_opt_normalized = (del_opt or "").strip().lower().replace("_", " ")
+    is_home_delivery = del_opt_normalized in ("delivery", "home delivery")
+    delivery_charge = delivery_charge_val if is_home_delivery else Decimal("0")
     total_payable = total_rent + total_deposit + delivery_charge
 
     # Parse amounts from entered fields (Rent, Deposit, Delivery Charges) or single amount_paid
@@ -1502,6 +1521,7 @@ def deliver_order(request, order_id):
     delivery_input = request.POST.get("delivery_paid", "").strip()
     paid_input = request.POST.get("amount_paid", "").strip()
 
+    del_val = Decimal("0")
     if rent_input or deposit_input or delivery_input:
         try:
             r_val = Decimal(rent_input) if rent_input else Decimal("0")
@@ -1532,10 +1552,17 @@ def deliver_order(request, order_id):
             item.amount_paid = new_paid
             item.amount_remaining = remaining
             item._amount_remaining_manually_changed = True
-            if new_paid >= total_payable:
-                item.is_delivery_paid = True
-            elif new_paid >= (total_rent + total_deposit):
-                item.is_delivery_paid = True
+            if is_home_delivery:
+                if new_paid >= total_payable:
+                    item.is_delivery_paid = True
+                elif del_val >= delivery_charge and delivery_charge > Decimal("0"):
+                    item.is_delivery_paid = True
+                elif new_paid >= (total_rent + total_deposit):
+                    item.is_delivery_paid = True
+                else:
+                    item.is_delivery_paid = False
+            else:
+                item.is_delivery_paid = False
         else:
             item.amount_paid = Decimal("0")
             item.amount_remaining = Decimal("0")
@@ -1587,6 +1614,14 @@ def approve_return_order(request, order_id):
             except Exception:
                 pass
     
+    first_rental = rentals[0]
+    receipt_obj = first_rental.receipts.filter(receipt_type='return').order_by('-created_at').first()
+    if not receipt_obj:
+        content_file = generate_receipt(first_rental, receipt_type='return')
+        receipt_obj = Receipt.objects.create(rental_request=first_rental, receipt_type='return')
+        receipt_obj.file.save(receipt_filename(first_rental, receipt_type='return'), content_file)
+        receipt_obj.save()
+
     try:
         send_notification(
             title=f"Return Approved for {order_id}",
@@ -1594,15 +1629,20 @@ def approve_return_order(request, order_id):
             notification_type='return',
             link=f"/admin/app/history/?order_id={order_id}",
             order_id=order_id,
-            rental=rentals[0]
+            rental=first_rental
         )
     except Exception as e:
         print(f"[notification error] {e}")
 
     try:
-        send_return_approved_notification(rentals[0])
+        send_return_approved_notification(first_rental)
     except Exception as e:
         print(f"[whatsapp return_approved error] {e}")
+
+    try:
+        send_return_receipt_whatsapp(first_rental)
+    except Exception as e:
+        print(f"[whatsapp return_receipt error] {e}")
 
     messages.success(request, "Return approved successfully.")
     return redirect("bookingsammry")
@@ -1825,10 +1865,33 @@ def bookingsammry(request):
         total_rent = sum((item.total_rent for item in items), Decimal("0"))
         total_deposit = sum((item.deposit * item.quantity for item in items), Decimal("0"))
         first_item = items[0]
-        delivery_charge = first_item.delivery_charge if first_item.delivery_charge else Decimal("0")
+
+        del_opt = ""
+        delivery_charge_val = Decimal("0")
+        is_del_paid = False
+        for item in items:
+            if not del_opt and item.delivery_option:
+                del_opt = item.delivery_option
+            if delivery_charge_val == Decimal("0") and item.delivery_charge:
+                delivery_charge_val = item.delivery_charge
+            if item.is_delivery_paid:
+                is_del_paid = True
+
+        del_opt_normalized = (del_opt or "").strip().lower().replace("_", " ")
+        is_home_delivery = del_opt_normalized in ("delivery", "home delivery")
+        delivery_charge = delivery_charge_val if is_home_delivery else Decimal("0")
         total_payable = total_rent + total_deposit + delivery_charge
         amount_paid = sum((item.amount_paid for item in items), Decimal("0"))
         amount_remaining = max(total_payable - amount_paid, Decimal("0"))
+
+        rent_deposit_total = total_rent + total_deposit
+        if not is_home_delivery or delivery_charge <= Decimal("0") or is_del_paid:
+            pending_delivery_charge = Decimal("0")
+        else:
+            delivery_paid_so_far = max(Decimal("0"), min(delivery_charge, amount_paid - rent_deposit_total))
+            pending_delivery_charge = max(Decimal("0"), delivery_charge - delivery_paid_so_far)
+            if pending_delivery_charge <= Decimal("0") and amount_paid < total_payable:
+                pending_delivery_charge = delivery_charge
 
         booking_summaries.append({
             "order_id": order_id,
@@ -1836,7 +1899,10 @@ def bookingsammry(request):
             "items": items,
             "total_rent": total_rent,
             "total_deposit": total_deposit,
+            "delivery_option": del_opt,
+            "is_home_delivery": is_home_delivery,
             "delivery_charge": delivery_charge,
+            "pending_delivery_charge": pending_delivery_charge,
             "total_payable": total_payable,
             "amount_paid": amount_paid,
             "amount_remaining": amount_remaining,
@@ -2148,6 +2214,14 @@ def return_order(request, order_id):
                 except Exception:
                     pass
 
+        first_rental = rental_rows[0]
+        receipt_obj = first_rental.receipts.filter(receipt_type='return').order_by('-created_at').first()
+        if not receipt_obj:
+            content_file = generate_receipt(first_rental, receipt_type='return')
+            receipt_obj = Receipt.objects.create(rental_request=first_rental, receipt_type='return')
+            receipt_obj.file.save(receipt_filename(first_rental, receipt_type='return'), content_file)
+            receipt_obj.save()
+
         try:
             send_notification(
                 title=f"Order Returned for {order_id}",
@@ -2159,15 +2233,20 @@ def return_order(request, order_id):
                 notification_type='return',
                 link=f"/admin/app/history/?order_id={order_id}",
                 order_id=order_id,
-                rental=rental_rows[0]
+                rental=first_rental
             )
         except Exception as e:
             print(f"[notification direct return error] {e}")
 
         try:
-            send_return_approved_notification(rental_rows[0])
+            send_return_approved_notification(first_rental)
         except Exception as e:
             print(f"[whatsapp return_approved error] {e}")
+
+        try:
+            send_return_receipt_whatsapp(first_rental)
+        except Exception as e:
+            print(f"[whatsapp return_receipt error] {e}")
 
         messages.success(request, "Order marked as returned successfully.")
         return redirect("bookingsammry")

@@ -127,6 +127,8 @@ from .whatsapp_service import (
     send_blood_request_received_notification,
     send_blood_request_completed_notification,
     send_blood_request_notification,
+    send_booking_receipt_whatsapp,
+    send_return_receipt_whatsapp,
 )
 
-send_blood_request_whatsapp = send_blood_request_notification
+send_blood_request_whatsapp = send_blood_request_notification

@@ -187,6 +187,10 @@ def get_whatsapp_config():
             or os.environ.get("WHATSAPP_TEMPLATE_NAME")
             or "new_booking"
         ),
+        "document_template_name": (
+            getattr(settings, "WHATSAPP_DOCUMENT_TEMPLATE_NAME", None)
+            or os.environ.get("WHATSAPP_DOCUMENT_TEMPLATE_NAME")
+        ),
         "button_value": (
             getattr(settings, "WHATSAPP_BUTTON_VALUE", None)
             or os.environ.get("WHATSAPP_BUTTON_VALUE")
@@ -352,11 +356,11 @@ def send_whatsapp_template(
             }
 
         config = get_whatsapp_config()
-        auth_token = config["access_token"]
-        api_url = config["api_url"]
-        origin_website = config["origin_website"]
-        api_template_name = config["template_name"]
-        button_value = config["button_value"]
+        auth_token = config.get("access_token")
+        api_url = config.get("api_url") or "https://api.11za.in/apis/template/sendTemplate"
+        origin_website = config.get("origin_website") or "https://www.itegoss.in/"
+        api_template_name = config.get("template_name") or "new_booking"
+        button_value = config.get("button_value") or "https://www.itegoss.in/"
 
         # If a dedicated OTP template is configured, use it for login_otp
         if "otp" in str(template_name).lower():
@@ -928,4 +932,258 @@ def send_login_otp_whatsapp(phone_number, otp, user=None, force=True):
         user=user,
         force=force,
     )
+
+
+# ==============================================================================
+# 6. DOCUMENT / RECEIPT DISPATCH VIA WHATSAPP (11ZA API SUPPORT)
+# ==============================================================================
+def send_whatsapp_document(
+    phone_number,
+    document_url=None,
+    filename="receipt.pdf",
+    caption="",
+    event_key=None,
+    user=None,
+    force=False,
+    variables=None,
+):
+    """
+    Sends a PDF or document attachment to the customer's WhatsApp number.
+    Uses 11za WhatsApp API (myfile and myfileName parameters), with deduplication
+    and audit logging in the Notification model.
+    """
+    try:
+        print(f"[DEBUG WA] Stage A: send_whatsapp_document entered | phone={phone_number} | filename={filename} | url={document_url}")
+        if not phone_number:
+            logger.warning("[whatsapp warning] Missing phone number for document dispatch")
+            return {"success": False, "error": "Missing phone number"}
+
+        formatted_phone = validate_and_format_phone(phone_number)
+        if not formatted_phone:
+            logger.warning(f"[whatsapp warning] Invalid phone number: {phone_number}")
+            return {"success": False, "error": f"Invalid phone number: {phone_number}"}
+
+        if event_key and not force and is_duplicate_notification(event_key):
+            logger.info(f"[whatsapp dedup] Skipping duplicate document for event_key: {event_key}")
+            print(f"[DEBUG WA] Stage B Skipped: Duplicate document event_key: {event_key}")
+            return {
+                "success": True,
+                "duplicate": True,
+                "message": "Duplicate skipped",
+            }
+
+        config = get_whatsapp_config()
+        auth_token = config.get("access_token")
+        api_url = config.get("api_url") or "https://api.11za.in/apis/template/sendTemplate"
+        origin_website = config.get("origin_website") or "https://www.itegoss.in/"
+        api_template_name = config.get("document_template_name") or config.get("template_name") or "utility_dear_284305"
+        button_value = document_url or config.get("button_value") or origin_website
+
+        if not auth_token:
+            logger.warning("[whatsapp warning] WHATSAPP_ACCESS_TOKEN is missing. Simulating document dispatch.")
+            print(f"[DEBUG WA] WhatsApp document simulated (missing auth token) | To={formatted_phone} | File={filename}")
+            record_notification_audit(
+                formatted_phone,
+                f"whatsapp_document:{filename}",
+                [str(filename), str(document_url or "")],
+                event_key=event_key,
+                user=user,
+                link=document_url,
+                status="SIMULATED",
+            )
+            return {
+                "success": True,
+                "simulated": True,
+                "message": "Simulated document dispatch (missing token)",
+            }
+
+        padded_variables = list(variables or [])
+        while len(padded_variables) < 5:
+            padded_variables.append("")
+
+        payload = {
+            "authToken": auth_token,
+            "name": str(padded_variables[0] or "Customer"),
+            "sendto": formatted_phone,
+            "originWebsite": origin_website,
+            "templateName": api_template_name,
+            "language": "en",
+            "buttonValue": button_value,
+            "headerdata": document_url or "",
+            "myfile": document_url or "",
+            "myfileName": filename or "document.pdf",
+            "data": [str(v if v is not None else "") for v in padded_variables[:5]],
+            "tags": "receipt",
+        }
+
+        print(f"[DEBUG WA] Stage C Passed: API document request about to be sent | URL={api_url} | To={formatted_phone} | File={filename} | URL={document_url}")
+
+        try:
+            response = requests.post(
+                api_url,
+                json=payload,
+                timeout=15,
+            )
+
+            print(f"[DEBUG WA] Document API response status code: {response.status_code}")
+            print(f"[DEBUG WA] Document API response body: {response.text}")
+
+            try:
+                res_json = response.json()
+            except Exception:
+                res_json = {"raw": response.text}
+
+            if 200 <= response.status_code < 300:
+                message_id = None
+                if isinstance(res_json, dict):
+                    message_id = (
+                        res_json.get("messageId")
+                        or res_json.get("message_id")
+                        or res_json.get("id")
+                    )
+
+                logger.info(
+                    f"[whatsapp 11za document sent] To: {formatted_phone} "
+                    f"File: {filename} Response: {res_json}"
+                )
+                print(f"[DEBUG WA] Stage D/E: Document API request succeeded | message_id={message_id}")
+
+                record_notification_audit(
+                    formatted_phone,
+                    f"receipt_pdf:{filename}",
+                    [filename, document_url or ""],
+                    event_key=event_key,
+                    message_id=message_id,
+                    user=user,
+                    link=document_url,
+                    status="SENT",
+                )
+
+                return {
+                    "success": True,
+                    "message_id": message_id,
+                    "response": res_json,
+                }
+
+            logger.error(
+                f"[whatsapp 11za document error] status={response.status_code} body={response.text}"
+            )
+            record_notification_audit(
+                formatted_phone,
+                f"receipt_pdf:{filename}",
+                [filename, document_url or ""],
+                event_key=event_key,
+                user=user,
+                link=document_url,
+                status=f"FAILED_{response.status_code}",
+            )
+            return {
+                "success": False,
+                "error": f"11za API error {response.status_code}: {response.text}",
+            }
+
+        except requests.RequestException as ex:
+            logger.error(f"[whatsapp 11za document request exception] {ex}")
+            return {"success": False, "error": str(ex)}
+
+    except Exception as e:
+        logger.error(f"[whatsapp document unhandled exception] {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
+def send_booking_receipt_whatsapp(rental_or_order=None, customer_name=None, order_id=None, phone_number=None, user=None, force=False):
+    """
+    Sends the generated booking receipt PDF to the customer on WhatsApp.
+    Reuses existing generated Receipt from database or generates one with generate_receipt.
+    """
+    name, oid, phone, usr = _resolve_order_details(
+        rental_or_order, customer_name, order_id, phone_number, user
+    )
+    if not oid or oid == "N/A":
+        return {"success": False, "error": "Invalid order ID"}
+
+    from .models import History, Receipt
+    from .utils import generate_receipt, receipt_filename
+
+    order = None
+    if isinstance(rental_or_order, History):
+        order = rental_or_order
+    else:
+        order = History.objects.filter(order_id=oid).first()
+
+    if not order:
+        return {"success": False, "error": f"Order {oid} not found"}
+
+    receipt_obj = order.receipts.filter(receipt_type="booking").order_by("-created_at").first()
+    if not receipt_obj:
+        content_file = generate_receipt(order, receipt_type="booking")
+        receipt_obj = Receipt.objects.create(rental_request=order, receipt_type="booking")
+        receipt_obj.file.save(receipt_filename(order, receipt_type="booking"), content_file)
+        receipt_obj.save()
+
+    config = get_whatsapp_config()
+    origin_website = config.get("origin_website") or "https://www.itegoss.in/"
+    file_url = f"{origin_website.rstrip('/')}{receipt_obj.file.url}" if receipt_obj.file else ""
+    filename = os.path.basename(receipt_obj.file.name) if receipt_obj.file else f"Booking_Receipt_{oid}.pdf"
+
+    event_key = f"booking_receipt:{oid}"
+    return send_whatsapp_document(
+        phone_number=phone,
+        document_url=file_url,
+        filename=filename,
+        caption=f"Dear {name}, here is your booking receipt for order {oid}.",
+        event_key=event_key,
+        user=usr,
+        force=force,
+        variables=[name, oid, "Booking Receipt", "Approved", "HEMOAID"],
+    )
+
+
+def send_return_receipt_whatsapp(rental_or_order=None, customer_name=None, order_id=None, phone_number=None, user=None, force=False):
+    """
+    Sends the generated return receipt PDF to the customer on WhatsApp.
+    Reuses existing generated return Receipt from database or generates one with generate_receipt.
+    """
+    name, oid, phone, usr = _resolve_order_details(
+        rental_or_order, customer_name, order_id, phone_number, user
+    )
+    if not oid or oid == "N/A":
+        return {"success": False, "error": "Invalid order ID"}
+
+    from .models import History, Receipt
+    from .utils import generate_receipt, receipt_filename
+
+    order = None
+    if isinstance(rental_or_order, History):
+        order = rental_or_order
+    else:
+        order = History.objects.filter(order_id=oid).first()
+
+    if not order:
+        return {"success": False, "error": f"Order {oid} not found"}
+
+    receipt_obj = order.receipts.filter(receipt_type="return").order_by("-created_at").first()
+    if not receipt_obj:
+        content_file = generate_receipt(order, receipt_type="return")
+        receipt_obj = Receipt.objects.create(rental_request=order, receipt_type="return")
+        receipt_obj.file.save(receipt_filename(order, receipt_type="return"), content_file)
+        receipt_obj.save()
+
+    config = get_whatsapp_config()
+    origin_website = config.get("origin_website") or "https://www.itegoss.in/"
+    file_url = f"{origin_website.rstrip('/')}{receipt_obj.file.url}" if receipt_obj.file else ""
+    filename = os.path.basename(receipt_obj.file.name) if receipt_obj.file else f"Return_Receipt_{oid}.pdf"
+
+    event_key = f"return_receipt:{oid}"
+    return send_whatsapp_document(
+        phone_number=phone,
+        document_url=file_url,
+        filename=filename,
+        caption=f"Dear {name}, here is your return receipt for order {oid}.",
+        event_key=event_key,
+        user=usr,
+        force=force,
+        variables=[name, oid, "Return Receipt", "Returned", "HEMOAID"],
+    )
+
 

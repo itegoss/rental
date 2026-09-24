@@ -33,6 +33,7 @@ from .models import (
 from .utils import generate_receipt, receipt_filename, send_notification, send_whatsapp_message, generate_rental_report_pdf
 from .whatsapp_service import (
     send_return_approved_notification,
+    send_return_receipt_whatsapp,
     send_blood_request_accepted_notification,
     send_blood_request_cancelled_notification,
     send_blood_request_fulfilled_notification,
@@ -56,6 +57,14 @@ def approve_return(modeladmin, request, queryset):
                 except Exception:
                     pass
 
+            # Generate return receipt if not exists
+            receipt_obj = rr.receipts.filter(receipt_type='return').order_by('-created_at').first()
+            if not receipt_obj:
+                content_file = generate_receipt(rr, receipt_type='return')
+                receipt_obj = Receipt.objects.create(rental_request=rr, receipt_type='return')
+                receipt_obj.file.save(receipt_filename(rr, receipt_type='return'), content_file)
+                receipt_obj.save()
+
             try:
                 send_notification(
                     title=f"Product Returned: {rr.rental_item.title}",
@@ -75,6 +84,11 @@ def approve_return(modeladmin, request, queryset):
                 send_return_approved_notification(rr)
             except Exception as e:
                 print(f"[admin whatsapp return_approved error] {e}")
+
+            try:
+                send_return_receipt_whatsapp(rr)
+            except Exception as e:
+                print(f"[admin whatsapp return_receipt error] {e}")
 
 
 @admin.register(Receipt)

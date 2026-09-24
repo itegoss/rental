@@ -189,21 +189,37 @@ GS_SA_EMAIL = os.getenv(
 )
 
 if GS_BUCKET_NAME:
-    STORAGES = {
-        "default": {
-            "BACKEND": "app.storage.CustomGoogleCloudStorage",
-            "OPTIONS": {
-                "bucket_name": GS_BUCKET_NAME,
-                "project_id": GS_PROJECT_ID,
-                "querystring_auth": False,
+    try:
+        from storages.backends.gcloud import GoogleCloudStorage
+        can_use_gcs = True
+    except Exception:
+        can_use_gcs = False
+
+    if can_use_gcs:
+        STORAGES = {
+            "default": {
+                "BACKEND": "app.storage.CustomGoogleCloudStorage",
+                "OPTIONS": {
+                    "bucket_name": GS_BUCKET_NAME,
+                    "project_id": GS_PROJECT_ID,
+                    "querystring_auth": False,
+                },
             },
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
-    }
-    GS_DEFAULT_ACL = None
-    GS_QUERYSTRING_AUTH = False
+            "staticfiles": {
+                "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+            },
+        }
+        GS_DEFAULT_ACL = None
+        GS_QUERYSTRING_AUTH = False
+    else:
+        STORAGES = {
+            "default": {
+                "BACKEND": "django.core.files.storage.FileSystemStorage",
+            },
+            "staticfiles": {
+                "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+            },
+        }
 else:
     STORAGES = {
         "default": {

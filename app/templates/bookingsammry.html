@@ -1688,6 +1688,9 @@
                   data-rent="{{ booking.total_rent }}"
                   data-deposit="{{ booking.total_deposit }}"
                   data-delivery="{{ booking.delivery_charge }}"
+                  data-delivery-option="{{ booking.delivery_option }}"
+                  data-is-home-delivery="{% if booking.is_home_delivery %}true{% else %}false{% endif %}"
+                  data-pending-delivery="{{ booking.pending_delivery_charge }}"
                   data-total="{{ booking.total_payable }}"
                   data-paid="{{ booking.amount_paid }}"
                   data-renter="{% if rr.renter_name %}{{ rr.renter_name }}{% elif booking.customer %}{{ booking.customer.username }}{% endif %}"
@@ -1715,9 +1718,11 @@
                 {% if not rr.is_returned %}
                 {% if rr.status == "approved" or rr.status == "delivered" %}
                 {% if not rr.is_return_requested %}
+                {% if rr.status == "delivered" %}
                 <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return"
                   data-tooltip="Request Return" data-deposit="{{ booking.total_deposit }}"
                   onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> </a>
+                {% endif %}
                 <a href="{% url 'extend_return_date' booking.order_id %}" class="act-btn act-extend"
                   data-tooltip="Extend" aria-label="Extend"><i class="fas fa-calendar-plus"></i> </a>
                 {% if rr.status == "approved" %}
@@ -2352,22 +2357,29 @@
       btn.dataset.delivery,
       btn.dataset.total,
       btn.dataset.paid,
-      btn.dataset.renter
+      btn.dataset.renter,
+      btn.dataset.deliveryOption,
+      btn.dataset.isHomeDelivery,
+      btn.dataset.pendingDelivery
     );
   }
 
-  function openDeliverModal(event, orderId, rent, deposit, delivery, total, paid, renter) {
+  function openDeliverModal(event, orderId, rent, deposit, delivery, total, paid, renter, deliveryOption, isHomeDelivery, pendingDelivery) {
     if (event) event.preventDefault();
     const form = document.getElementById('deliverOrderForm');
     if (form) {
       form.action = '/deliver-order/' + encodeURIComponent(orderId) + '/';
     }
 
+    const isHomeDel = (isHomeDelivery === true || isHomeDelivery === 'true' ||
+      (deliveryOption && (deliveryOption.toLowerCase().trim() === 'delivery' || deliveryOption.toLowerCase().trim() === 'home delivery')));
+
     currentExpectedRent = parseFloat(rent || '0') || 0;
     currentExpectedDeposit = parseFloat(deposit || '0') || 0;
-    currentExpectedDelivery = parseFloat(delivery || '0') || 0;
+    currentExpectedDelivery = isHomeDel ? (parseFloat(delivery || '0') || 0) : 0;
+
     let totalNum = parseFloat(total || '0') || 0;
-    if (totalNum <= 0) {
+    if (totalNum <= 0 || !isHomeDel) {
       totalNum = currentExpectedRent + currentExpectedDeposit + currentExpectedDelivery;
     }
     currentExpectedTotal = totalNum;
@@ -2376,36 +2388,73 @@
 
     const subtitle = document.getElementById('deliverOrderSubtitle');
     if (subtitle) {
-      subtitle.textContent = 'Order #' + orderId + (renter ? ' • ' + renter : '');
+      subtitle.textContent = 'Order #' + orderId + (renter ? ' • ' + renter : '') + ' • ' + (isHomeDel ? 'Home Delivery' : 'Self Pickup');
     }
 
     document.getElementById('deliverOrderBillTotal').textContent = currentExpectedTotal.toFixed(2);
     document.getElementById('deliverExpectedRent').textContent = currentExpectedRent.toFixed(2);
     document.getElementById('deliverExpectedDeposit').textContent = currentExpectedDeposit.toFixed(2);
-    document.getElementById('deliverExpectedDelivery').textContent = currentExpectedDelivery.toFixed(2);
+    document.getElementById('deliverExpectedDelivery').textContent = isHomeDel ? currentExpectedDelivery.toFixed(2) : '0.00';
 
     const rentInput = document.getElementById('deliverRentInput');
     const depositInput = document.getElementById('deliverDepositInput');
     const deliveryInput = document.getElementById('deliverDeliveryInput');
 
-    if (paidNum >= currentExpectedTotal && currentExpectedTotal > 0) {
-      rentInput.value = currentExpectedRent.toFixed(2);
-      depositInput.value = currentExpectedDeposit.toFixed(2);
-      deliveryInput.value = currentExpectedDelivery.toFixed(2);
-    } else if (paidNum > 0) {
-      let rem = paidNum;
-      let rPaid = Math.min(rem, currentExpectedRent);
-      rem -= rPaid;
-      let dPaid = Math.min(rem, currentExpectedDeposit);
-      rem -= dPaid;
-      let delPaid = Math.min(rem, currentExpectedDelivery);
-      rentInput.value = rPaid.toFixed(2);
-      depositInput.value = dPaid.toFixed(2);
-      deliveryInput.value = delPaid.toFixed(2);
+    let pendingDeliveryVal = 0;
+    if (isHomeDel) {
+      if (pendingDelivery !== undefined && pendingDelivery !== null && pendingDelivery !== '') {
+        pendingDeliveryVal = parseFloat(pendingDelivery) || 0;
+      } else {
+        const rentDepTotal = currentExpectedRent + currentExpectedDeposit;
+        if (paidNum >= currentExpectedTotal) {
+          pendingDeliveryVal = 0;
+        } else if (paidNum > rentDepTotal) {
+          pendingDeliveryVal = Math.max(0, currentExpectedDelivery - (paidNum - rentDepTotal));
+        } else {
+          pendingDeliveryVal = currentExpectedDelivery;
+        }
+      }
     } else {
-      rentInput.value = currentExpectedRent.toFixed(2);
-      depositInput.value = currentExpectedDeposit.toFixed(2);
-      deliveryInput.value = currentExpectedDelivery.toFixed(2);
+      pendingDeliveryVal = 0;
+    }
+
+    if (!isHomeDel) {
+      // Pickup / Self Pickup: Delivery charges must show 0.00
+      deliveryInput.value = '0.00';
+      if (paidNum >= currentExpectedTotal && currentExpectedTotal > 0) {
+        rentInput.value = currentExpectedRent.toFixed(2);
+        depositInput.value = currentExpectedDeposit.toFixed(2);
+      } else if (paidNum > 0) {
+        let rem = paidNum;
+        let rPaid = Math.min(rem, currentExpectedRent);
+        rem -= rPaid;
+        let dPaid = Math.min(rem, currentExpectedDeposit);
+        rentInput.value = rPaid.toFixed(2);
+        depositInput.value = dPaid.toFixed(2);
+      } else {
+        rentInput.value = currentExpectedRent.toFixed(2);
+        depositInput.value = currentExpectedDeposit.toFixed(2);
+      }
+    } else {
+      // Home Delivery:
+      // When order was originally placed with Home Delivery, Delivery Charges field must automatically show pending delivery charge
+      if (paidNum >= currentExpectedTotal && currentExpectedTotal > 0) {
+        rentInput.value = currentExpectedRent.toFixed(2);
+        depositInput.value = currentExpectedDeposit.toFixed(2);
+        deliveryInput.value = currentExpectedDelivery.toFixed(2);
+      } else if (paidNum > 0) {
+        let rem = paidNum;
+        let rPaid = Math.min(rem, currentExpectedRent);
+        rem -= rPaid;
+        let dPaid = Math.min(rem, currentExpectedDeposit);
+        rentInput.value = rPaid.toFixed(2);
+        depositInput.value = dPaid.toFixed(2);
+        deliveryInput.value = pendingDeliveryVal.toFixed(2);
+      } else {
+        rentInput.value = currentExpectedRent.toFixed(2);
+        depositInput.value = currentExpectedDeposit.toFixed(2);
+        deliveryInput.value = pendingDeliveryVal > 0 ? pendingDeliveryVal.toFixed(2) : currentExpectedDelivery.toFixed(2);
+      }
     }
 
     updateDeliverCalculations();
