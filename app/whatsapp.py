@@ -79,10 +79,10 @@ def send_booking_whatsapp(booking_id, force=False):
     status_map = {
         "pending": "received",
         "approved": "accepted",
-        "delivered": "fulfilled",
+        "delivered": "delivered",
         "cancelled": "Cancel",
         "rejected": "Cancel",
-        "returned": "Returned",
+        "returned": "returned",
         "return_request": "Return Request",
         "return_requested": "Return Request",
         "return request": "Return Request",
@@ -90,22 +90,28 @@ def send_booking_whatsapp(booking_id, force=False):
 
     if getattr(booking, "is_return_requested", False) and not getattr(booking, "is_returned", False):
         whatsapp_status = "Return Request"
+    elif getattr(booking, "is_returned", False):
+        whatsapp_status = "returned"
     else:
+        st_clean = (booking.status or "").strip().lower()
         whatsapp_status = status_map.get(
-            booking.status,
+            st_clean,
             booking.status
         )
 
     if whatsapp_status == "Return Request":
         template_name = "return_request"
         event_key = f"return_request:{order_id}"
-    elif whatsapp_status == "accepted":
+    elif whatsapp_status in ("accepted", "approved"):
         template_name = "booking_approved"
         event_key = f"booking_approved:{order_id}"
-    elif whatsapp_status == "Cancel":
+    elif whatsapp_status in ("delivered", "Delivered"):
+        template_name = "booking_delivered"
+        event_key = f"booking_delivered:{order_id}"
+    elif whatsapp_status in ("Cancel", "cancelled", "rejected"):
         template_name = "cancel_booking"
         event_key = f"cancel_booking:{order_id}"
-    elif whatsapp_status == "Returned":
+    elif whatsapp_status in ("Returned", "returned"):
         template_name = "return_approved"
         event_key = f"return_approved:{order_id}"
     else:
@@ -129,6 +135,7 @@ from .whatsapp_service import (
     send_blood_request_notification,
     send_booking_receipt_whatsapp,
     send_return_receipt_whatsapp,
+    send_booking_delivered_notification,
 )
 
 send_blood_request_whatsapp = send_blood_request_notification

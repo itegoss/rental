@@ -4,6 +4,7 @@ from django.utils.html import format_html
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
 from django.urls import path, reverse
 from django.conf import settings
+from django.utils import timezone
 from django import forms
 import re
 import urllib.parse
@@ -47,7 +48,8 @@ def approve_return(modeladmin, request, queryset):
         if rr.is_return_requested and not rr.is_returned:
             rr.is_returned = True
             rr.is_return_requested = False   
-            rr.status = "approved"   
+            rr.status = "returned"
+            rr.actual_return_date = timezone.localdate()
             rr.save()
             try:
                 rr.rental_item.update_availability()

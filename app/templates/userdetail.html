@@ -56,33 +56,33 @@
             <div class="form-group">
               <label for="name">Renter Name</label>
               {% if is_admin %}
-                <input type="text" id="name" name="name" placeholder="Enter full name" required>
+                <input type="text" id="name" name="name" placeholder="Enter full name" value="{{ request.session.renter_name|default:'' }}" required>
               {% else %}
-                <input type="text" id="name" name="name" value="{{ request.user.username }}" required>
+                <input type="text" id="name" name="name" value="{{ request.session.renter_name|default:request.user.get_full_name|default:request.user.username }}" required>
               {% endif %}
             </div>
             <div class="form-group">
               <label for="patient_name">Patient Name</label>
               <input type="text" id="patient_name" name="patient_name"
-                     value="{{ request.session.patient_name|default:'' }}" placeholder="Name of patient" required>
+                     value="{{ request.session.patient_name|default:request.user.userdetail.patient_name|default:'' }}" placeholder="Name of patient" required>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label for="email">Email <span style="font-weight:400;text-transform:none;">(optional)</span></label>
               {% if is_admin %}
-                <input type="email" id="email" name="email" placeholder="Optional">
+                <input type="email" id="email" name="email" placeholder="Optional" value="{{ request.session.renter_email|default:'' }}">
               {% else %}
-                <input type="email" id="email" name="email" value="{{ request.user.email }}">
+                <input type="email" id="email" name="email" value="{{ request.session.renter_email|default:request.user.email|default:request.user.userdetail.email|default:'' }}">
               {% endif %}
             </div>
             <div class="form-group">
               <label for="phone">Phone Number <span class="text-danger">*</span></label>
               {% if is_admin %}
-                <input type="tel" id="phone" name="phone" maxlength="10" pattern="[0-9]{10}" placeholder="Enter WhatsApp number" required>
+                <input type="tel" id="phone" name="phone" maxlength="10" pattern="[0-9]{10}" placeholder="Enter WhatsApp number" value="{{ request.session.phone|default:request.session.user_phone|default:'' }}" required>
               {% else %}
                 <input type="tel" id="phone" name="phone" maxlength="10" pattern="[0-9]{10}"
-                       value="{{ request.session.user_phone|default:'' }}" placeholder="Enter WhatsApp number" required>
+                       value="{{ request.session.user_phone|default:request.session.phone|default:request.user.userdetail.phone|default:'' }}" placeholder="Enter WhatsApp number" required>
               {% endif %}
               <div class="whatsapp-hint-text">Enter WhatsApp number for further updates</div>
             </div>
@@ -94,21 +94,23 @@
           <div class="form-row">
             <div class="form-group">
               <label for="id_proof_type">ID Proof Type</label>
+              {% with cur_id_type=request.session.id_proof_type|default:request.user.userdetail.id_proof_type|default:'' %}
               <select id="id_proof_type" name="id_proof_type" required>
                 <option value="">— Select ID Proof —</option>
-                <option value="Aadhaar">Aadhaar Card</option>
-                <option value="DL">Driving License</option>
-                <option value="PAN">PAN Card</option>
-                <option value="Voter">Voter ID</option>
+                <option value="Aadhaar" {% if cur_id_type == 'Aadhaar' %}selected{% endif %}>Aadhaar Card</option>
+                <option value="DL" {% if cur_id_type == 'DL' %}selected{% endif %}>Driving License</option>
+                <option value="PAN" {% if cur_id_type == 'PAN' %}selected{% endif %}>PAN Card</option>
+                <option value="Voter" {% if cur_id_type == 'Voter' %}selected{% endif %}>Voter ID</option>
               </select>
+              {% endwith %}
             </div>
             <div class="form-group">
               <label for="id_proof_number">ID Proof Number</label>
               {% if is_admin %}
-                <input type="text" id="id_proof_number" name="id_proof_number" placeholder="Enter ID number" required>
+                <input type="text" id="id_proof_number" name="id_proof_number" placeholder="Enter ID number" value="{{ request.session.id_proof_number|default:'' }}" required>
               {% else %}
                 <input type="text" id="id_proof_number" name="id_proof_number"
-                       value="{{ request.session.id_proof_number|default:'' }}" placeholder="Enter ID number" required>
+                       value="{{ request.session.id_proof_number|default:request.user.userdetail.id_proof_number|default:'' }}" placeholder="Enter ID number" required>
               {% endif %}
             </div>
           </div>
@@ -121,10 +123,10 @@
             <div class="form-group">
               <label for="address">Full Address</label>
               {% if is_admin %}
-                <input type="text" id="address" name="address" placeholder="Street, Area, City" required>
+                <input type="text" id="address" name="address" placeholder="Street, Area, City" value="{{ request.session.address|default:request.session.user_address|default:'' }}" required>
               {% else %}
                 <input type="text" id="address" name="address"
-                       value="{{ request.session.user_address|default:'' }}" placeholder="Street, Area, City" required>
+                       value="{{ request.session.user_address|default:request.session.address|default:request.user.userdetail.address_line1|default:'' }}" placeholder="Street, Area, City" required>
               {% endif %}
             </div>
           </div>
@@ -132,7 +134,7 @@
             <div class="form-group" style="margin-bottom:0;">
               <label for="pincode">Pincode</label>
               <input type="text" id="pincode" name="pincode" maxlength="10"
-                     value="{{ request.session.user_pincode|default:'' }}" placeholder="Enter pincode" required>
+                     value="{{ request.session.user_pincode|default:request.session.pincode|default:request.user.userdetail.pincode|default:'' }}" placeholder="Enter pincode" required>
             </div>
           </div>
         </div>

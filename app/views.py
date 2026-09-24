@@ -123,6 +123,7 @@ from .whatsapp_service import (
     send_login_otp_whatsapp,
     send_booking_receipt_whatsapp,
     send_return_receipt_whatsapp,
+    send_booking_delivered_notification,
 )
 import secrets
 import hashlib
@@ -167,9 +168,13 @@ def signup(request):
         if not mobile:
             field_errors['mobile'] = "Mobile number is required."
         else:
-            clean_mob = re.sub(r'\D', '', str(mobile))
-            if len(clean_mob) != 10:
-                field_errors['mobile'] = "Contact number must be exactly 10 digits."
+            clean_mob = normalize_phone_number(mobile)
+            if not clean_mob:
+                field_errors['mobile'] = "Please enter a valid 10-digit Indian mobile number."
+            else:
+                existing_user, _ = find_user_by_mobile(clean_mob)
+                if existing_user:
+                    field_errors['mobile'] = "An account with this mobile number already exists. Please sign in."
 
         if not password:
             field_errors['password'] = "Password is required."
@@ -255,6 +260,7 @@ def signin(request):
                     authenticated_user = authenticate(request, username=username, password=password)
                     if authenticated_user is not None:
                         login(request, authenticated_user)
+                        load_user_profile_to_session(request, authenticated_user)
                         return redirect('index')
                     else:
                         field_errors['password'] = "Invalid username or password."
@@ -270,50 +276,286 @@ def signin(request):
     return render(request, 'signin.html')
 
 
-def find_user_by_mobile(raw_phone):
+def normalize_phone_number(raw_phone):
     """
-    Validates and searches for an active user by their 10-digit Indian mobile number.
-    Checks UserDetail.phone (with/without +91/91/0 prefix) and User.username.
-    Returns (user, 10_digit_phone) or (None, 10_digit_phone/None).
+    Standardizes a mobile number to a canonical 10-digit Indian mobile number string.
+    Strips all non-digit characters, leading +91, 91, or 0.
+    Returns 10-digit string if available, else None.
     """
     if not raw_phone:
-        return None, None
-
-    clean_digits = re.sub(r"\D", "", str(raw_phone).strip())
-    if len(clean_digits) == 12 and clean_digits.startswith("91"):
-        phone10 = clean_digits[2:]
-    elif len(clean_digits) == 11 and clean_digits.startswith("0"):
-        phone10 = clean_digits[1:]
-    elif len(clean_digits) == 10:
-        phone10 = clean_digits
+        return None
+    clean = re.sub(r"\D", "", str(raw_phone).strip())
+    if len(clean) == 12 and clean.startswith("91"):
+        p10 = clean[2:]
+    elif len(clean) == 11 and clean.startswith("0"):
+        p10 = clean[1:]
+    elif len(clean) == 10:
+        p10 = clean
+    elif len(clean) > 10:
+        p10 = clean[-10:]
     else:
-        return None, None
+        return None
+    if len(p10) == 10 and p10.isdigit():
+        return p10
+    return None
 
-    # Must be valid 10-digit Indian mobile number starting with 6, 7, 8, or 9
-    if not re.match(r"^[6-9]\d{9}$", phone10):
-        return None, phone10
 
-    # 1. Search in UserDetail
-    ud = UserDetail.objects.filter(
+def consolidate_duplicate_users_by_mobile(phone10):
+    """
+    Finds and consolidates any duplicate User records that share the same 10-digit mobile number.
+    Ensures that a single primary user account is maintained.
+    All History, BloodRequest, Cart, UserRole, Notification, and UserDetail data from
+    duplicate accounts are merged into the primary user account, and dangling duplicates
+    are cleaned up.
+    Returns the primary User instance, or None if no user exists.
+    """
+    if not phone10 or len(phone10) != 10:
+        return None
+
+    user_ids = set()
+
+    # 1. From UserDetail phone
+    ud_user_ids = UserDetail.objects.filter(
         Q(phone=phone10)
         | Q(phone=f"91{phone10}")
         | Q(phone=f"+91{phone10}")
         | Q(phone=f"0{phone10}")
         | Q(phone__endswith=phone10)
-    ).select_related('user').filter(user__is_active=True).first()
-    if ud and ud.user:
-        return ud.user, phone10
+        | Q(phone__icontains=phone10)
+    ).values_list('user_id', flat=True)
+    user_ids.update(ud_user_ids)
 
-    # 2. Search in User username
-    user = User.objects.filter(
+    # 2. From User username
+    u_ids = User.objects.filter(
         Q(username=phone10)
         | Q(username=f"91{phone10}")
         | Q(username=f"+91{phone10}")
-    ).filter(is_active=True).first()
-    if user:
-        return user, phone10
+        | Q(username=f"user_{phone10}")
+        | Q(username__startswith=f"user_{phone10}_")
+    ).values_list('id', flat=True)
+    user_ids.update(u_ids)
 
-    return None, phone10
+    # 3. From History phone
+    h_user_ids = History.objects.filter(
+        Q(phone=phone10)
+        | Q(phone=f"+91{phone10}")
+        | Q(phone__endswith=phone10)
+        | Q(phone__icontains=phone10)
+    ).values_list('user_id', flat=True)
+    user_ids.update(h_user_ids)
+
+    if not user_ids:
+        return None
+
+    candidate_users = list(User.objects.filter(id__in=user_ids).prefetch_related('history_set'))
+    if not candidate_users:
+        return None
+
+    def user_score(u):
+        h_count = u.history_set.count()
+        has_pwd = 1 if u.has_usable_password() else 0
+        has_name = 1 if (u.first_name or u.last_name) else 0
+        joined = u.date_joined.timestamp() if u.date_joined else 0
+        return (h_count, has_pwd, has_name, -joined)
+
+    candidate_users.sort(key=user_score, reverse=True)
+    primary_user = candidate_users[0]
+
+    # If duplicate users exist, merge their records into primary_user
+    for dup in candidate_users[1:]:
+        if dup.id == primary_user.id:
+            continue
+        try:
+            # Reassign History bookings
+            History.objects.filter(user=dup).update(user=primary_user)
+
+            # Reassign Blood Requests & Volunteers & Donors & Organizers
+            try:
+                from .models import BloodRequest, CampOrganizer, BloodDonor, EventVolunteer, Notification, UserRole
+                BloodRequest.objects.filter(created_by=dup).update(created_by=primary_user)
+                BloodRequest.objects.filter(updated_by=dup).update(updated_by=primary_user)
+                CampOrganizer.objects.filter(created_by=dup).update(created_by=primary_user)
+                CampOrganizer.objects.filter(updated_by=dup).update(updated_by=primary_user)
+                BloodDonor.objects.filter(created_by=dup).update(created_by=primary_user)
+                BloodDonor.objects.filter(updated_by=dup).update(updated_by=primary_user)
+                EventVolunteer.objects.filter(created_by=dup).update(created_by=primary_user)
+                EventVolunteer.objects.filter(updated_by=dup).update(updated_by=primary_user)
+                Notification.objects.filter(recipient=dup).update(recipient=primary_user)
+
+                for ur in UserRole.objects.filter(user=dup):
+                    if not UserRole.objects.filter(user=primary_user, role=ur.role).exists():
+                        ur.user = primary_user
+                        ur.save(update_fields=['user'])
+                    else:
+                        ur.delete()
+            except Exception as e_rel:
+                print(f"[user consolidation related models warning] {e_rel}")
+
+            try:
+                from social_django.models import UserSocialAuth
+                UserSocialAuth.objects.filter(user=dup).update(user=primary_user)
+            except Exception:
+                pass
+
+            try:
+                from django.contrib.admin.models import LogEntry
+                LogEntry.objects.filter(user_id=dup.id).update(user_id=primary_user.id)
+            except Exception:
+                pass
+
+            # Reassign Cart items
+            from .models import Cart
+            dup_cart = Cart.objects.filter(user=dup).first()
+            if dup_cart:
+                prim_cart, _ = Cart.objects.get_or_create(user=primary_user)
+                for ci in dup_cart.items.all():
+                    ci.cart = prim_cart
+                    ci.save(update_fields=['cart'])
+                dup_cart.delete()
+
+            # Copy user names / email to primary_user if missing
+            changed_fields = []
+            if not primary_user.first_name and dup.first_name:
+                primary_user.first_name = dup.first_name
+                changed_fields.append('first_name')
+            if not primary_user.last_name and dup.last_name:
+                primary_user.last_name = dup.last_name
+                changed_fields.append('last_name')
+            if not primary_user.email and dup.email:
+                primary_user.email = dup.email
+                changed_fields.append('email')
+            if changed_fields:
+                primary_user.save(update_fields=changed_fields)
+
+            # Copy over UserDetail fields if primary_user lacks them
+            dup_ud = UserDetail.objects.filter(user=dup).first()
+            prim_ud, _ = UserDetail.objects.get_or_create(user=primary_user)
+            if dup_ud:
+                if not prim_ud.address_line1 and dup_ud.address_line1:
+                    prim_ud.address_line1 = dup_ud.address_line1
+                if not prim_ud.pincode and dup_ud.pincode:
+                    prim_ud.pincode = dup_ud.pincode
+                if not prim_ud.patient_name and dup_ud.patient_name:
+                    prim_ud.patient_name = dup_ud.patient_name
+                if not prim_ud.id_proof_type and dup_ud.id_proof_type:
+                    prim_ud.id_proof_type = dup_ud.id_proof_type
+                if not prim_ud.id_proof_number and dup_ud.id_proof_number:
+                    prim_ud.id_proof_number = dup_ud.id_proof_number
+                if not prim_ud.city and dup_ud.city:
+                    prim_ud.city = dup_ud.city
+                if not prim_ud.state and dup_ud.state:
+                    prim_ud.state = dup_ud.state
+                if not prim_ud.email and dup_ud.email:
+                    prim_ud.email = dup_ud.email
+                prim_ud.phone = phone10
+                prim_ud.save()
+                dup_ud.delete()
+
+            # Delete the redundant duplicate user
+            dup.delete()
+        except Exception as e:
+            print(f"[user consolidation error] dup_id={dup.id} err={e}")
+
+    # Ensure primary_user has UserDetail with phone=phone10
+    prim_ud, _ = UserDetail.objects.get_or_create(user=primary_user)
+    if prim_ud.phone != phone10:
+        prim_ud.phone = phone10
+        prim_ud.save(update_fields=['phone'])
+
+    return primary_user
+
+
+def find_user_by_mobile(raw_phone):
+    """
+    Validates and searches for the definitive user account associated with a mobile number.
+    Normalizes any format (+91, spaces, dashes) and consolidates duplicates.
+    Returns (user, 10_digit_phone) or (None, 10_digit_phone/None).
+    """
+    phone10 = normalize_phone_number(raw_phone)
+    if not phone10:
+        clean_digits = re.sub(r"\D", "", str(raw_phone or "").strip())
+        if len(clean_digits) == 12 and clean_digits.startswith("91"):
+            clean_digits = clean_digits[2:]
+        elif len(clean_digits) == 11 and clean_digits.startswith("0"):
+            clean_digits = clean_digits[1:]
+        elif len(clean_digits) > 10:
+            clean_digits = clean_digits[-10:]
+        phone10 = clean_digits if len(clean_digits) == 10 else None
+
+    if not phone10:
+        return None, None
+
+    user = consolidate_duplicate_users_by_mobile(phone10)
+    return user, phone10
+
+
+def load_user_profile_to_session(request, user, phone10=None):
+    """
+    Populates request.session with user details from UserDetail and recent History
+    so that returning users have all their details immediately loaded.
+    """
+    if not user or not user.is_authenticated:
+        return
+
+    ud = getattr(user, 'userdetail', None)
+    latest_history = History.objects.filter(user=user).order_by('-created_at').first()
+
+    phone_val = (
+        phone10
+        or (ud.phone if ud and ud.phone else '')
+        or (latest_history.phone if latest_history and latest_history.phone else '')
+    )
+    if not phone_val and user.username.startswith('user_'):
+        phone_val = normalize_phone_number(user.username) or ''
+
+    address_val = (
+        (ud.address_line1 if ud and ud.address_line1 else '')
+        or (latest_history.address if latest_history and latest_history.address else '')
+    )
+    pincode_val = (ud.pincode if ud and ud.pincode else '')
+    patient_val = (
+        (ud.patient_name if ud and ud.patient_name else '')
+        or (getattr(latest_history, 'patient_name', '') if latest_history else '')
+    )
+    id_type_val = (
+        (ud.id_proof_type if ud and ud.id_proof_type else '')
+        or (getattr(latest_history, 'id_proof_type', '') if latest_history else '')
+    )
+    id_num_val = (
+        (ud.id_proof_number if ud and ud.id_proof_number else '')
+        or (getattr(latest_history, 'id_proof_number', '') if latest_history else '')
+    )
+    renter_name_val = (
+        user.get_full_name()
+        or (latest_history.renter_name if latest_history and latest_history.renter_name else '')
+        or user.username
+    )
+    renter_email_val = (
+        user.email
+        or (ud.email if ud and ud.email else '')
+        or (latest_history.email if latest_history and latest_history.email else '')
+    )
+
+    if phone_val:
+        request.session['user_phone'] = phone_val
+        request.session['phone'] = phone_val
+    if address_val:
+        request.session['user_address'] = address_val
+        request.session['address'] = address_val
+    if pincode_val:
+        request.session['user_pincode'] = pincode_val
+        request.session['pincode'] = pincode_val
+    if patient_val:
+        request.session['patient_name'] = patient_val
+    if id_type_val:
+        request.session['id_proof_type'] = id_type_val
+    if id_num_val:
+        request.session['id_proof_number'] = id_num_val
+    if renter_name_val:
+        request.session['renter_name'] = renter_name_val
+    if renter_email_val:
+        request.session['renter_email'] = renter_email_val
+    request.session.modified = True
 
 
 def signin_mobile(request):
@@ -431,10 +673,10 @@ def verify_otp(request):
 
             # Re-check user existence to prevent duplicate user creation
             user = None
-            if user_id:
-                user = User.objects.filter(id=user_id, is_active=True).first()
-            if not user and phone10:
+            if phone10:
                 user, _ = find_user_by_mobile(phone10)
+            if not user and user_id:
+                user = User.objects.filter(id=user_id, is_active=True).first()
 
             # If user does not exist, auto-register new account
             if not user:
@@ -480,9 +722,9 @@ def verify_otp(request):
                         id_proof_type='',
                         id_proof_number='',
                     )
-                elif not ud.phone:
+                elif ud.phone != phone10:
                     ud.phone = phone10
-                    ud.save()
+                    ud.save(update_fields=['phone'])
 
             if not user.is_active:
                 messages.error(request, "Your account is inactive. Please contact support.")
@@ -492,6 +734,7 @@ def verify_otp(request):
             backend = ab[0] if ab else 'django.contrib.auth.backends.ModelBackend'
             user.backend = backend
             login(request, user)
+            load_user_profile_to_session(request, user, phone10=phone10)
             messages.success(request, f"Welcome, {user.get_full_name() or user.username}!")
             return redirect('index')
         else:
@@ -1575,6 +1818,8 @@ def deliver_order(request, order_id):
         except Exception:
             pass
 
+    first_item.refresh_from_db()
+
     try:
         send_notification(
             title=f"Order Delivered: {order_id}",
@@ -1586,6 +1831,11 @@ def deliver_order(request, order_id):
         )
     except Exception as e:
         print(f"[notification error] {e}")
+
+    try:
+        send_booking_delivered_notification(first_item)
+    except Exception as e:
+        print(f"[whatsapp booking_delivered error] {e}")
 
     messages.success(request, f"Order {order_id} marked as Delivered successfully! Paid: Rs. {new_paid:.2f}, Remaining: Rs. {remaining:.2f}")
     return redirect("bookingsammry")
@@ -1603,7 +1853,7 @@ def approve_return_order(request, order_id):
     for index, rr in enumerate(rentals):
         rr.is_returned = True
         rr.is_return_requested = False
-        rr.status = "approved"
+        rr.status = "returned"
         rr.actual_return_date = timezone.localdate()
         rr.save()
         try:
@@ -1738,6 +1988,7 @@ def userdetail(request):
         if not phone:
             messages.error(request, "Phone number is required.")
             return redirect("userdetail")
+        norm_phone = normalize_phone_number(phone) or phone
         address = request.POST.get("address", "").strip()
         pincode = request.POST.get("pincode", "").strip()
         email = request.POST.get("email", "").strip()
@@ -1759,7 +2010,7 @@ def userdetail(request):
                 user_detail, _ = UserDetail.objects.update_or_create(
                     user_id=request.user.id,
                     defaults={
-                        "phone": phone,
+                        "phone": norm_phone,
                         "id_proof_type": id_proof_type,
                         "id_proof_number": id_proof_number,
                         "address_line1": address,
@@ -1773,9 +2024,12 @@ def userdetail(request):
             request.session["renter_name"] = request.POST.get("name") or request.user.get_full_name() or request.user.username
             request.session["renter_email"] = email or request.user.email
             request.session["patient_name"] = patient_name
-            request.session["phone"] = phone
+            request.session["phone"] = norm_phone or phone
+            request.session["user_phone"] = norm_phone or phone
             request.session["address"] = history_address
+            request.session["user_address"] = history_address
             request.session["pincode"] = pincode
+            request.session["user_pincode"] = pincode
             request.session["start_date"] = start_date_str
             request.session["end_date"] = end_date_str
             request.session["id_proof_type"] = id_proof_type
@@ -1790,6 +2044,9 @@ def userdetail(request):
         else:
             messages.error(request, "Your cart is empty.")
             return redirect("cart")
+
+    if request.user.is_authenticated and not is_admin:
+        load_user_profile_to_session(request, request.user)
 
     context = {
         "items": [],
@@ -2374,29 +2631,104 @@ def users(request):
         return redirect('index')
 
     q = request.GET.get('q', '').strip()
-    users = User.objects.all().order_by('username').prefetch_related('role_assignments__role')
+    users_qs = User.objects.all().select_related('userdetail').prefetch_related('role_assignments__role', 'social_auth').order_by('-date_joined')
     if q:
-        users = users.filter(
+        clean_q_digits = re.sub(r'\D', '', q)
+        q_filter = (
             Q(username__icontains=q) |
-            Q(email__icontains=q)
+            Q(email__icontains=q) |
+            Q(first_name__icontains=q) |
+            Q(last_name__icontains=q) |
+            Q(userdetail__phone__icontains=q)
         )
+        if clean_q_digits and len(clean_q_digits) >= 4:
+            if len(clean_q_digits) == 12 and clean_q_digits.startswith('91'):
+                search_p10 = clean_q_digits[2:]
+            elif len(clean_q_digits) == 11 and clean_q_digits.startswith('0'):
+                search_p10 = clean_q_digits[1:]
+            else:
+                search_p10 = clean_q_digits
+            q_filter |= Q(userdetail__phone__icontains=search_p10)
+            q_filter |= Q(username__icontains=search_p10)
+        users_qs = users_qs.filter(q_filter).distinct()
+
+    # Ensure each mobile number appears only once in User Management and CSV export
+    seen_mobiles = {}
+    dup_ids_to_exclude = set()
+    for u in list(users_qs):
+        u_phone = getattr(getattr(u, 'userdetail', None), 'phone', '') or ''
+        p10 = normalize_phone_number(u_phone)
+        if not p10 and u.username.startswith('user_'):
+            p10 = normalize_phone_number(u.username)
+        if p10:
+            if p10 in seen_mobiles:
+                primary_u = consolidate_duplicate_users_by_mobile(p10)
+                if primary_u:
+                    kept_id = primary_u.id
+                    prev_id = seen_mobiles[p10]
+                    if prev_id != kept_id:
+                        dup_ids_to_exclude.add(prev_id)
+                    if u.id != kept_id:
+                        dup_ids_to_exclude.add(u.id)
+                    seen_mobiles[p10] = kept_id
+                else:
+                    dup_ids_to_exclude.add(u.id)
+            else:
+                seen_mobiles[p10] = u.id
+    if dup_ids_to_exclude:
+        users_qs = users_qs.exclude(id__in=dup_ids_to_exclude)
 
     if request.GET.get('export') == 'csv':
         start_date_str = request.GET.get('start_date')
         end_date_str = request.GET.get('end_date')
         if start_date_str:
-            users = users.filter(date_joined__date__gte=start_date_str)
+            users_qs = users_qs.filter(date_joined__date__gte=start_date_str)
         if end_date_str:
-            users = users.filter(date_joined__date__lte=end_date_str)
+            users_qs = users_qs.filter(date_joined__date__lte=end_date_str)
         import csv
         from django.http import HttpResponse
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment; filename="users.csv"'
         writer = csv.writer(response)
-        writer.writerow(['ID', 'Username', 'Email', 'Superuser', 'Staff', 'Roles'])
-        for u in users:
+        writer.writerow(['ID', 'Username', 'Name', 'Email', 'Mobile', 'Login Method', 'Status', 'Superuser', 'Staff', 'Roles'])
+        for u in users_qs:
             user_roles = ", ".join([a.role.name for a in u.role_assignments.all()]) or "No role assigned"
-            writer.writerow([u.id, u.username, u.email or '-', 'Yes' if u.is_superuser else 'No', 'Yes' if u.is_staff else 'No', user_roles])
+            u_name = u.get_full_name() or getattr(getattr(u, 'userdetail', None), 'patient_name', '') or '-'
+            u_phone = getattr(getattr(u, 'userdetail', None), 'phone', '') or ''
+            if not u_phone and u.username.startswith('user_'):
+                u_phone = re.sub(r'\D', '', u.username)[:10]
+            elif not u_phone and u.username.isdigit() and len(u.username) == 10:
+                u_phone = u.username
+
+            is_google = False
+            if hasattr(u, 'social_auth'):
+                is_google = any('google' in sa.provider.lower() for sa in u.social_auth.all())
+            is_mobile_otp = u.username.startswith('user_') or (not u.has_usable_password() and u_phone and not is_google)
+
+            if is_google and (is_mobile_otp or u_phone):
+                login_method = "Google & Mobile OTP"
+            elif is_google:
+                login_method = "Google"
+            elif is_mobile_otp:
+                login_method = "Mobile OTP"
+            elif u.has_usable_password():
+                login_method = "Password"
+            else:
+                login_method = "Standard"
+
+            status = "Active" if u.is_active else "Inactive"
+            writer.writerow([
+                u.id,
+                u.username,
+                u_name,
+                u.email or '-',
+                u_phone or '-',
+                login_method,
+                status,
+                'Yes' if u.is_superuser else 'No',
+                'Yes' if u.is_staff else 'No',
+                user_roles
+            ])
         return response
 
     if request.method == 'POST':
@@ -2452,8 +2784,41 @@ def users(request):
         page_size_int = 10
     page_size = str(page_size_int)
 
-    paginator = Paginator(users, page_size_int)
+    paginator = Paginator(users_qs, page_size_int)
     page_obj = paginator.get_page(request.GET.get('page'))
+
+    # Annotate attributes on users in current page
+    for u in page_obj:
+        u.display_name = u.get_full_name() or getattr(getattr(u, 'userdetail', None), 'patient_name', '') or ''
+        u_phone = getattr(getattr(u, 'userdetail', None), 'phone', '') or ''
+        if not u_phone and u.username.startswith('user_'):
+            u_phone = re.sub(r'\D', '', u.username)[:10]
+        elif not u_phone and u.username.isdigit() and len(u.username) == 10:
+            u_phone = u.username
+        u.mobile_number = u_phone
+
+        is_google = False
+        if hasattr(u, 'social_auth'):
+            is_google = any('google' in sa.provider.lower() for sa in u.social_auth.all())
+        is_mobile_otp = u.username.startswith('user_') or (not u.has_usable_password() and u_phone and not is_google)
+        has_password = u.has_usable_password()
+
+        if is_google and (is_mobile_otp or u_phone):
+            u.login_method_label = "Google & OTP"
+            u.login_method_code = "google_mobile"
+        elif is_google:
+            u.login_method_label = "Google"
+            u.login_method_code = "google"
+        elif is_mobile_otp:
+            u.login_method_label = "Mobile OTP"
+            u.login_method_code = "mobile_otp"
+        elif has_password:
+            u.login_method_label = "Password"
+            u.login_method_code = "password"
+        else:
+            u.login_method_label = "Standard"
+            u.login_method_code = "standard"
+
     roles = Role.objects.all().order_by('name')
 
     return render(request, 'users.html', {

@@ -9,8 +9,12 @@ from app.whatsapp_service import (
     send_whatsapp_document,
     send_booking_receipt_whatsapp,
     send_return_receipt_whatsapp,
+    send_booking_approved_notification,
+    send_booking_delivered_notification,
+    send_return_approved_notification,
+    send_whatsapp_template,
 )
-from app.views import approve_order, approve_return_order, return_order
+from app.views import approve_order, deliver_order, approve_return_order, return_order
 from django.core.cache import cache
 import os
 
@@ -313,3 +317,109 @@ class WhatsAppReceiptNotificationTests(TestCase):
         # 3. WhatsApp notification and receipt sent
         mock_admin_ret_notif.assert_called_once()
         mock_admin_ret_receipt_wa.assert_called_once()
+
+    @patch("app.views.send_booking_delivered_notification")
+    @patch("app.views.send_booking_approved_notification")
+    def test_deliver_order_flow_sends_delivered_whatsapp(self, mock_approved_notif, mock_delivered_notif):
+        """
+        Verify Delivery Flow:
+        Mark as Delivered -> status becomes 'delivered' -> Delivered WhatsApp notification sent.
+        Accepted WhatsApp is NOT sent.
+        """
+        self.rental.status = "approved"
+        self.rental.save()
+
+        request = self.factory.post(
+            f"/deliver-order/{self.order_id}/",
+            {"amount_paid": "2800.00"}
+        )
+        request.user = self.admin_user
+        from django.contrib.messages.storage.cookie import CookieStorage
+        setattr(request, '_messages', CookieStorage(request))
+
+        with patch("app.views.user_has_permission", return_value=True):
+            response = deliver_order(request, self.order_id)
+            self.assertEqual(response.status_code, 302)
+
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.status, "delivered")
+
+        # Delivered notification was called with the updated order
+        mock_delivered_notif.assert_called_once()
+        delivered_arg = mock_delivered_notif.call_args[0][0]
+        self.assertEqual(delivered_arg.status, "delivered")
+
+        # Accepted notification was NOT called
+        mock_approved_notif.assert_not_called()
+
+    @patch("app.whatsapp_service.send_whatsapp_template")
+    def test_template_variables_status_accepted_delivered_returned(self, mock_send_template):
+        """
+        Verify that:
+        - Accepted action passes status variable 'accepted'
+        - Delivery action passes status variable 'delivered'
+        - Return action passes status variable 'returned'
+        """
+        mock_send_template.return_value = {"success": True, "message_id": "test_mid"}
+
+        # 1. Accepted action
+        self.rental.status = "approved"
+        self.rental.save()
+        send_booking_approved_notification(self.rental, force=True)
+        call_args_accepted = mock_send_template.call_args
+        self.assertEqual(call_args_accepted.kwargs["template_name"], "booking_approved")
+        # variables: [name, order_id, request_type, status, HEMOAID]
+        self.assertEqual(call_args_accepted.kwargs["variables"][3], "accepted")
+
+        # 2. Delivered action
+        self.rental.status = "delivered"
+        self.rental.save()
+        send_booking_delivered_notification(self.rental, force=True)
+        call_args_delivered = mock_send_template.call_args
+        self.assertEqual(call_args_delivered.kwargs["template_name"], "booking_delivered")
+        self.assertEqual(call_args_delivered.kwargs["variables"][3], "delivered")
+
+        # 3. Returned action
+        self.rental.status = "returned"
+        self.rental.is_returned = True
+        self.rental.save()
+        send_return_approved_notification(self.rental, force=True)
+        call_args_returned = mock_send_template.call_args
+        self.assertEqual(call_args_returned.kwargs["template_name"], "return_approved")
+        self.assertEqual(call_args_returned.kwargs["variables"][3], "returned")
+
+    @patch("app.whatsapp.send_whatsapp_template")
+    def test_send_booking_whatsapp_routes_to_correct_status(self, mock_send_template):
+        """
+        Verify send_booking_whatsapp accurately maps:
+        - approved -> accepted
+        - delivered -> delivered
+        - returned -> returned
+        """
+        from app.whatsapp import send_booking_whatsapp
+        mock_send_template.return_value = {"success": True}
+
+        # Delivered order
+        self.rental.status = "delivered"
+        self.rental.is_returned = False
+        self.rental.save()
+        send_booking_whatsapp(self.rental, force=True)
+        self.assertEqual(mock_send_template.call_args.kwargs["template_name"], "booking_delivered")
+        self.assertEqual(mock_send_template.call_args.kwargs["variables"][3], "delivered")
+
+        # Approved order
+        self.rental.status = "approved"
+        self.rental.is_returned = False
+        self.rental.save()
+        send_booking_whatsapp(self.rental, force=True)
+        self.assertEqual(mock_send_template.call_args.kwargs["template_name"], "booking_approved")
+        self.assertEqual(mock_send_template.call_args.kwargs["variables"][3], "accepted")
+
+        # Returned order
+        self.rental.status = "returned"
+        self.rental.is_returned = True
+        self.rental.save()
+        send_booking_whatsapp(self.rental, force=True)
+        self.assertEqual(mock_send_template.call_args.kwargs["template_name"], "return_approved")
+        self.assertEqual(mock_send_template.call_args.kwargs["variables"][3], "returned")
+

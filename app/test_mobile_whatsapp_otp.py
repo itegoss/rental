@@ -334,3 +334,427 @@ class MobileWhatsAppOTPLoginTests(TestCase):
         self.assertNotIn('otp_data', self.client.session)
         self.assertNotIn('login_otp_data', self.client.session)
 
+
+@override_settings(STORAGES={'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'}, 'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
+class UserManagementMobileUsersTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        # Admin user to access /users/
+        self.admin = User.objects.create_superuser(
+            username='admin_test',
+            email='admin@example.com',
+            password='AdminPassword@123',
+            first_name='Admin',
+            last_name='User',
+        )
+        self.client.force_login(self.admin)
+
+    def test_mobile_otp_user_appears_in_user_management_list(self):
+        otp_mobile = '9876512345'
+        otp_user = User.objects.create_user(
+            username=f"user_{otp_mobile}",
+            email='',
+            first_name='Rohan',
+            last_name='Sharma',
+        )
+        otp_user.set_unusable_password()
+        otp_user.save()
+        UserDetail.objects.create(
+            user=otp_user,
+            phone=otp_mobile,
+            id_proof_type='',
+            id_proof_number='',
+        )
+
+        response = self.client.get(reverse('users'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Rohan Sharma')
+        self.assertContains(response, f"user_{otp_mobile}")
+        self.assertContains(response, otp_mobile)
+        self.assertContains(response, 'Mobile OTP')
+
+    def test_google_and_mobile_users_both_visible_in_same_user_list(self):
+        from social_django.models import UserSocialAuth
+
+        # Google login user
+        google_user = User.objects.create_user(
+            username='google_user_test',
+            email='googleuser@gmail.com',
+            first_name='Google',
+            last_name='Person',
+        )
+        google_user.set_unusable_password()
+        google_user.save()
+        UserSocialAuth.objects.create(
+            user=google_user,
+            provider='google-oauth2',
+            uid='google_uid_99999',
+        )
+
+        # Mobile OTP user
+        otp_user = User.objects.create_user(
+            username='user_9776655443',
+            email='',
+            first_name='Mobile',
+            last_name='Person',
+        )
+        otp_user.set_unusable_password()
+        otp_user.save()
+        UserDetail.objects.create(
+            user=otp_user,
+            phone='9776655443',
+            id_proof_type='',
+            id_proof_number='',
+        )
+
+        response = self.client.get(reverse('users'))
+        self.assertEqual(response.status_code, 200)
+        # Both Google and Mobile users should be visible in the same list
+        self.assertContains(response, 'googleuser@gmail.com')
+        self.assertContains(response, 'Google Person')
+        self.assertContains(response, 'Google')
+
+        self.assertContains(response, 'Mobile Person')
+        self.assertContains(response, '9776655443')
+        self.assertContains(response, 'Mobile OTP')
+
+    def test_verify_otp_creates_user_and_shows_in_user_list(self):
+        new_mobile = '9812398123'
+        otp = '123456'
+        salt = 'salttest'
+        otp_hash = hashlib.sha256(f"{otp}:{salt}".encode()).hexdigest()
+
+        visitor = Client()
+        session = visitor.session
+        session['login_otp_data'] = {
+            'user_id': None,
+            'mobile': new_mobile,
+            'otp_hash': otp_hash,
+            'otp_salt': salt,
+            'expires_at': timezone.now().timestamp() + 300,
+            'last_sent_at': timezone.now().timestamp(),
+            'attempts': 0,
+        }
+        session.save()
+
+        verify_resp = visitor.post(reverse('verify_otp'), {
+            'mobile': new_mobile,
+            'otp': '123456',
+        })
+        self.assertEqual(verify_resp.status_code, 302)
+
+        # Check DB user was created
+        created_user = User.objects.filter(username__contains=new_mobile).first()
+        self.assertIsNotNone(created_user)
+        ud = UserDetail.objects.filter(user=created_user).first()
+        self.assertIsNotNone(ud)
+        self.assertEqual(ud.phone, new_mobile)
+
+        # Admin verifies user appears in User Management list
+        users_resp = self.client.get(reverse('users'))
+        self.assertEqual(users_resp.status_code, 200)
+        self.assertContains(users_resp, created_user.username)
+        self.assertContains(users_resp, new_mobile)
+        self.assertContains(users_resp, 'Mobile OTP')
+
+    def test_existing_user_reused_without_duplicate(self):
+        # Create existing user
+        mobile = '9911223344'
+        existing_user = User.objects.create_user(
+            username='existing_rahul',
+            email='rahul@example.com',
+            password='Password@123',
+            first_name='Rahul',
+            last_name='Verma',
+        )
+        UserDetail.objects.create(
+            user=existing_user,
+            phone=mobile,
+            id_proof_type='',
+            id_proof_number='',
+        )
+        user_count_before = User.objects.count()
+
+        otp = '654321'
+        salt = 'salttest2'
+        otp_hash = hashlib.sha256(f"{otp}:{salt}".encode()).hexdigest()
+
+        visitor = Client()
+        session = visitor.session
+        session['login_otp_data'] = {
+            'user_id': existing_user.id,
+            'mobile': mobile,
+            'otp_hash': otp_hash,
+            'otp_salt': salt,
+            'expires_at': timezone.now().timestamp() + 300,
+            'last_sent_at': timezone.now().timestamp(),
+            'attempts': 0,
+        }
+        session.save()
+
+        verify_resp = visitor.post(reverse('verify_otp'), {
+            'mobile': mobile,
+            'otp': otp,
+        })
+        self.assertEqual(verify_resp.status_code, 302)
+
+        # User count must NOT increase
+        user_count_after = User.objects.count()
+        self.assertEqual(user_count_before, user_count_after)
+
+    def test_mobile_number_storage_consistency(self):
+        # Test signup with +91 format
+        signup_data = {
+            'username': 'consistent_user',
+            'email': 'consistent@example.com',
+            'mobile': '+91 98700 11223',
+            'password': 'StrongPassword@123',
+            'confirm_password': 'StrongPassword@123',
+        }
+        response = self.client.post(reverse('signup'), signup_data)
+        self.assertEqual(response.status_code, 302)
+
+        user = User.objects.get(username='consistent_user')
+        ud = UserDetail.objects.get(user=user)
+        # Must be stored consistently as canonical 10-digit number
+        self.assertEqual(ud.phone, '9870011223')
+
+        # Attempting signup with 9870011223 should be blocked as duplicate
+        dup_data = {
+            'username': 'dup_user',
+            'email': 'dup@example.com',
+            'mobile': '9870011223',
+            'password': 'StrongPassword@123',
+            'confirm_password': 'StrongPassword@123',
+        }
+        dup_resp = self.client.post(reverse('signup'), dup_data)
+        self.assertContains(dup_resp, "An account with this mobile number already exists")
+
+    def test_user_list_search_by_mobile_and_name(self):
+        target_mobile = '9822334455'
+        target_user = User.objects.create_user(
+            username=f"user_{target_mobile}",
+            email='target@example.com',
+            first_name='Aarav',
+            last_name='Mehta',
+        )
+        UserDetail.objects.create(
+            user=target_user,
+            phone=target_mobile,
+            id_proof_type='',
+            id_proof_number='',
+        )
+
+        # 1. Search by 10-digit phone
+        resp1 = self.client.get(reverse('users'), {'q': target_mobile})
+        self.assertContains(resp1, 'Aarav Mehta')
+        self.assertContains(resp1, target_mobile)
+
+        # 2. Search by formatted phone (+91 ...)
+        resp2 = self.client.get(reverse('users'), {'q': f"+91 {target_mobile}"})
+        self.assertContains(resp2, 'Aarav Mehta')
+        self.assertContains(resp2, target_mobile)
+
+        # 3. Search by First Name
+        resp3 = self.client.get(reverse('users'), {'q': 'Aarav'})
+        self.assertContains(resp3, 'Aarav Mehta')
+
+    def test_user_list_csv_export(self):
+        export_resp = self.client.get(reverse('users'), {'export': 'csv'})
+        self.assertEqual(export_resp.status_code, 200)
+        self.assertEqual(export_resp['Content-Type'], 'text/csv; charset=utf-8')
+        content = export_resp.content.decode('utf-8')
+        # Verify CSV headers include Mobile and Login Method
+        self.assertIn('ID,Username,Name,Email,Mobile,Login Method,Status,Superuser,Staff,Roles', content)
+
+    @patch('app.views.send_login_otp_whatsapp')
+    def test_same_mobile_login_logout_relogin_flow(self, mock_send_wa):
+        """
+        Exact test flow:
+        Mobile -> OTP -> Login -> Add Details & Booking -> Logout -> Same Mobile -> OTP -> Login
+        Expected: Same user account (same ID), details and history preserved, no duplicate user created.
+        """
+        self.client.logout()
+        mock_send_wa.return_value = {'success': True, 'method': 'template', 'response': {}}
+        mobile = '9876500001'
+
+        # --- STEP 1: First Login via Mobile + OTP ---
+        res_post = self.client.post(reverse('signin_mobile'), {'mobile': mobile})
+        self.assertEqual(res_post.status_code, 302)
+
+        session = self.client.session
+        otp_data = session['login_otp_data']
+        salt = otp_data['otp_salt']
+        otp_val = '654321'
+        otp_data['otp_hash'] = hashlib.sha256(f"{otp_val}:{salt}".encode()).hexdigest()
+        session.save()
+
+        res_verify = self.client.post(reverse('verify_otp'), {'otp': otp_val})
+        self.assertEqual(res_verify.status_code, 302)
+
+        # Confirm user was created
+        first_user = User.objects.get(userdetail__phone=mobile)
+        self.assertEqual(first_user.username, f"user_{mobile}")
+        user_count_after_first_login = User.objects.count()
+
+        # Update user details & create a booking
+        first_user.first_name = 'Rohan'
+        first_user.last_name = 'Sharma'
+        first_user.save()
+
+        ud = first_user.userdetail
+        ud.patient_name = 'Rohan Patient'
+        ud.address_line1 = 'Flat 101, Galaxy Apts, Mumbai'
+        ud.pincode = '400050'
+        ud.id_proof_type = 'Aadhaar'
+        ud.id_proof_number = '1234-5678-9012'
+        ud.save()
+
+        from app.models import Inventory, History
+        inventory_item = Inventory.objects.create(
+            title="Hospital Bed Model X",
+            description="ICU Bed",
+            total_quantity=5,
+            available_quantity=5,
+            price_per_day=500,
+            deposit=2000,
+        )
+        booking = History.objects.create(
+            user=first_user,
+            rental_item=inventory_item,
+            start_date=datetime.date.today(),
+            end_date=datetime.date.today() + datetime.timedelta(days=7),
+            renter_name='Rohan Sharma',
+            phone=mobile,
+            address='Flat 101, Galaxy Apts, Mumbai, 400050',
+            status='Approved',
+            rent=3500,
+            deposit=2000,
+            total_amount=5500,
+        )
+
+        # --- STEP 2: Logout ---
+        logout_resp = self.client.get(reverse('logout'))
+        self.assertEqual(logout_resp.status_code, 302)
+        # Verify session is flushed
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+        # --- STEP 3: Re-login using the SAME mobile (+91 format) + OTP ---
+        formatted_mobile = f"+91 {mobile}"
+        res_post2 = self.client.post(reverse('signin_mobile'), {'mobile': formatted_mobile})
+        self.assertEqual(res_post2.status_code, 302)
+
+        session2 = self.client.session
+        otp_data2 = session2['login_otp_data']
+        salt2 = otp_data2['otp_salt']
+        otp_val2 = '789123'
+        otp_data2['otp_hash'] = hashlib.sha256(f"{otp_val2}:{salt2}".encode()).hexdigest()
+        session2.save()
+
+        res_verify2 = self.client.post(reverse('verify_otp'), {'otp': otp_val2})
+        self.assertEqual(res_verify2.status_code, 302)
+
+        # --- STEP 4: Assertions on User Record ---
+        # User ID must be identical to first login
+        self.assertEqual(int(self.client.session['_auth_user_id']), first_user.id)
+        # Total user count in database must NOT increase
+        self.assertEqual(User.objects.count(), user_count_after_first_login)
+
+        # Check session preloaded details
+        session_after = self.client.session
+        self.assertEqual(session_after.get('phone'), mobile)
+        self.assertEqual(session_after.get('user_phone'), mobile)
+        self.assertEqual(session_after.get('patient_name'), 'Rohan Patient')
+        self.assertEqual(session_after.get('id_proof_number'), '1234-5678-9012')
+        self.assertEqual(session_after.get('pincode'), '400050')
+
+        # Check booking summary loads existing booking for this user
+        resp_bookings = self.client.get(reverse('bookingsammry'))
+        self.assertEqual(resp_bookings.status_code, 200)
+        self.assertContains(resp_bookings, "Hospital Bed Model X")
+        self.assertContains(resp_bookings, "Rohan Sharma")
+
+        # Check userdetail page loads user's saved profile data
+        from app.models import Cart, CartItem
+        cart = Cart.objects.create(user=first_user)
+        CartItem.objects.create(cart=cart, rental_item=inventory_item, quantity=1)
+        resp_userdetail = self.client.get(reverse('userdetail'))
+        self.assertEqual(resp_userdetail.status_code, 200)
+        self.assertContains(resp_userdetail, 'Rohan Patient')
+        self.assertContains(resp_userdetail, mobile)
+        self.assertContains(resp_userdetail, '1234-5678-9012')
+        self.assertContains(resp_userdetail, '400050')
+
+    @patch('app.views.send_login_otp_whatsapp')
+    def test_different_mobile_formats_map_to_same_user(self, mock_send_wa):
+        """
+        Verify +91XXXXXXXXXX, 91XXXXXXXXXX, 0XXXXXXXXXX, and XXXXXXXXXX all map to same user.
+        """
+        self.client.logout()
+        mock_send_wa.return_value = {'success': True, 'method': 'template', 'response': {}}
+        canonical_mobile = '9876543299'
+
+        formats = [
+            f"+91 {canonical_mobile}",
+            f"91{canonical_mobile}",
+            f"0{canonical_mobile}",
+            canonical_mobile,
+        ]
+
+        assigned_user_id = None
+
+        for idx, fmt in enumerate(formats):
+            res_post = self.client.post(reverse('signin_mobile'), {'mobile': fmt})
+            self.assertEqual(res_post.status_code, 302)
+
+            session = self.client.session
+            otp_data = session['login_otp_data']
+            salt = otp_data['otp_salt']
+            otp_val = f"11122{idx}"
+            otp_data['otp_hash'] = hashlib.sha256(f"{otp_val}:{salt}".encode()).hexdigest()
+            session.save()
+
+            res_verify = self.client.post(reverse('verify_otp'), {'otp': otp_val})
+            self.assertEqual(res_verify.status_code, 302)
+
+            logged_in_id = int(self.client.session['_auth_user_id'])
+            if assigned_user_id is None:
+                assigned_user_id = logged_in_id
+            else:
+                self.assertEqual(logged_in_id, assigned_user_id, f"Format '{fmt}' did not map to same user!")
+
+            # Logout before next attempt
+            self.client.get(reverse('logout'))
+
+    def test_user_list_deduplicates_same_mobile(self):
+        """
+        Ensure User Management list and CSV export show the mobile number ONLY ONCE.
+        """
+        shared_phone = '9822339988'
+        # Create user 1
+        u1 = User.objects.create_user(username='orig_user_phone', email='u1@test.com', password='Password@123')
+        UserDetail.objects.create(user=u1, phone=shared_phone)
+
+        # Create duplicate user 2 with +91 format in phone
+        u2 = User.objects.create_user(username=f'user_{shared_phone}_dup', email='u2@test.com')
+        UserDetail.objects.create(user=u2, phone=f"+91{shared_phone}")
+
+        # Login as superuser/staff
+        admin = User.objects.create_superuser('test_admin_dedup', 'admin_dedup@test.com', 'Pass@123')
+        self.client.force_login(admin)
+
+        # Check User List HTML
+        resp = self.client.get(reverse('users'))
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode('utf-8')
+        # Count occurrences of shared_phone in table rows (should only appear once in list)
+        self.assertEqual(content.count(shared_phone), 1)
+
+        # Check CSV export
+        csv_resp = self.client.get(reverse('users'), {'export': 'csv'})
+        csv_content = csv_resp.content.decode('utf-8')
+        # In CSV, shared_phone should appear in exactly one data row
+        self.assertEqual(csv_content.count(shared_phone), 1)
+
+
+

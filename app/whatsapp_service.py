@@ -27,7 +27,16 @@ WHATSAPP_TEMPLATES = {
         "description": "Triggered when a booking/order is approved by admin",
         "template": (
             "Dear {{1}},\n\n"
-            "Your order {{2}} for medical equipment has been approved. Our team will coordinate delivery/pickup."
+            "Your order {{2}} for medical equipment has been accepted."
+        ),
+        "variables": ["Customer Name", "Order ID / Order Number"],
+    },
+    "booking_delivered": {
+        "name": "booking_delivered",
+        "description": "Triggered when an order is marked as delivered",
+        "template": (
+            "Dear {{1}},\n\n"
+            "Your order {{2}} for medical equipment has been delivered."
         ),
         "variables": ["Customer Name", "Order ID / Order Number"],
     },
@@ -54,7 +63,7 @@ WHATSAPP_TEMPLATES = {
         "description": "Triggered when the return request status changes to Approved/Completed",
         "template": (
             "Dear {{1}},\n\n"
-            "Your return request for order {{2}} has been approved/completed successfully."
+            "Your order {{2}} for medical equipment has been returned."
         ),
         "variables": ["Customer Name", "Order ID / Order Number"],
     },
@@ -602,16 +611,63 @@ def send_booking_approved_notification(rental_or_order=None, customer_name=None,
     """
     Template: booking_approved
     Variables: {{1}} = Customer Name, {{2}} = Order ID
-    Trigger: When an existing booking/order is approved by admin.
+    Trigger: When an existing booking/order is approved by admin (Accepted action).
     """
+    if rental_or_order and hasattr(rental_or_order, "refresh_from_db"):
+        try:
+            rental_or_order.refresh_from_db()
+        except Exception:
+            pass
+
     name, oid, phone, usr = _resolve_order_details(
         rental_or_order, customer_name, order_id, phone_number, user
     )
+    status_val = "accepted"
     event_key = f"booking_approved:{oid}"
     return send_whatsapp_template(
         phone_number=phone,
         template_name="booking_approved",
-        variables=[name, oid, "medical equipment", "accepted", "HEMOAID"],
+        variables=[name, oid, "medical equipment", status_val, "HEMOAID"],
+        event_key=event_key,
+        user=usr,
+        link=f"/admin/app/history/?order_id={oid}",
+        force=force,
+    )
+
+
+# ------------------------------------------------------------------------------
+# 1C. BOOKING DELIVERED
+# ------------------------------------------------------------------------------
+def send_booking_delivered_notification(rental_or_order=None, customer_name=None, order_id=None, phone_number=None, user=None, force=False):
+    """
+    Template: booking_delivered
+    Variables: {{1}} = Customer Name, {{2}} = Order ID
+    Trigger: When an existing booking/order is delivered (Delivery action).
+    """
+    if rental_or_order and hasattr(rental_or_order, "refresh_from_db"):
+        try:
+            rental_or_order.refresh_from_db()
+        except Exception:
+            pass
+
+    name, oid, phone, usr = _resolve_order_details(
+        rental_or_order, customer_name, order_id, phone_number, user
+    )
+
+    # Use the current status after delivery action
+    status_val = "delivered"
+    if rental_or_order and hasattr(rental_or_order, "status") and rental_or_order.status:
+        st = str(rental_or_order.status).strip().lower()
+        if st in ("delivered", "deliver"):
+            status_val = "delivered"
+        else:
+            status_val = st
+
+    event_key = f"booking_delivered:{oid}"
+    return send_whatsapp_template(
+        phone_number=phone,
+        template_name="booking_delivered",
+        variables=[name, oid, "medical equipment", status_val, "HEMOAID"],
         event_key=event_key,
         user=usr,
         link=f"/admin/app/history/?order_id={oid}",
@@ -674,16 +730,31 @@ def send_return_approved_notification(rental_or_order=None, customer_name=None, 
     """
     Template: return_approved
     Variables: {{1}} = Customer Name, {{2}} = Order ID
-    Trigger: When the return request status changes to Approved/Completed.
+    Trigger: When the return request status changes to Approved/Completed (Returned).
     """
+    if rental_or_order and hasattr(rental_or_order, "refresh_from_db"):
+        try:
+            rental_or_order.refresh_from_db()
+        except Exception:
+            pass
+
     name, oid, phone, usr = _resolve_order_details(
         rental_or_order, customer_name, order_id, phone_number, user
     )
+
+    status_val = "returned"
+    if rental_or_order and hasattr(rental_or_order, "status") and rental_or_order.status:
+        st = str(rental_or_order.status).strip().lower()
+        if st in ("returned", "approved"):
+            status_val = "returned"
+        else:
+            status_val = st
+
     event_key = f"return_approved:{oid}"
     return send_whatsapp_template(
         phone_number=phone,
         template_name="return_approved",
-        variables=[name, oid, "medical equipment", "Returned", "HEMOAID"],
+        variables=[name, oid, "medical equipment", status_val, "HEMOAID"],
         event_key=event_key,
         user=usr,
         link=f"/admin/app/history/?order_id={oid}",
