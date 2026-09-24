@@ -211,3 +211,13 @@ ul.errorlist li {
     transform: translateY(0);
   }
 }
+
+/* Reusable WhatsApp input helper/guidance text */
+.whatsapp-hint-text {
+  color: #dc2626 !important;
+  font-size: 12.5px !important;
+  font-weight: 500;
+  margin-top: 5px;
+  line-height: 1.35;
+  display: block;
+}

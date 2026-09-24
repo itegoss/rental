@@ -162,6 +162,8 @@ class History(models.Model):
             ('delivered', 'Delivered'),
             ('rejected', 'Rejected'),
             ('cancelled', 'Cancelled'),
+            ('returned', 'Returned'),
+            ('return_request', 'Return Request'),
         ],
         default='pending',
         db_index=True

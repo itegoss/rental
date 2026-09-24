@@ -128,6 +128,15 @@
     font-weight: 600;
   }
 
+  .whatsapp-hint-text {
+    color: #dc2626;
+    font-size: 12.5px;
+    font-weight: 500;
+    margin-top: 5px;
+    line-height: 1.35;
+    display: block;
+  }
+
   .btn-signin {
     width: 100%;
     padding: 14px;
@@ -248,7 +257,8 @@
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_coordinator_contact">Coordinator’s Contact number <span class="text-danger">*</span></label>
-          <input type="tel" name="coordinator_contact" id="id_coordinator_contact" required placeholder="10-digit mobile number" value="{{ form.coordinator_contact.value|default_if_none:'' }}" class="{% if form.coordinator_contact.errors %}is-invalid{% endif %}">
+          <input type="tel" name="coordinator_contact" id="id_coordinator_contact" required placeholder="Enter WhatsApp number" value="{{ form.coordinator_contact.value|default_if_none:'' }}" class="{% if form.coordinator_contact.errors %}is-invalid{% endif %}">
+          <div class="whatsapp-hint-text">Enter WhatsApp number for further updates</div>
           {% if form.coordinator_contact.errors %}
             <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.coordinator_contact.errors.0 }}</div>
           {% endif %}

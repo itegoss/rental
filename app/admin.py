@@ -4,6 +4,7 @@ from django.utils.html import format_html
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect
 from django.urls import path, reverse
 from django.conf import settings
+from django.utils import timezone
 from django import forms
 import re
 import urllib.parse
@@ -31,6 +32,15 @@ from .models import (
 )
 
 from .utils import generate_receipt, receipt_filename, send_notification, send_whatsapp_message, generate_rental_report_pdf
+from .whatsapp_service import (
+    send_return_approved_notification,
+    send_return_receipt_whatsapp,
+    send_blood_request_accepted_notification,
+    send_blood_request_cancelled_notification,
+    send_blood_request_fulfilled_notification,
+    send_blood_request_received_notification,
+    send_blood_request_completed_notification,
+)
 
 @admin.action(description="Approve Return")
 def approve_return(modeladmin, request, queryset):
@@ -38,7 +48,8 @@ def approve_return(modeladmin, request, queryset):
         if rr.is_return_requested and not rr.is_returned:
             rr.is_returned = True
             rr.is_return_requested = False   
-            rr.status = "approved"   
+            rr.status = "returned"
+            rr.actual_return_date = timezone.localdate()
             rr.save()
             try:
                 rr.rental_item.update_availability()
@@ -47,6 +58,14 @@ def approve_return(modeladmin, request, queryset):
                     rr.rental_item.save()
                 except Exception:
                     pass
+
+            # Generate return receipt if not exists
+            receipt_obj = rr.receipts.filter(receipt_type='return').order_by('-created_at').first()
+            if not receipt_obj:
+                content_file = generate_receipt(rr, receipt_type='return')
+                receipt_obj = Receipt.objects.create(rental_request=rr, receipt_type='return')
+                receipt_obj.file.save(receipt_filename(rr, receipt_type='return'), content_file)
+                receipt_obj.save()
 
             try:
                 send_notification(
@@ -62,6 +81,16 @@ def approve_return(modeladmin, request, queryset):
                 )
             except Exception as e:
                 print(f"[admin notification error] {e}")
+
+            try:
+                send_return_approved_notification(rr)
+            except Exception as e:
+                print(f"[admin whatsapp return_approved error] {e}")
+
+            try:
+                send_return_receipt_whatsapp(rr)
+            except Exception as e:
+                print(f"[admin whatsapp return_receipt error] {e}")
 
 
 @admin.register(Receipt)
@@ -519,16 +548,48 @@ class BloodRequestAdmin(admin.ModelAdmin):
     @admin.action(description="Mark selected requests as Cancelled")
     def mark_cancelled(self, request, queryset):
         queryset.update(status='Cancelled', updated_by=request.user)
+        for obj in queryset:
+            try:
+                send_blood_request_cancelled_notification(obj)
+            except Exception as e:
+                print(f"[admin whatsapp blood_request_cancelled error] {e}")
 
     @admin.action(description="Mark selected requests as Fulfilled")
     def mark_fulfilled(self, request, queryset):
         queryset.update(status='Fulfilled', updated_by=request.user)
+        for obj in queryset:
+            try:
+                send_blood_request_fulfilled_notification(obj)
+            except Exception as e:
+                print(f"[admin whatsapp blood_request_fulfilled error] {e}")
 
     def save_model(self, request, obj, form, change):
+        old_status = None
+        if change and obj.pk:
+            try:
+                old_status = BloodRequest.objects.filter(pk=obj.pk).values_list('status', flat=True).first()
+            except Exception:
+                pass
+
         if not change:
             obj.created_by = request.user
         obj.updated_by = request.user
         super().save_model(request, obj, form, change)
+
+        if old_status and old_status != obj.status:
+            try:
+                if obj.status == 'Accepted':
+                    send_blood_request_accepted_notification(obj)
+                elif obj.status == 'Fulfilled':
+                    send_blood_request_fulfilled_notification(obj)
+                elif obj.status in ('Received', 'Blood Received'):
+                    send_blood_request_received_notification(obj)
+                elif obj.status == 'Completed':
+                    send_blood_request_completed_notification(obj)
+                elif obj.status == 'Cancelled':
+                    send_blood_request_cancelled_notification(obj)
+            except Exception as e:
+                print(f"[admin whatsapp save_model error] {e}")
 
 
 @admin.register(CampOrganizer)
