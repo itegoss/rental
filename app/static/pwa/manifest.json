@@ -1,12 +1,12 @@
 {
-  "name": "QuickNest Rental",
-  "short_name": "QuickNest",
-  "description": "Rentals and bookings made easy.",
+  "name": "HEMOAID",
+  "short_name": "HEMOAID",
+  "description": "HEMOAID Mobility & Blood Management Services",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#6B0F24",
+  "theme_color": "#B84A5A",
   "icons": [
     {
       "src": "/static/pwa/icons/icon-192x192.png",
