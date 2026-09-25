@@ -523,23 +523,33 @@ class ReturnReceiptCalculationTests(TestCase):
             available=True
         )
 
-    def test_refund_amount_deducts_rent_from_paid_amount(self):
+    def test_return_receipt_calculation_with_deposit_and_balance_due(self):
         from decimal import Decimal
         import datetime
         from django.utils import timezone
         from app.models import History
         
-        # Scenario: Deposit = 3500, Rent = 4070, Paid Amount = 4160
+        # User scenario:
+        # Rent Amount = 120 (6 days @ 20/day)
+        # Extension Rent = 0
+        # Delivery Charges = 500
+        # Return Delivery Charges = 500
+        # Deposit Total = 1500
+        # Total Amount = 120 + 0 + 500 + 500 + 1500 = 2620
+        # Paid Amount = 2000 -> Balance Due = 620, Refund = 0
         start = timezone.now().date()
-        end = start + datetime.timedelta(days=151) # 152 days
+        end = start + datetime.timedelta(days=5) # 6 days
         rental = History.objects.create(
             user=self.user,
             rental_item=self.item,
             start_date=start,
             end_date=end,
             quantity=1,
-            deposit=Decimal("3500.00"),
-            amount_paid=Decimal("4160.00"),
+            deposit=Decimal("1500.00"),
+            amount_paid=Decimal("2000.00"),
+            delivery_option='delivery',
+            delivery_charge=Decimal("500.00"),
+            return_pickup_charge=Decimal("500.00"),
             payment_method='cod',
             status='approved',
             is_returned=True,
@@ -550,30 +560,37 @@ class ReturnReceiptCalculationTests(TestCase):
         response = self.client.get(reverse('return_receipt', args=['ORD202607999']))
         self.assertEqual(response.status_code, 200)
         
-        # total_amount (rent for 152 days @ 20/day) = 3040
-        # If amount_paid = 4160, total charges = 3040. Refund = 4160 - 3040 = 1120.
-        self.assertEqual(response.context['amount_paid'], Decimal("4160.00"))
-        self.assertEqual(response.context['total_amount'], Decimal("3040.00"))
-        self.assertEqual(response.context['refund_amount'], Decimal("1120.00"))
-        self.assertEqual(response.context['amount_remaining'], Decimal("0.00"))
+        self.assertEqual(response.context['total_rent'], Decimal("120.00"))
+        self.assertEqual(response.context['total_deposit'], Decimal("1500.00"))
+        self.assertEqual(response.context['delivery_charge'], Decimal("500.00"))
+        self.assertEqual(response.context['return_pickup_charge'], Decimal("500.00"))
+        self.assertEqual(response.context['total_amount'], Decimal("2620.00"))
+        self.assertEqual(response.context['amount_paid'], Decimal("2000.00"))
+        self.assertEqual(response.context['amount_remaining'], Decimal("620.00"))
+        self.assertEqual(response.context['refund_amount'], Decimal("0.00"))
+        self.assertContains(response, "Balance Amount (Due):")
+        self.assertContains(response, "₹620.00")
 
-    def test_return_receipt_remaining_amount_when_rent_exceeds_paid(self):
+    def test_return_receipt_refund_when_paid_exceeds_total(self):
         from decimal import Decimal
         import datetime
         from django.utils import timezone
         from app.models import History
         
-        # Scenario: Rent = 4070, Paid Amount = 3500 (deposit only paid).
+        # Scenario: Total = 2620, Paid Amount = 3000 -> Refund = 380, Balance = 0
         start = timezone.now().date()
-        end = start + datetime.timedelta(days=151)
+        end = start + datetime.timedelta(days=5)
         rental = History.objects.create(
             user=self.user,
             rental_item=self.item,
             start_date=start,
             end_date=end,
             quantity=1,
-            deposit=Decimal("3500.00"),
-            amount_paid=Decimal("2000.00"),
+            deposit=Decimal("1500.00"),
+            amount_paid=Decimal("3000.00"),
+            delivery_option='delivery',
+            delivery_charge=Decimal("500.00"),
+            return_pickup_charge=Decimal("500.00"),
             payment_method='cod',
             status='approved',
             is_returned=True,
@@ -584,10 +601,49 @@ class ReturnReceiptCalculationTests(TestCase):
         response = self.client.get(reverse('return_receipt', args=['ORD202607998']))
         self.assertEqual(response.status_code, 200)
         
-        # total_amount = 3040. amount_paid = 2000.
-        # Remaining = 3040 - 2000 = 1040. Refund = 0.
+        self.assertEqual(response.context['total_amount'], Decimal("2620.00"))
+        self.assertEqual(response.context['amount_paid'], Decimal("3000.00"))
+        self.assertEqual(response.context['amount_remaining'], Decimal("0.00"))
+        self.assertEqual(response.context['refund_amount'], Decimal("380.00"))
+        self.assertContains(response, "Refund Amount:")
+        self.assertContains(response, "₹380.00")
+
+    def test_return_receipt_zero_balance_when_paid_equals_total(self):
+        from decimal import Decimal
+        import datetime
+        from django.utils import timezone
+        from app.models import History
+        
+        # Scenario: Total = 2620, Paid Amount = 2620 -> Balance = 0, Refund = 0
+        start = timezone.now().date()
+        end = start + datetime.timedelta(days=5)
+        rental = History.objects.create(
+            user=self.user,
+            rental_item=self.item,
+            start_date=start,
+            end_date=end,
+            quantity=1,
+            deposit=Decimal("1500.00"),
+            amount_paid=Decimal("2620.00"),
+            delivery_option='delivery',
+            delivery_charge=Decimal("500.00"),
+            return_pickup_charge=Decimal("500.00"),
+            payment_method='cod',
+            status='approved',
+            is_returned=True,
+            order_id='ORD202607997'
+        )
+        
+        self.client.login(username='testuser', password='password123')
+        response = self.client.get(reverse('return_receipt', args=['ORD202607997']))
+        self.assertEqual(response.status_code, 200)
+        
+        self.assertEqual(response.context['total_amount'], Decimal("2620.00"))
+        self.assertEqual(response.context['amount_paid'], Decimal("2620.00"))
+        self.assertEqual(response.context['amount_remaining'], Decimal("0.00"))
         self.assertEqual(response.context['refund_amount'], Decimal("0.00"))
-        self.assertEqual(response.context['amount_remaining'], Decimal("1040.00"))
+        self.assertContains(response, "Balance Amount:")
+        self.assertContains(response, "₹0")
 
 
 class DynamicReturnDeliveryChargeTests(TestCase):
@@ -652,13 +708,67 @@ class DynamicReturnDeliveryChargeTests(TestCase):
         self.assertEqual(response_receipt.status_code, 200)
         self.assertEqual(response_receipt.context['return_pickup_charge'], Decimal("350.00"))
         
-        # total_amount: 200 rent + 500 delivery + 350 return delivery + 0 donation = 1050
+        # total_amount: 200 rent + 500 delivery + 350 return delivery + 1500 deposit = 2550
         # final_deposit: 1500
         # amount_paid: 2200
-        # net_balance = amount_paid - total_amount = 2200 - 1050 = 1150
-        # refund_amount = min(net_balance, final_deposit) = min(1150, 1500) = 1150
-        self.assertEqual(response_receipt.context['refund_amount'], Decimal("1150.00"))
-        self.assertEqual(response_receipt.context['amount_remaining'], Decimal("0.00"))
+        # Paid Amount < Total Amount:
+        # Balance = Total Amount - Paid Amount = 2550 - 2200 = 350
+        self.assertEqual(response_receipt.context['total_amount'], Decimal("2550.00"))
+        self.assertEqual(response_receipt.context['refund_amount'], Decimal("0.00"))
+        self.assertEqual(response_receipt.context['amount_remaining'], Decimal("350.00"))
+
+    def test_return_request_status_and_whatsapp_notification(self):
+        from unittest.mock import patch
+        self.client.login(username='testuser', password='password123')
+        
+        with patch('app.whatsapp.send_whatsapp_template') as mock_send:
+            mock_send.return_value = {'success': True}
+            response = self.client.get(
+                reverse('return_order', args=['ORD202607990']),
+                {'donate_deposit': 'false', 'return_delivery': 'false'}
+            )
+            self.assertIn(response.status_code, [200, 302])
+            self.rental.refresh_from_db()
+            
+            # 1. Booking status changes to return_request
+            self.assertEqual(self.rental.status, 'return_request')
+            self.assertTrue(self.rental.is_return_requested)
+            
+            # 2. send_booking_whatsapp called
+            self.assertTrue(mock_send.called)
+            kwargs = mock_send.call_args.kwargs
+            
+            # 3. & 4. whatsapp_status is Return Request
+            variables = kwargs.get('variables')
+            self.assertEqual(variables[3], 'Return Request')
+            self.assertEqual(variables[4], 'HEMOAID')
+            
+            # 5. Template used is return_request
+            self.assertEqual(kwargs.get('template_name'), 'return_request')
+            self.assertEqual(kwargs.get('event_key'), 'return_request:ORD202607990')
+
+    def test_return_cart_item_status_and_whatsapp_notification(self):
+        from unittest.mock import patch
+        self.client.login(username='testuser', password='password123')
+        
+        with patch('app.whatsapp.send_whatsapp_template') as mock_send:
+            mock_send.return_value = {'success': True}
+            response = self.client.get(
+                reverse('return_cart_item', args=[self.rental.id])
+            )
+            self.assertEqual(response.status_code, 302)
+            self.rental.refresh_from_db()
+            
+            self.assertEqual(self.rental.status, 'return_request')
+            self.assertTrue(self.rental.is_return_requested)
+            
+            self.assertTrue(mock_send.called)
+            kwargs = mock_send.call_args.kwargs
+            variables = kwargs.get('variables')
+            self.assertEqual(variables[3], 'Return Request')
+            self.assertEqual(variables[4], 'HEMOAID')
+            self.assertEqual(kwargs.get('template_name'), 'return_request')
+            self.assertEqual(kwargs.get('event_key'), 'return_request:ORD202607990')
 
     def test_history_rent_field_edit(self):
         from datetime import date
@@ -686,6 +796,100 @@ class DynamicReturnDeliveryChargeTests(TestCase):
         # 5 days * 60 rent + 100 deposit = 300 + 100 = 400
         self.assertEqual(rental.total_rent, Decimal("300.00"))
         self.assertEqual(rental.total_amount, Decimal("400.00"))
+
+
+class DeliverOrderTests(TestCase):
+    def setUp(self):
+        from datetime import date
+        self.user = User.objects.create_user(username='deliver_user', password='password123', email='deliver@example.com')
+        self.admin = User.objects.create_user(username='deliver_admin', password='password123', is_staff=True, is_superuser=True)
+        
+        self.item = Inventory.objects.create(
+            title="Hospital Bed",
+            price_per_day=Decimal("100.00"),
+            deposit=Decimal("500.00"),
+            total_quantity=5,
+            available_quantity=5,
+            booked_quantity=0,
+            available=True
+        )
+        self.rental = History.objects.create(
+            user=self.user,
+            rental_item=self.item,
+            start_date=date(2026, 8, 1),
+            end_date=date(2026, 8, 5), # 5 days -> 5 * 100 = 500 rent
+            quantity=1,
+            deposit=Decimal("500.00"),
+            delivery_option='delivery',
+            delivery_charge=Decimal("200.00"),
+            payment_method='cod',
+            status='approved',
+            is_returned=False,
+            order_id='ORD-DELIV-001',
+            amount_paid=Decimal("0.00")
+        )
+
+    def test_deliver_order_updates_status_and_calculations(self):
+        # Total payable = 500 rent + 500 deposit + 200 delivery = 1200
+        self.client.login(username='deliver_admin', password='password123')
+        
+        # User pays 700 on delivery
+        response = self.client.post(
+            reverse('deliver_order', args=['ORD-DELIV-001']),
+            {'amount_paid': '700.00', 'notes': 'Received partial cash on delivery'}
+        )
+        self.assertEqual(response.status_code, 302)
+        
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.status, 'delivered')
+        self.assertEqual(self.rental.amount_paid, Decimal("700.00"))
+        # Total 1200 - 700 paid = 500 remaining
+        self.assertEqual(self.rental.amount_remaining, Decimal("500.00"))
+        
+        # Now deliver with full payment 1200
+        response2 = self.client.post(
+            reverse('deliver_order', args=['ORD-DELIV-001']),
+            {'amount_paid': '1200.00'}
+        )
+        self.assertEqual(response2.status_code, 302)
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.status, 'delivered')
+        self.assertEqual(self.rental.amount_paid, Decimal("1200.00"))
+        self.assertEqual(self.rental.amount_remaining, Decimal("0.00"))
+        self.assertTrue(self.rental.is_delivery_paid)
+
+    def test_bookingsammry_page_delivered_action(self):
+        self.client.login(username='deliver_admin', password='password123')
+        response = self.client.get(reverse('bookingsammry'))
+        self.assertEqual(response.status_code, 200)
+        # Verify deliver modal markup and button exist
+        self.assertContains(response, 'id="deliverModal"')
+        self.assertContains(response, 'act-deliver')
+        self.assertContains(response, 'openDeliverModal')
+        self.assertContains(response, 'deliverRentInput')
+        self.assertContains(response, 'deliverDepositInput')
+        self.assertContains(response, 'deliverDeliveryInput')
+
+    def test_deliver_order_with_individual_fields(self):
+        self.client.login(username='deliver_admin', password='password123')
+        # Total payable = 500 rent + 500 deposit + 200 delivery = 1200
+        # Customer pays: rent 500, deposit 250, delivery 200 -> total paid 950, baki 250
+        response = self.client.post(
+            reverse('deliver_order', args=['ORD-DELIV-001']),
+            {
+                'rent_paid': '500.00',
+                'deposit_paid': '250.00',
+                'delivery_paid': '200.00',
+                'notes': 'Partial deposit collected'
+            }
+        )
+        self.assertEqual(response.status_code, 302)
+        self.rental.refresh_from_db()
+        self.assertEqual(self.rental.status, 'delivered')
+        self.assertEqual(self.rental.amount_paid, Decimal("950.00"))
+        self.assertEqual(self.rental.amount_remaining, Decimal("250.00"))
+
+
 
 
 

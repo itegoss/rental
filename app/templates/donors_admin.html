@@ -5,9 +5,33 @@
 
 <div class="inventory-page">
   <div class="inventory-head">
-    <h1>Be <span>Donor</span></h1>
+    <h1>Be a <span>Donor</span></h1>
     <p>Manage registered blood donors</p>
     <div class="underline-bar"></div>
+  </div>
+
+  <div class="report-card">
+    <div class="report-header">
+      <i class="fas fa-file-alt report-icon"></i>
+      <h2>Generate Donors Report</h2>
+    </div>
+    <form method="GET" action="{% url 'be_donor' %}" class="report-form">
+      <input type="hidden" name="export" value="csv">
+      {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+      <div class="report-inputs">
+        <div class="input-group">
+          <label for="dnr_start_date">START DATE</label>
+          <input type="date" id="dnr_start_date" name="start_date">
+        </div>
+        <div class="input-group">
+          <label for="dnr_end_date">END DATE</label>
+          <input type="date" id="dnr_end_date" name="end_date">
+        </div>
+        <button type="submit" class="report-btn" data-bs-toggle="tooltip" title="Download Report">
+          <i class="fas fa-download"></i>
+        </button>
+      </div>
+    </form>
   </div>
 
   <div class="table-tools">
@@ -39,6 +63,7 @@
             <th>Contact</th>
             <th>Email</th>
             <th>DOB</th>
+            <th>Age</th>
             <th>Gender</th>
             <th>Blood Group</th>
             <th>Area</th>
@@ -48,17 +73,18 @@
         <tbody>
           {% for d in page_obj.object_list %}
           <tr>
-            <td class="item-name-cell">{{ d.first_name }} {{ d.last_name }}</td>
+            <td class="item-name-cell">{{ d.get_full_name }}</td>
             <td>{{ d.contact_number }}</td>
             <td>{{ d.email }}</td>
             <td>{{ d.date_of_birth }}</td>
+            <td>{% if d.age is not None %}{{ d.age }} yrs{% else %}-{% endif %}</td>
             <td>{{ d.gender }}</td>
             <td class="price-cell">{{ d.blood_group }}</td>
             <td>{{ d.area_of_residence }}</td>
             <td>{{ d.created_at|date:'d M, Y' }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">No donors found</td></tr>
+          <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted);">No donors found</td></tr>
           {% endfor %}
         </tbody>
       </table>

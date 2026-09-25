@@ -59,9 +59,38 @@
     transition: all 0.25s ease;
   }
 
+  .modern-role-select:disabled {
+    background: #e5e7eb !important;
+    color: #9ca3af !important;
+    cursor: not-allowed !important;
+    border-color: #d1d5db !important;
+  }
+
+  .btn-icon-assign:disabled,
+  .btn-icon-assign.btn-disabled {
+    background: #e5e7eb !important;
+    color: #9ca3af !important;
+    border: 1px solid #d1d5db !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+  }
+
+  .btn-icon-assign:disabled i,
+  .btn-icon-assign.btn-disabled i {
+    color: #9ca3af !important;
+  }
+
   .btn-icon-assign:hover {
     transform: translateY(-2px) scale(1.05);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+  }
+
+  .btn-icon-assign:disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
   }
 
   .btn-icon-remove {
@@ -102,6 +131,30 @@
     <div class="underline-bar"></div>
   </div>
 
+
+  <div class="report-card">
+    <div class="report-header">
+      <i class="fas fa-file-alt report-icon"></i>
+      <h2>Generate Users Report</h2>
+    </div>
+    <form method="GET" action="{% url 'users' %}" class="report-form">
+      <input type="hidden" name="export" value="csv">
+      {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+      <div class="report-inputs">
+        <div class="input-group">
+          <label for="user_start_date">START DATE</label>
+          <input type="date" id="user_start_date" name="start_date">
+        </div>
+        <div class="input-group">
+          <label for="user_end_date">END DATE</label>
+          <input type="date" id="user_end_date" name="end_date">
+        </div>
+        <button type="submit" class="report-btn" data-bs-toggle="tooltip" title="Download Report">
+          <i class="fas fa-download"></i>
+        </button>
+      </div>
+    </form>
+  </div>
 
   <!-- SEARCH + SHOW -->
 
@@ -182,10 +235,11 @@
 
         <thead>
           <tr>
-            <th>Username</th>
+            <th>User / Name</th>
+            <th>Mobile Number</th>
             <th>Email</th>
-            <th>Superuser</th>
-            <th>Staff</th>
+            <th>Login Method</th>
+            <th>Status</th>
             <th>Roles</th>
             <th style="width: 220px; max-width: 220px;">
               Actions
@@ -201,34 +255,93 @@
           <tr>
 
             <td class="item-name-cell">
-              {{ user.username }}
+              <div style="display: flex; flex-direction: column; gap: 2px;">
+                {% if user.display_name %}
+                  <span style="font-weight: 600; color: #111827; font-size: 0.95rem;">{{ user.display_name }}</span>
+                  <span style="color: #6b7280; font-size: 0.8rem; font-family: monospace;">@{{ user.username }}</span>
+                {% else %}
+                  <span style="font-weight: 600; color: #111827; font-size: 0.95rem;">{{ user.username }}</span>
+                {% endif %}
+              </div>
             </td>
 
             <td>
-              {{ user.email|default:'—' }}
+              {% if user.mobile_number %}
+                <span style="font-family: monospace; font-size: 0.92rem; color: #374151; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                  <i class="fas fa-phone-alt" style="font-size: 0.78rem; color: #10b981;"></i>
+                  {{ user.mobile_number }}
+                </span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
             </td>
 
             <td>
-              {{ user.is_superuser|yesno:'Yes,No' }}
+              {% if user.email %}
+                <span style="color: #374151; font-size: 0.9rem;">{{ user.email }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
             </td>
 
             <td>
-              {{ user.is_staff|yesno:'Yes,No' }}
+              {% if user.login_method_code == 'google' %}
+                <span class="badge" style="background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 5px 11px; border-radius: 20px; font-weight: 600; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 5px;">
+                  <i class="fab fa-google"></i> Google
+                </span>
+              {% elif user.login_method_code == 'mobile_otp' %}
+                <span class="badge" style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 5px 11px; border-radius: 20px; font-weight: 600; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 5px;">
+                  <i class="fab fa-whatsapp"></i> Mobile OTP
+                </span>
+              {% elif user.login_method_code == 'google_mobile' %}
+                <span class="badge" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 5px 11px; border-radius: 20px; font-weight: 600; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 5px;">
+                  <i class="fab fa-google"></i> + <i class="fab fa-whatsapp"></i> Google & OTP
+                </span>
+              {% elif user.login_method_code == 'password' %}
+                <span class="badge" style="background: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db; padding: 5px 11px; border-radius: 20px; font-weight: 600; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 5px;">
+                  <i class="fas fa-key"></i> Password
+                </span>
+              {% else %}
+                <span class="badge" style="background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; padding: 5px 11px; border-radius: 20px; font-weight: 600; font-size: 0.82rem;">
+                  Standard
+                </span>
+              {% endif %}
+            </td>
+
+            <td>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                {% if user.is_active %}
+                  <span class="badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; width: fit-content;">
+                    <i class="fas fa-check-circle" style="font-size: 0.7rem;"></i> Active
+                  </span>
+                {% else %}
+                  <span class="badge" style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 3px 8px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; width: fit-content;">
+                    <i class="fas fa-times-circle" style="font-size: 0.7rem;"></i> Inactive
+                  </span>
+                {% endif %}
+                {% if user.is_superuser %}
+                  <span class="badge" style="background: #fdf4ff; color: #86198f; border: 1px solid #f5d0fe; padding: 2px 7px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; width: fit-content;">
+                    Superuser
+                  </span>
+                {% elif user.is_staff %}
+                  <span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 2px 7px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; width: fit-content;">
+                    Staff
+                  </span>
+                {% endif %}
+              </div>
             </td>
 
             <td>
 
               {% for assignment in user.role_assignments.all %}
 
-                <span>
+                <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 4px 9px; border-radius: 12px; font-size: 0.8rem; font-weight: 500; margin-right: 4px; display: inline-block; margin-bottom: 2px;">
                   {{ assignment.role.name }}
                 </span>
 
-                {% if not forloop.last %}, {% endif %}
-
               {% empty %}
 
-                <span class="text-muted">
+                <span class="text-muted" style="font-size: 0.85rem;">
                   No role assigned
                 </span>
 
@@ -263,6 +376,7 @@
                   <select
                     name="role_id"
                     class="modern-role-select"
+                    {% if user.is_superuser %}disabled{% endif %}
                   >
 
                     <option value="">
@@ -282,9 +396,10 @@
 
                   <button
                     type="submit"
-                    class="btn-icon-assign"
+                    class="btn-icon-assign {% if user.is_superuser %}btn-disabled{% endif %}"
                     data-bs-toggle="tooltip"
-                    title="Assign Role"
+                    title="{% if user.is_superuser %}Superusers cannot be assigned roles{% else %}Assign Role{% endif %}"
+                    {% if user.is_superuser %}disabled{% endif %}
                   >
                     <i class="fas fa-user-plus"></i>
                   </button>
@@ -338,7 +453,7 @@
           <tr>
 
             <td
-              colspan="6"
+              colspan="7"
               style="
                 text-align:center;
                 padding:40px;

@@ -1,7 +1,7 @@
 .inventory-page {
-  width: 100%;
-  margin: 0 auto;
-  padding: 40px 20px;
+  max-width: 1360px;
+  margin: 40px auto;
+  padding: 0 40px;
 }
 
 .inventory-head {
@@ -17,7 +17,7 @@
 }
 
 .inventory-head h1 span {
-  color: var(--primary);
+  color: var(--accent-gold, #D4AF37);
 }
 
 .inventory-head p {
@@ -28,7 +28,7 @@
 .underline-bar {
   width: 80px;
   height: 5px;
-  background: linear-gradient(90deg, var(--primary), #ff6b6b);
+  background: linear-gradient(90deg, var(--primary), var(--accent-gold), #F5D77F);
   border-radius: 4px;
   margin: 12px auto 0;
 }
@@ -180,11 +180,17 @@
 }
 
 .items-table thead {
+  background: #B84A5A !important;
+  background-color: #B84A5A !important;
   color: #fff;
 }
 
-.items-table thead th {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+.items-table thead th,
+table thead th,
+.table thead th {
+  background: #B84A5A !important;
+  background-color: #B84A5A !important;
+  color: #ffffff !important;
   padding: 14px 16px;
   text-align: left;
   font-size: 15px;
@@ -293,10 +299,11 @@
 }
 
 .page-btn.active {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  border-color: #dc2626;
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.18);
+  background: #B84A5A !important;
+  background-color: #B84A5A !important;
+  border-color: #B84A5A !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(184, 74, 90, 0.3) !important;
 }
 
 .page-btn:disabled {
@@ -359,30 +366,42 @@
 
   .table-actions a,
   .table-actions button {
-    min-width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
     padding: 0;
     border: none;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     cursor: pointer;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 0;
     line-height: 1;
     white-space: nowrap;
+    transition: all 0.2s cubic-bezier(.4, 0, .2, 1);
   }
 
 .btn-edit-item {
   background: #3b82f6;
-  color: #fff;
+  color: #ffffff !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
 }
 
 .btn-edit-item:hover {
   background: #2563eb;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+}
+
+.btn-edit-item i {
+  color: #ffffff !important;
+  font-size: 0.92rem;
 }
 
 .btn-delete-item-table {
@@ -662,3 +681,104 @@
     justify-content: flex-start;
   }
 }
+
+.report-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.06);
+  padding: 22px 24px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border, #e5e7eb);
+}
+
+.report-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.report-icon {
+  font-size: 1.3rem;
+  color: var(--primary, #dc2626);
+}
+
+.report-header h2 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--text, #111827);
+}
+
+.report-form {
+  width: 100%;
+}
+
+.report-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.report-inputs .input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.report-inputs label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--muted, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.report-inputs input[type="date"] {
+  height: 44px;
+  padding: 0 12px;
+  border: 1.5px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  outline: none;
+  background: #fafafa;
+  transition: all 0.2s;
+  color: #374151;
+}
+
+.report-inputs input[type="date"]:focus {
+  border-color: var(--primary, #dc2626);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(236, 36, 39, 0.1);
+}
+
+.report-btn {
+  height: 44px;
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px !important;
+  background: linear-gradient(135deg, var(--primary, #dc2626), var(--primary-dark, #b91c1c));
+  color: #ffffff !important;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+  transition: all 0.22s ease;
+  flex-shrink: 0;
+}
+
+.report-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+  background: linear-gradient(135deg, #b91c1c, #991b1b) !important;
+  color: #ffffff !important;
+}
+

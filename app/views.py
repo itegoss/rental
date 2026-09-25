@@ -107,6 +107,28 @@ def ensure_module_access(request, permission_name):
     return None
 from .forms import BloodRequestForm, CampOrganizerForm, BloodDonorForm, EventVolunteerForm, AssignEmployeeForm
 from .utils import send_overdue_email, generate_sequential_order_id, generate_receipt, receipt_filename, send_whatsapp_message, send_notification, build_booking_receipt_breakdown
+from .whatsapp_service import (
+    send_new_booking_notification,
+    send_booking_approved_notification,
+    send_cancel_booking_notification,
+    send_return_request_notification,
+    send_return_approved_notification,
+    send_return_date_extended_notification,
+    send_new_blood_request_notification,
+    send_blood_request_accepted_notification,
+    send_blood_request_cancelled_notification,
+    send_blood_request_fulfilled_notification,
+    send_blood_request_received_notification,
+    send_blood_request_completed_notification,
+    send_login_otp_whatsapp,
+    send_booking_receipt_whatsapp,
+    send_return_receipt_whatsapp,
+    send_booking_delivered_notification,
+)
+import secrets
+import hashlib
+from .whatsapp import send_booking_whatsapp
+
 
 def index(request):
     # Reminder and overdue notification logic has been moved out of the homepage
@@ -128,48 +150,6 @@ def logout(request):
 
 def signup(request):
     if request.method == 'POST':
-        if request.POST.get('otp'):
-            mobile = request.POST.get('mobile')
-            otp = request.POST.get('otp')
-
-            otp_data = request.session.get('otp_data')
-            if not otp_data:
-                messages.error(request, "No OTP session found. Please register again.")
-                return redirect('signup')
-
-            digits = re.sub(r"\D", "", str(mobile or ""))
-            try:
-                exp = datetime.fromisoformat(otp_data.get('expires'))
-            except Exception:
-                exp = None
-
-            if exp and timezone.now() > exp:
-                request.session.pop('otp_data', None)
-                messages.error(request, "OTP expired. Please register again.")
-                return redirect('signup')
-
-            if digits != otp_data.get('mobile') or otp != otp_data.get('otp'):
-                messages.error(request, "Invalid OTP or mobile number.")
-                ctx = {'show_otp': True, 'mobile': digits}
-                if getattr(settings, 'DEBUG', False):
-                    ctx['debug_otp'] = otp_data.get('otp')
-                return render(request, 'signup.html', ctx)
-
-            username = otp_data.get('username')
-            try:
-                user = User.objects.get(username=username)
-            except User.DoesNotExist:
-                messages.error(request, "User not found; please register again.")
-                return redirect('signup')
-
-            ab = getattr(settings, 'AUTHENTICATION_BACKENDS', None)
-            backend = ab[0] if ab else 'django.contrib.auth.backends.ModelBackend'
-            user.backend = backend
-            login(request, user)
-            request.session.pop('otp_data', None)
-            messages.success(request, "Registration complete and logged in.")
-            return redirect('index')
-
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
@@ -184,12 +164,17 @@ def signup(request):
         elif User.objects.filter(username=username).exists():
             field_errors['username'] = "Username already taken."
 
+        clean_mob = ""
         if not mobile:
             field_errors['mobile'] = "Mobile number is required."
         else:
-            clean_mob = re.sub(r'\D', '', mobile)
-            if len(clean_mob) != 10:
-                field_errors['mobile'] = "Contact number must be exactly 10 digits."
+            clean_mob = normalize_phone_number(mobile)
+            if not clean_mob:
+                field_errors['mobile'] = "Please enter a valid 10-digit Indian mobile number."
+            else:
+                existing_user, _ = find_user_by_mobile(clean_mob)
+                if existing_user:
+                    field_errors['mobile'] = "An account with this mobile number already exists. Please sign in."
 
         if not password:
             field_errors['password'] = "Password is required."
@@ -219,6 +204,19 @@ def signup(request):
         user.save()
 
         try:
+            UserDetail.objects.update_or_create(
+                user=user,
+                defaults={
+                    'phone': clean_mob,
+                    'email': email or None,
+                    'id_proof_type': '',
+                    'id_proof_number': '',
+                }
+            )
+        except Exception as e:
+            print(f"[signup user_detail error] {e}")
+
+        try:
             send_notification(
                 title="New User Registered",
                 message=f"New user registered: {user.username} ({user.email}).",
@@ -228,25 +226,8 @@ def signup(request):
         except Exception as e:
             print(f"[notification signup error] {e}")
 
-        digits = re.sub(r"\D", "", str(mobile or ""))
-        otp = str(random.randint(100000, 999999))
-        expires = (timezone.now() + timedelta(minutes=5)).isoformat()
-
-        request.session['otp_data'] = {
-            'mobile': digits,
-            'otp': otp,
-            'expires': expires,
-            'username': username,
-        }
-
-        message = f"Your QuickNest OTP is {otp}. It expires in 5 minutes."
-        send_whatsapp_message(digits, message)
-
-        messages.success(request, "Account created. OTP sent via WhatsApp (simulated if not configured).")
-        ctx = {'show_otp': True, 'mobile': digits}
-        if getattr(settings, 'DEBUG', False):
-            ctx['debug_otp'] = otp
-        return render(request, 'signup.html', ctx)
+        messages.success(request, "Account created successfully! Please sign in.")
+        return redirect('signin')
 
     if request.user.is_authenticated:
         return redirect('index')
@@ -279,6 +260,7 @@ def signin(request):
                     authenticated_user = authenticate(request, username=username, password=password)
                     if authenticated_user is not None:
                         login(request, authenticated_user)
+                        load_user_profile_to_session(request, authenticated_user)
                         return redirect('index')
                     else:
                         field_errors['password'] = "Invalid username or password."
@@ -294,90 +276,492 @@ def signin(request):
     return render(request, 'signin.html')
 
 
-def signin_mobile(request):
-    """Start login via mobile number. Generates OTP and sends via WhatsApp.
-    - POST with `mobile` sends OTP and shows verify page
-    - GET renders a simple mobile input form
+def normalize_phone_number(raw_phone):
     """
+    Standardizes a mobile number to a canonical 10-digit Indian mobile number string.
+    Strips all non-digit characters, leading +91, 91, or 0.
+    Returns 10-digit string if available, else None.
+    """
+    if not raw_phone:
+        return None
+    clean = re.sub(r"\D", "", str(raw_phone).strip())
+    if len(clean) == 12 and clean.startswith("91"):
+        p10 = clean[2:]
+    elif len(clean) == 11 and clean.startswith("0"):
+        p10 = clean[1:]
+    elif len(clean) == 10:
+        p10 = clean
+    elif len(clean) > 10:
+        p10 = clean[-10:]
+    else:
+        return None
+    if len(p10) == 10 and p10.isdigit():
+        return p10
+    return None
+
+
+def consolidate_duplicate_users_by_mobile(phone10):
+    """
+    Finds and consolidates any duplicate User records that share the same 10-digit mobile number.
+    Ensures that a single primary user account is maintained.
+    All History, BloodRequest, Cart, UserRole, Notification, and UserDetail data from
+    duplicate accounts are merged into the primary user account, and dangling duplicates
+    are cleaned up.
+    Returns the primary User instance, or None if no user exists.
+    """
+    if not phone10 or len(phone10) != 10:
+        return None
+
+    user_ids = set()
+
+    # 1. From UserDetail phone
+    ud_user_ids = UserDetail.objects.filter(
+        Q(phone=phone10)
+        | Q(phone=f"91{phone10}")
+        | Q(phone=f"+91{phone10}")
+        | Q(phone=f"0{phone10}")
+        | Q(phone__endswith=phone10)
+        | Q(phone__icontains=phone10)
+    ).values_list('user_id', flat=True)
+    user_ids.update(ud_user_ids)
+
+    # 2. From User username
+    u_ids = User.objects.filter(
+        Q(username=phone10)
+        | Q(username=f"91{phone10}")
+        | Q(username=f"+91{phone10}")
+        | Q(username=f"user_{phone10}")
+        | Q(username__startswith=f"user_{phone10}_")
+    ).values_list('id', flat=True)
+    user_ids.update(u_ids)
+
+    # 3. From History phone
+    h_user_ids = History.objects.filter(
+        Q(phone=phone10)
+        | Q(phone=f"+91{phone10}")
+        | Q(phone__endswith=phone10)
+        | Q(phone__icontains=phone10)
+    ).values_list('user_id', flat=True)
+    user_ids.update(h_user_ids)
+
+    if not user_ids:
+        return None
+
+    candidate_users = list(User.objects.filter(id__in=user_ids).prefetch_related('history_set'))
+    if not candidate_users:
+        return None
+
+    def user_score(u):
+        h_count = u.history_set.count()
+        has_pwd = 1 if u.has_usable_password() else 0
+        exact_username = 2 if u.username == phone10 else (1 if u.username == f"user_{phone10}" else 0)
+        has_name = 1 if (u.first_name or u.last_name) else 0
+        joined = u.date_joined.timestamp() if u.date_joined else 0
+        return (h_count, has_pwd, exact_username, has_name, -joined)
+
+    candidate_users.sort(key=user_score, reverse=True)
+    primary_user = candidate_users[0]
+
+    # If duplicate users exist, merge their records into primary_user
+    for dup in candidate_users[1:]:
+        if dup.id == primary_user.id:
+            continue
+        try:
+            # Reassign History bookings
+            History.objects.filter(user=dup).update(user=primary_user)
+
+            # Reassign Blood Requests & Volunteers & Donors & Organizers
+            try:
+                from .models import BloodRequest, CampOrganizer, BloodDonor, EventVolunteer, Notification, UserRole
+                BloodRequest.objects.filter(created_by=dup).update(created_by=primary_user)
+                BloodRequest.objects.filter(updated_by=dup).update(updated_by=primary_user)
+                CampOrganizer.objects.filter(created_by=dup).update(created_by=primary_user)
+                CampOrganizer.objects.filter(updated_by=dup).update(updated_by=primary_user)
+                BloodDonor.objects.filter(created_by=dup).update(created_by=primary_user)
+                BloodDonor.objects.filter(updated_by=dup).update(updated_by=primary_user)
+                EventVolunteer.objects.filter(created_by=dup).update(created_by=primary_user)
+                EventVolunteer.objects.filter(updated_by=dup).update(updated_by=primary_user)
+                Notification.objects.filter(recipient=dup).update(recipient=primary_user)
+
+                for ur in UserRole.objects.filter(user=dup):
+                    if not UserRole.objects.filter(user=primary_user, role=ur.role).exists():
+                        ur.user = primary_user
+                        ur.save(update_fields=['user'])
+                    else:
+                        ur.delete()
+            except Exception as e_rel:
+                print(f"[user consolidation related models warning] {e_rel}")
+
+            try:
+                from social_django.models import UserSocialAuth
+                UserSocialAuth.objects.filter(user=dup).update(user=primary_user)
+            except Exception:
+                pass
+
+            try:
+                from django.contrib.admin.models import LogEntry
+                LogEntry.objects.filter(user_id=dup.id).update(user_id=primary_user.id)
+            except Exception:
+                pass
+
+            # Reassign Cart items
+            from .models import Cart
+            dup_cart = Cart.objects.filter(user=dup).first()
+            if dup_cart:
+                prim_cart, _ = Cart.objects.get_or_create(user=primary_user)
+                for ci in dup_cart.items.all():
+                    ci.cart = prim_cart
+                    ci.save(update_fields=['cart'])
+                dup_cart.delete()
+
+            # Copy user names / email to primary_user if missing
+            changed_fields = []
+            if not primary_user.first_name and dup.first_name:
+                primary_user.first_name = dup.first_name
+                changed_fields.append('first_name')
+            if not primary_user.last_name and dup.last_name:
+                primary_user.last_name = dup.last_name
+                changed_fields.append('last_name')
+            if not primary_user.email and dup.email:
+                primary_user.email = dup.email
+                changed_fields.append('email')
+            if changed_fields:
+                primary_user.save(update_fields=changed_fields)
+
+            # Copy over UserDetail fields if primary_user lacks them
+            dup_ud = UserDetail.objects.filter(user=dup).first()
+            prim_ud, _ = UserDetail.objects.get_or_create(user=primary_user)
+            if dup_ud:
+                if not prim_ud.address_line1 and dup_ud.address_line1:
+                    prim_ud.address_line1 = dup_ud.address_line1
+                if not prim_ud.pincode and dup_ud.pincode:
+                    prim_ud.pincode = dup_ud.pincode
+                if not prim_ud.patient_name and dup_ud.patient_name:
+                    prim_ud.patient_name = dup_ud.patient_name
+                if not prim_ud.id_proof_type and dup_ud.id_proof_type:
+                    prim_ud.id_proof_type = dup_ud.id_proof_type
+                if not prim_ud.id_proof_number and dup_ud.id_proof_number:
+                    prim_ud.id_proof_number = dup_ud.id_proof_number
+                if not prim_ud.city and dup_ud.city:
+                    prim_ud.city = dup_ud.city
+                if not prim_ud.state and dup_ud.state:
+                    prim_ud.state = dup_ud.state
+                if not prim_ud.email and dup_ud.email:
+                    prim_ud.email = dup_ud.email
+                prim_ud.phone = phone10
+                prim_ud.save()
+                dup_ud.delete()
+
+            # Delete the redundant duplicate user
+            dup.delete()
+        except Exception as e:
+            print(f"[user consolidation error] dup_id={dup.id} err={e}")
+
+    # Ensure primary_user has UserDetail with phone=phone10
+    prim_ud, _ = UserDetail.objects.get_or_create(user=primary_user)
+    if prim_ud.phone != phone10:
+        prim_ud.phone = phone10
+        prim_ud.save(update_fields=['phone'])
+
+    # Upgrade username to canonical phone10 if it was user_{phone10} or raw digits
+    if primary_user.username != phone10 and not User.objects.filter(username=phone10).exclude(id=primary_user.id).exists():
+        if primary_user.username.startswith('user_') or primary_user.username.isdigit():
+            primary_user.username = phone10
+            primary_user.save(update_fields=['username'])
+
+    return primary_user
+
+
+def find_user_by_mobile(raw_phone):
+    """
+    Validates and searches for the definitive user account associated with a mobile number.
+    Normalizes any format (+91, spaces, dashes) and consolidates duplicates.
+    Returns (user, 10_digit_phone) or (None, 10_digit_phone/None).
+    """
+    phone10 = normalize_phone_number(raw_phone)
+    if not phone10:
+        clean_digits = re.sub(r"\D", "", str(raw_phone or "").strip())
+        if len(clean_digits) == 12 and clean_digits.startswith("91"):
+            clean_digits = clean_digits[2:]
+        elif len(clean_digits) == 11 and clean_digits.startswith("0"):
+            clean_digits = clean_digits[1:]
+        elif len(clean_digits) > 10:
+            clean_digits = clean_digits[-10:]
+        phone10 = clean_digits if len(clean_digits) == 10 else None
+
+    if not phone10:
+        return None, None
+
+    user = consolidate_duplicate_users_by_mobile(phone10)
+    return user, phone10
+
+
+def load_user_profile_to_session(request, user, phone10=None):
+    """
+    Populates request.session with user details from UserDetail and recent History
+    so that returning users have all their details immediately loaded.
+    """
+    if not user or not user.is_authenticated:
+        return
+
+    ud = getattr(user, 'userdetail', None)
+    latest_history = History.objects.filter(user=user).order_by('-created_at').first()
+
+    phone_val = (
+        phone10
+        or (ud.phone if ud and ud.phone else '')
+        or (latest_history.phone if latest_history and latest_history.phone else '')
+    )
+    if not phone_val and user.username.startswith('user_'):
+        phone_val = normalize_phone_number(user.username) or ''
+
+    address_val = (
+        (ud.address_line1 if ud and ud.address_line1 else '')
+        or (latest_history.address if latest_history and latest_history.address else '')
+    )
+    pincode_val = (ud.pincode if ud and ud.pincode else '')
+    patient_val = (
+        (ud.patient_name if ud and ud.patient_name else '')
+        or (getattr(latest_history, 'patient_name', '') if latest_history else '')
+    )
+    id_type_val = (
+        (ud.id_proof_type if ud and ud.id_proof_type else '')
+        or (getattr(latest_history, 'id_proof_type', '') if latest_history else '')
+    )
+    id_num_val = (
+        (ud.id_proof_number if ud and ud.id_proof_number else '')
+        or (getattr(latest_history, 'id_proof_number', '') if latest_history else '')
+    )
+    renter_name_val = (
+        user.get_full_name()
+        or (latest_history.renter_name if latest_history and latest_history.renter_name else '')
+        or user.username
+    )
+    renter_email_val = (
+        user.email
+        or (ud.email if ud and ud.email else '')
+        or (latest_history.email if latest_history and latest_history.email else '')
+    )
+
+    if phone_val:
+        request.session['user_phone'] = phone_val
+        request.session['phone'] = phone_val
+    if address_val:
+        request.session['user_address'] = address_val
+        request.session['address'] = address_val
+    if pincode_val:
+        request.session['user_pincode'] = pincode_val
+        request.session['pincode'] = pincode_val
+    if patient_val:
+        request.session['patient_name'] = patient_val
+    if id_type_val:
+        request.session['id_proof_type'] = id_type_val
+    if id_num_val:
+        request.session['id_proof_number'] = id_num_val
+    if renter_name_val:
+        request.session['renter_name'] = renter_name_val
+    if renter_email_val:
+        request.session['renter_email'] = renter_email_val
+    request.session.modified = True
+
+
+def signin_mobile(request):
+    """
+    Mobile number WhatsApp OTP sign-in initiation.
+    - Validates 10-digit Indian mobile number.
+    - Does NOT require prior registration (works like Google sign-in).
+    - If user exists, associates with existing user.
+    - If user does not exist, OTP is still sent; user account will be created upon OTP verification.
+    - Enforces 60-second resend cooldown.
+    - Generates cryptographically secure 6-digit OTP.
+    - Stores salted SHA-256 hash in session (no plain text OTP stored).
+    - Dispatches OTP via existing WhatsApp service/11za API.
+    """
+    if request.user.is_authenticated:
+        return redirect('index')
+
     if request.method == 'POST':
-        mobile = request.POST.get('mobile')
+        mobile = (request.POST.get('mobile') or '').strip()
         if not mobile:
-            messages.error(request, "Please enter a mobile number.")
-            return redirect('signin_mobile')
+            messages.error(request, "Please enter your WhatsApp mobile number.")
+            return render(request, 'signin_mobile.html')
 
-        digits = re.sub(r"\D", "", mobile)
-        if not digits:
-            messages.error(request, "Enter a valid mobile number.")
-            return redirect('signin_mobile')
+        user, phone10 = find_user_by_mobile(mobile)
+        if not phone10:
+            messages.error(request, "Please enter a valid 10-digit Indian mobile number.")
+            return render(request, 'signin_mobile.html', {'mobile': mobile})
 
-        otp = str(random.randint(100000, 999999))
-        expires = (timezone.now() + timedelta(minutes=5)).isoformat()
+        # Resend cooldown (60 seconds)
+        now_ts = timezone.now().timestamp()
+        existing_otp = request.session.get('login_otp_data')
+        if existing_otp and existing_otp.get('mobile') == phone10:
+            last_sent = existing_otp.get('last_sent_at', 0)
+            elapsed = now_ts - last_sent
+            if elapsed < 60:
+                remaining = int(60 - elapsed)
+                messages.warning(request, f"Please wait {remaining} seconds before requesting a new OTP.")
+                return redirect('verify_otp')
 
-        request.session['otp_data'] = {
-            'mobile': digits,
-            'otp': otp,
-            'expires': expires,
+        # Generate secure 6-digit OTP using secrets
+        otp = f"{secrets.SystemRandom().randint(100000, 999999)}"
+        salt = secrets.token_hex(8)
+        otp_hash = hashlib.sha256(f"{otp}:{salt}".encode()).hexdigest()
+
+        # Dispatch OTP to user's WhatsApp number using existing WhatsApp service
+        res = send_login_otp_whatsapp(phone10, otp, user=user, force=True)
+        if not res.get('success'):
+            messages.error(request, "Failed to deliver OTP to your WhatsApp number. Please check your number or try again later.")
+            return render(request, 'signin_mobile.html', {'mobile': mobile})
+
+        # Store in session (expires in 5 minutes, salted hash only)
+        request.session['login_otp_data'] = {
+            'user_id': user.id if user else None,
+            'mobile': phone10,
+            'otp_hash': otp_hash,
+            'otp_salt': salt,
+            'expires_at': now_ts + 300,  # 5 minutes
+            'last_sent_at': now_ts,
+            'attempts': 0,
         }
+        request.session.modified = True
 
-        message = f"Your QuickNest OTP is {otp}. It expires in 5 minutes."
-        send_whatsapp_message(digits, message)
-
-        messages.success(request, "OTP sent via WhatsApp (simulated if not configured).")
+        messages.success(request, f"OTP sent to WhatsApp number ending in {phone10[-4:]}.")
         return redirect('verify_otp')
 
     return render(request, 'signin_mobile.html')
 
+
 def verify_otp(request):
-    """Verify OTP entered by user and log them in (creates user if needed)."""
-    otp_data = request.session.get('otp_data')
+    """
+    Verifies the 6-digit OTP sent via WhatsApp and signs in the user.
+    - If user exists: logs in to existing user account (does not create duplicate).
+    - If user does not exist: auto-registers new Django user with unique username,
+      saves verified mobile to UserDetail, and logs in automatically.
+    - Enforces 5-minute expiry.
+    - Limits incorrect attempts to 3.
+    - Invalidates session OTP immediately upon verification.
+    """
+    if request.user.is_authenticated:
+        return redirect('index')
+
+    otp_data = request.session.get('login_otp_data')
 
     if request.method == 'POST':
-        mobile = request.POST.get('mobile')
-        otp = request.POST.get('otp')
+        otp = (request.POST.get('otp') or '').strip()
+        mobile = (request.POST.get('mobile') or '').strip()
 
         if not otp_data:
             messages.error(request, "No OTP request found. Please request a new OTP.")
             return redirect('signin_mobile')
 
-        digits = re.sub(r"\D", "", mobile or "")
-
-        if digits != otp_data.get('mobile'):
-            messages.error(request, "Mobile number mismatch.")
-            return redirect('signin_mobile')
-        try:
-            exp = datetime.fromisoformat(otp_data.get('expires'))
-        except Exception:
-            exp = None
-
-        if exp and timezone.now() > exp:
-            request.session.pop('otp_data', None)
-            messages.error(request, "OTP expired. Please request a new one.")
+        now_ts = timezone.now().timestamp()
+        if now_ts > otp_data.get('expires_at', 0):
+            request.session.pop('login_otp_data', None)
+            messages.error(request, "OTP has expired. Please request a new one.")
             return redirect('signin_mobile')
 
-        if otp and otp == otp_data.get('otp'):
-            username = otp_data.get('mobile')
-            try:
-                user = User.objects.get(username=username)
-            except User.DoesNotExist:
-                user = User.objects.create_user(username=username)
+        # Check maximum attempts (limit 3 attempts)
+        attempts = otp_data.get('attempts', 0) + 1
+        otp_data['attempts'] = attempts
+        if attempts > 3:
+            request.session.pop('login_otp_data', None)
+            messages.error(request, "Maximum OTP verification attempts exceeded. Please request a new OTP.")
+            return redirect('signin_mobile')
+
+        # Verify OTP using salted SHA-256 hash comparison
+        salt = otp_data.get('otp_salt', '')
+        expected_hash = otp_data.get('otp_hash', '')
+        computed_hash = hashlib.sha256(f"{otp}:{salt}".encode()).hexdigest()
+
+        if computed_hash == expected_hash:
+            raw_mobile = otp_data.get('mobile') or request.POST.get('mobile')
+            phone10 = normalize_phone_number(raw_mobile)
+            user_id = otp_data.get('user_id')
+            request.session.pop('login_otp_data', None)
+
+            # Re-check user existence to prevent duplicate user creation
+            user = None
+            if phone10:
+                user, _ = find_user_by_mobile(phone10)
+            if not user and user_id:
+                user = User.objects.filter(id=user_id, is_active=True).first()
+
+            # If user does not exist, auto-register new account with normalized mobile number
+            if not user:
+                if not User.objects.filter(username=phone10).exists():
+                    username = phone10
+                elif not User.objects.filter(username=f"user_{phone10}").exists():
+                    username = f"user_{phone10}"
+                else:
+                    counter = 1
+                    while User.objects.filter(username=f"user_{phone10}_{counter}").exists():
+                        counter += 1
+                    username = f"user_{phone10}_{counter}"
+
+                user = User(
+                    username=username,
+                    is_active=True,
+                )
                 user.set_unusable_password()
                 user.save()
+
+                UserDetail.objects.update_or_create(
+                    user=user,
+                    defaults={
+                        'phone': phone10,
+                        'id_proof_type': '',
+                        'id_proof_number': '',
+                    }
+                )
+
+                try:
+                    send_notification(
+                        title="New User Registered via Mobile",
+                        message=f"New user registered via WhatsApp OTP: {user.username} ({phone10}).",
+                        notification_type='user',
+                        link=f"/admin/auth/user/{user.id}/change/"
+                    )
+                except Exception as e:
+                    print(f"[notification mobile signup error] {e}")
+            else:
+                # If existing user has legacy 'user_<mobile>' username, upgrade to canonical mobile number
+                if user.username != phone10 and not User.objects.filter(username=phone10).exclude(id=user.id).exists():
+                    if user.username.startswith('user_') or user.username.isdigit():
+                        user.username = phone10
+                        user.save(update_fields=['username'])
+
+                # Ensure existing user has verified phone saved in UserDetail
+                ud = UserDetail.objects.filter(user=user).first()
+                if not ud:
+                    UserDetail.objects.create(
+                        user=user,
+                        phone=phone10,
+                        id_proof_type='',
+                        id_proof_number='',
+                    )
+                elif ud.phone != phone10:
+                    ud.phone = phone10
+                    ud.save(update_fields=['phone'])
+
+            if not user.is_active:
+                messages.error(request, "Your account is inactive. Please contact support.")
+                return redirect('signin')
 
             ab = getattr(settings, 'AUTHENTICATION_BACKENDS', None)
             backend = ab[0] if ab else 'django.contrib.auth.backends.ModelBackend'
             user.backend = backend
             login(request, user)
-            request.session.pop('otp_data', None)
+            load_user_profile_to_session(request, user, phone10=phone10)
+            messages.success(request, f"Welcome, {user.get_full_name() or user.username}!")
             return redirect('index')
         else:
-            messages.error(request, "Invalid OTP.")
-            return redirect('verify_otp')
+            request.session.modified = True
+            remaining = 3 - attempts
+            messages.error(request, f"Invalid OTP. {remaining} attempt(s) remaining.")
+            return render(request, 'verify_otp.html', {'mobile': otp_data.get('mobile', '')})
 
-    mobile_prefill = otp_data.get('mobile') if otp_data else ''
-    ctx = {'mobile': mobile_prefill}
-    if getattr(settings, 'DEBUG', False) and otp_data:
-        ctx['debug_otp'] = otp_data.get('otp')
-    return render(request, 'verify_otp.html', ctx)
+    mobile_prefill = otp_data.get('mobile', '') if otp_data else ''
+    return render(request, 'verify_otp.html', {'mobile': mobile_prefill})
 
 
 def forgot(request):
@@ -448,6 +832,23 @@ def inventory(request):
     search_query = request.GET.get('q', '').strip()
     if search_query:
         items = items.filter(title__icontains=search_query)
+
+    if request.GET.get('export') == 'csv':
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
+        if start_date_str:
+            items = items.filter(created_at__date__gte=start_date_str)
+        if end_date_str:
+            items = items.filter(created_at__date__lte=end_date_str)
+        import csv
+        from django.http import HttpResponse
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="inventory.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['ID', 'Title', 'Description', 'Price Per Day', 'Deposit', 'Total Quantity', 'Available Quantity', 'Booked Quantity'])
+        for item in items:
+            writer.writerow([item.id, item.title, item.description, item.rent_per_day, item.deposit, item.quantity, item.available_quantity, item.booked_quantity])
+        return response
 
     paginator = Paginator(items, 20)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -865,27 +1266,6 @@ def paymentmethod(request):
                 is_delivery_paid=rental_delivery_paid,
             )
 
-            try:
-                to_phone = rental.phone
-                if not to_phone:
-                    try:
-                        ud = UserDetail.objects.filter(user_id=request.user.id).first()
-                        to_phone = ud.phone if ud else None
-                    except Exception:
-                        to_phone = None
-
-                if to_phone:
-                    to_digits = re.sub(r"\D", "", str(to_phone))
-                    customer_name = rental.renter_name or (request.user.get_full_name() or request.user.username)
-                    msg = (
-                        f"Hi {customer_name}, your rental request {rental.order_id} for '{item.title}' "
-                        f"(Qty: {rental.quantity}) from {rental.start_date} to {rental.end_date} has been submitted. "
-                        "We'll notify you when it's confirmed. - Kutch Yuvak Sangh"
-                    )
-                    send_whatsapp_message(to_digits, msg)
-            except Exception as e:
-                print(f"[whatsapp notify error] {e}")
-
             created_rentals.append(rental)
 
         print("HISTORY CREATED")
@@ -904,6 +1284,11 @@ def paymentmethod(request):
             )
         except Exception as e:
             print(f"[notification booking error] {e}")
+
+        try:
+            send_new_booking_notification(created_rentals[0])
+        except Exception as e:
+            print(f"[whatsapp new_booking error] {e}")
 
         cart.delete()
 
@@ -1328,11 +1713,12 @@ def approve_order(request, order_id):
         item.update_availability()
     
     first_order = orders.first()
-    if not first_order.receipts.exists():
-        content_file = generate_receipt(first_order)
-        new_receipt = Receipt.objects.create(rental_request=first_order, receipt_type='booking')
-        new_receipt.file.save(receipt_filename(first_order), content_file)
-        new_receipt.save()
+    receipt_obj = first_order.receipts.filter(receipt_type='booking').order_by('-created_at').first()
+    if not receipt_obj:
+        content_file = generate_receipt(first_order, receipt_type='booking')
+        receipt_obj = Receipt.objects.create(rental_request=first_order, receipt_type='booking')
+        receipt_obj.file.save(receipt_filename(first_order, receipt_type='booking'), content_file)
+        receipt_obj.save()
 
     try:
         send_notification(
@@ -1346,8 +1732,131 @@ def approve_order(request, order_id):
     except Exception as e:
         print(f"[notification error] {e}")
 
+    try:
+        send_booking_approved_notification(first_order)
+    except Exception as e:
+        print(f"[whatsapp booking_approved error] {e}")
+
+    try:
+        send_booking_receipt_whatsapp(first_order)
+    except Exception as e:
+        print(f"[whatsapp booking_receipt error] {e}")
+
     messages.success(request, f"Order {order_id} approved successfully.")
     return redirect("bookingsammry")
+
+@login_required
+@user_passes_test(lambda u: user_has_permission(u, 'can_access_inventory'))
+@transaction.atomic
+def deliver_order(request, order_id):
+    if request.method != "POST":
+        return redirect("bookingsammry")
+
+    orders = History.objects.select_for_update().filter(order_id=order_id, is_returned=False)
+    if not orders.exists():
+        messages.error(request, "Order not found or already returned.")
+        return redirect("bookingsammry")
+
+    order_rows = list(orders)
+    total_rent = sum((item.total_rent for item in order_rows), Decimal("0"))
+    total_deposit = sum((item.deposit * item.quantity for item in order_rows), Decimal("0"))
+    first_item = order_rows[0]
+
+    del_opt = ""
+    delivery_charge_val = Decimal("0")
+    for item in order_rows:
+        if not del_opt and item.delivery_option:
+            del_opt = item.delivery_option
+        if delivery_charge_val == Decimal("0") and item.delivery_charge:
+            delivery_charge_val = item.delivery_charge
+
+    del_opt_normalized = (del_opt or "").strip().lower().replace("_", " ")
+    is_home_delivery = del_opt_normalized in ("delivery", "home delivery")
+    delivery_charge = delivery_charge_val if is_home_delivery else Decimal("0")
+    total_payable = total_rent + total_deposit + delivery_charge
+
+    # Parse amounts from entered fields (Rent, Deposit, Delivery Charges) or single amount_paid
+    rent_input = request.POST.get("rent_paid", "").strip()
+    deposit_input = request.POST.get("deposit_paid", "").strip()
+    delivery_input = request.POST.get("delivery_paid", "").strip()
+    paid_input = request.POST.get("amount_paid", "").strip()
+
+    del_val = Decimal("0")
+    if rent_input or deposit_input or delivery_input:
+        try:
+            r_val = Decimal(rent_input) if rent_input else Decimal("0")
+        except Exception:
+            r_val = Decimal("0")
+        try:
+            d_val = Decimal(deposit_input) if deposit_input else Decimal("0")
+        except Exception:
+            d_val = Decimal("0")
+        try:
+            del_val = Decimal(delivery_input) if delivery_input else Decimal("0")
+        except Exception:
+            del_val = Decimal("0")
+        new_paid = max(Decimal("0"), r_val + d_val + del_val)
+    elif paid_input:
+        try:
+            new_paid = max(Decimal("0"), Decimal(paid_input))
+        except Exception:
+            new_paid = sum((item.amount_paid for item in order_rows), Decimal("0"))
+    else:
+        new_paid = sum((item.amount_paid for item in order_rows), Decimal("0"))
+
+    remaining = max(Decimal("0"), total_payable - new_paid)
+
+    for idx, item in enumerate(order_rows):
+        item.status = "delivered"
+        if idx == 0:
+            item.amount_paid = new_paid
+            item.amount_remaining = remaining
+            item._amount_remaining_manually_changed = True
+            if is_home_delivery:
+                if new_paid >= total_payable:
+                    item.is_delivery_paid = True
+                elif del_val >= delivery_charge and delivery_charge > Decimal("0"):
+                    item.is_delivery_paid = True
+                elif new_paid >= (total_rent + total_deposit):
+                    item.is_delivery_paid = True
+                else:
+                    item.is_delivery_paid = False
+            else:
+                item.is_delivery_paid = False
+        else:
+            item.amount_paid = Decimal("0")
+            item.amount_remaining = Decimal("0")
+            item._amount_remaining_manually_changed = True
+        item.save()
+
+    for item in Inventory.objects.filter(rentalrequest_set__order_id=order_id).distinct():
+        try:
+            item.update_availability()
+        except Exception:
+            pass
+
+    first_item.refresh_from_db()
+
+    try:
+        send_notification(
+            title=f"Order Delivered: {order_id}",
+            message=f"Order {order_id} has been marked as delivered by {request.user.username}. Paid: Rs. {new_paid:.2f}, Remaining: Rs. {remaining:.2f}.",
+            notification_type='booking',
+            link=f"/admin/app/history/?order_id={order_id}",
+            order_id=order_id,
+            rental=first_item
+        )
+    except Exception as e:
+        print(f"[notification error] {e}")
+
+    try:
+        send_booking_delivered_notification(first_item)
+    except Exception as e:
+        print(f"[whatsapp booking_delivered error] {e}")
+
+    messages.success(request, f"Order {order_id} marked as Delivered successfully! Paid: Rs. {new_paid:.2f}, Remaining: Rs. {remaining:.2f}")
+    return redirect("bookingsammry")
+
 
 @login_required
 @user_passes_test(lambda u: user_has_permission(u, 'can_access_inventory'))
@@ -1361,7 +1870,7 @@ def approve_return_order(request, order_id):
     for index, rr in enumerate(rentals):
         rr.is_returned = True
         rr.is_return_requested = False
-        rr.status = "approved"
+        rr.status = "returned"
         rr.actual_return_date = timezone.localdate()
         rr.save()
         try:
@@ -1372,6 +1881,14 @@ def approve_return_order(request, order_id):
             except Exception:
                 pass
     
+    first_rental = rentals[0]
+    receipt_obj = first_rental.receipts.filter(receipt_type='return').order_by('-created_at').first()
+    if not receipt_obj:
+        content_file = generate_receipt(first_rental, receipt_type='return')
+        receipt_obj = Receipt.objects.create(rental_request=first_rental, receipt_type='return')
+        receipt_obj.file.save(receipt_filename(first_rental, receipt_type='return'), content_file)
+        receipt_obj.save()
+
     try:
         send_notification(
             title=f"Return Approved for {order_id}",
@@ -1379,10 +1896,20 @@ def approve_return_order(request, order_id):
             notification_type='return',
             link=f"/admin/app/history/?order_id={order_id}",
             order_id=order_id,
-            rental=rentals[0]
+            rental=first_rental
         )
     except Exception as e:
         print(f"[notification error] {e}")
+
+    try:
+        send_return_approved_notification(first_rental)
+    except Exception as e:
+        print(f"[whatsapp return_approved error] {e}")
+
+    try:
+        send_return_receipt_whatsapp(first_rental)
+    except Exception as e:
+        print(f"[whatsapp return_receipt error] {e}")
 
     messages.success(request, "Return approved successfully.")
     return redirect("bookingsammry")
@@ -1438,10 +1965,14 @@ def userdetail(request):
         id_proof_number = request.POST.get("id_proof_number", "").strip()
 
         if is_admin and not request.session.get("details_filled"):
+            phone = (request.POST.get("phone") or "").strip()
+            if not phone:
+                messages.error(request, "Phone number is required.")
+                return redirect("userdetail")
             request.session["renter_name"] = request.POST.get("name") or request.user.username
             request.session["renter_email"] = request.POST.get("email", "").strip()
             request.session["patient_name"] = request.POST.get("patient_name")
-            request.session["phone"] = request.POST.get("phone")
+            request.session["phone"] = phone
             request.session["address"] = request.POST.get("address")
             request.session["pincode"] = request.POST.get("pincode")
             request.session["start_date"] = request.POST.get("start_date")
@@ -1471,6 +2002,10 @@ def userdetail(request):
                 return redirect("cart")
 
         phone = request.POST.get("phone", "").strip()
+        if not phone:
+            messages.error(request, "Phone number is required.")
+            return redirect("userdetail")
+        norm_phone = normalize_phone_number(phone) or phone
         address = request.POST.get("address", "").strip()
         pincode = request.POST.get("pincode", "").strip()
         email = request.POST.get("email", "").strip()
@@ -1492,7 +2027,7 @@ def userdetail(request):
                 user_detail, _ = UserDetail.objects.update_or_create(
                     user_id=request.user.id,
                     defaults={
-                        "phone": phone,
+                        "phone": norm_phone,
                         "id_proof_type": id_proof_type,
                         "id_proof_number": id_proof_number,
                         "address_line1": address,
@@ -1506,9 +2041,12 @@ def userdetail(request):
             request.session["renter_name"] = request.POST.get("name") or request.user.get_full_name() or request.user.username
             request.session["renter_email"] = email or request.user.email
             request.session["patient_name"] = patient_name
-            request.session["phone"] = phone
+            request.session["phone"] = norm_phone or phone
+            request.session["user_phone"] = norm_phone or phone
             request.session["address"] = history_address
+            request.session["user_address"] = history_address
             request.session["pincode"] = pincode
+            request.session["user_pincode"] = pincode
             request.session["start_date"] = start_date_str
             request.session["end_date"] = end_date_str
             request.session["id_proof_type"] = id_proof_type
@@ -1524,13 +2062,40 @@ def userdetail(request):
             messages.error(request, "Your cart is empty.")
             return redirect("cart")
 
+    if request.user.is_authenticated and not is_admin:
+        load_user_profile_to_session(request, request.user)
+
+    ud = getattr(request.user, 'userdetail', None) if request.user.is_authenticated else None
+    latest_history = History.objects.filter(user=request.user).order_by('-created_at').first() if request.user.is_authenticated else None
+
+    renter_name_val = request.session.get("renter_name") or (request.user.get_full_name() or request.user.username if request.user.is_authenticated else "")
+    email_val = request.session.get("renter_email") or (request.user.email if request.user.is_authenticated else "") or (ud.email if ud else "")
+    patient_name_val = request.session.get("patient_name") or (ud.patient_name if ud else "") or getattr(latest_history, 'patient_name', '') or ""
+    phone_val = request.session.get("phone") or request.session.get("user_phone") or (ud.phone if ud else "") or getattr(latest_history, 'phone', '') or ""
+    id_proof_type_val = request.session.get("id_proof_type") or (ud.id_proof_type if ud else "") or getattr(latest_history, 'id_proof_type', '') or ""
+    id_proof_number_val = request.session.get("id_proof_number") or (ud.id_proof_number if ud else "") or getattr(latest_history, 'id_proof_number', '') or ""
+    address_val = request.session.get("address") or request.session.get("user_address") or (ud.address_line1 if ud else "") or getattr(latest_history, 'address', '') or ""
+    pincode_val = request.session.get("pincode") or request.session.get("user_pincode") or (ud.pincode if ud else "") or ""
+    start_date_val = request.session.get("start_date") or ""
+    end_date_val = request.session.get("end_date") or ""
+
     context = {
         "items": [],
         "rental_days": 0,
         "total_rent": 0,
         "total_deposit": 0,
         "total_amount": 0,
-        "is_admin": is_admin
+        "is_admin": is_admin,
+        "renter_name": renter_name_val,
+        "email": email_val,
+        "patient_name": patient_name_val,
+        "phone": phone_val,
+        "id_proof_type": id_proof_type_val,
+        "id_proof_number": id_proof_number_val,
+        "address": address_val,
+        "pincode": pincode_val,
+        "start_date": start_date_val,
+        "end_date": end_date_val,
     }
 
     if is_admin and not request.session.get("details_filled"):
@@ -1595,13 +2160,50 @@ def bookingsammry(request):
     booking_summaries = []
 
     for order_id, items in grouped.items():
+        total_rent = sum((item.total_rent for item in items), Decimal("0"))
         total_deposit = sum((item.deposit * item.quantity for item in items), Decimal("0"))
+        first_item = items[0]
+
+        del_opt = ""
+        delivery_charge_val = Decimal("0")
+        is_del_paid = False
+        for item in items:
+            if not del_opt and item.delivery_option:
+                del_opt = item.delivery_option
+            if delivery_charge_val == Decimal("0") and item.delivery_charge:
+                delivery_charge_val = item.delivery_charge
+            if item.is_delivery_paid:
+                is_del_paid = True
+
+        del_opt_normalized = (del_opt or "").strip().lower().replace("_", " ")
+        is_home_delivery = del_opt_normalized in ("delivery", "home delivery")
+        delivery_charge = delivery_charge_val if is_home_delivery else Decimal("0")
+        total_payable = total_rent + total_deposit + delivery_charge
+        amount_paid = sum((item.amount_paid for item in items), Decimal("0"))
+        amount_remaining = max(total_payable - amount_paid, Decimal("0"))
+
+        rent_deposit_total = total_rent + total_deposit
+        if not is_home_delivery or delivery_charge <= Decimal("0") or is_del_paid:
+            pending_delivery_charge = Decimal("0")
+        else:
+            delivery_paid_so_far = max(Decimal("0"), min(delivery_charge, amount_paid - rent_deposit_total))
+            pending_delivery_charge = max(Decimal("0"), delivery_charge - delivery_paid_so_far)
+            if pending_delivery_charge <= Decimal("0") and amount_paid < total_payable:
+                pending_delivery_charge = delivery_charge
 
         booking_summaries.append({
             "order_id": order_id,
             "date": items[0].start_date,
             "items": items,
+            "total_rent": total_rent,
             "total_deposit": total_deposit,
+            "delivery_option": del_opt,
+            "is_home_delivery": is_home_delivery,
+            "delivery_charge": delivery_charge,
+            "pending_delivery_charge": pending_delivery_charge,
+            "total_payable": total_payable,
+            "amount_paid": amount_paid,
+            "amount_remaining": amount_remaining,
             "customer": items[0].user if user_has_any_permission(request.user) else None,
         })
 
@@ -1621,7 +2223,12 @@ def mark_returned(request, rental_id, item_id):
     
     if not rr.is_return_requested:
         rr.is_return_requested = True
-        rr.save()
+        rr.status = "return_request"
+        rr.save(update_fields=["is_return_requested", "status"])
+        try:
+            send_booking_whatsapp(rr, force=True)
+        except Exception as e:
+            print(f"[whatsapp return_request error] {e}")
 
         admin_email = getattr(settings, 'ADMIN_EMAIL', None)
         subject = f'Return Request from {request.user.username}'
@@ -1778,6 +2385,11 @@ def extend_return_date(request, order_id):
         except Exception as e:
             print(f"[notification extend return error] {e}")
 
+        try:
+            send_return_date_extended_notification(first_rental, extension_id=extension_no)
+        except Exception as e:
+            print(f"[whatsapp return_date_extended error] {e}")
+
         messages.success(request, f"Return date extended to {new_date.strftime('%d %b %Y')}. Charges have been updated.")
         return redirect("bookingsammry")
 
@@ -1900,6 +2512,14 @@ def return_order(request, order_id):
                 except Exception:
                     pass
 
+        first_rental = rental_rows[0]
+        receipt_obj = first_rental.receipts.filter(receipt_type='return').order_by('-created_at').first()
+        if not receipt_obj:
+            content_file = generate_receipt(first_rental, receipt_type='return')
+            receipt_obj = Receipt.objects.create(rental_request=first_rental, receipt_type='return')
+            receipt_obj.file.save(receipt_filename(first_rental, receipt_type='return'), content_file)
+            receipt_obj.save()
+
         try:
             send_notification(
                 title=f"Order Returned for {order_id}",
@@ -1911,17 +2531,27 @@ def return_order(request, order_id):
                 notification_type='return',
                 link=f"/admin/app/history/?order_id={order_id}",
                 order_id=order_id,
-                rental=rental_rows[0]
+                rental=first_rental
             )
         except Exception as e:
             print(f"[notification direct return error] {e}")
+
+        try:
+            send_return_approved_notification(first_rental)
+        except Exception as e:
+            print(f"[whatsapp return_approved error] {e}")
+
+        try:
+            send_return_receipt_whatsapp(first_rental)
+        except Exception as e:
+            print(f"[whatsapp return_receipt error] {e}")
 
         messages.success(request, "Order marked as returned successfully.")
         return redirect("bookingsammry")
 
     for index, rr in enumerate(rental_rows):
         rr.is_return_requested = True
-        rr.status = "pending"      
+        rr.status = "return_request"      
         rr.deposit_donated = donate_deposit
         rr.donation_amount = donation_amount if index == 0 else Decimal("0")
         rr.donation_comment = donation_comment if index == 0 else ""
@@ -1953,6 +2583,11 @@ def return_order(request, order_id):
         )
     except Exception as e:
         print(f"[notification return request error] {e}")
+
+    try:
+        send_booking_whatsapp(rental_rows[0], force=True)
+    except Exception as e:
+        print(f"[whatsapp return_request error] {e}")
 
     if donate_deposit:
         messages.success(
@@ -2002,6 +2637,11 @@ def cancel_order(request, order_id):
     except Exception as e:
         print(f"[notification cancel error] {e}")
 
+    try:
+        send_cancel_booking_notification(rentals.first())
+    except Exception as e:
+        print(f"[whatsapp cancel_booking error] {e}")
+
     messages.success(request, "Booking cancelled successfully.")
     return redirect('bookingsammry')
 
@@ -2032,12 +2672,105 @@ def users(request):
         return redirect('index')
 
     q = request.GET.get('q', '').strip()
-    users = User.objects.all().order_by('username').prefetch_related('role_assignments__role')
+    users_qs = User.objects.all().select_related('userdetail').prefetch_related('role_assignments__role', 'social_auth').order_by('-date_joined')
     if q:
-        users = users.filter(
+        clean_q_digits = re.sub(r'\D', '', q)
+        q_filter = (
             Q(username__icontains=q) |
-            Q(email__icontains=q)
+            Q(email__icontains=q) |
+            Q(first_name__icontains=q) |
+            Q(last_name__icontains=q) |
+            Q(userdetail__phone__icontains=q)
         )
+        if clean_q_digits and len(clean_q_digits) >= 4:
+            if len(clean_q_digits) == 12 and clean_q_digits.startswith('91'):
+                search_p10 = clean_q_digits[2:]
+            elif len(clean_q_digits) == 11 and clean_q_digits.startswith('0'):
+                search_p10 = clean_q_digits[1:]
+            else:
+                search_p10 = clean_q_digits
+            q_filter |= Q(userdetail__phone__icontains=search_p10)
+            q_filter |= Q(username__icontains=search_p10)
+        users_qs = users_qs.filter(q_filter).distinct()
+
+    # Ensure each mobile number appears only once in User Management and CSV export
+    seen_mobiles = {}
+    dup_ids_to_exclude = set()
+    for u in list(users_qs):
+        u_phone = getattr(getattr(u, 'userdetail', None), 'phone', '') or ''
+        p10 = normalize_phone_number(u_phone)
+        if not p10 and u.username.startswith('user_'):
+            p10 = normalize_phone_number(u.username)
+        if p10:
+            if p10 in seen_mobiles:
+                primary_u = consolidate_duplicate_users_by_mobile(p10)
+                if primary_u:
+                    kept_id = primary_u.id
+                    prev_id = seen_mobiles[p10]
+                    if prev_id != kept_id:
+                        dup_ids_to_exclude.add(prev_id)
+                    if u.id != kept_id:
+                        dup_ids_to_exclude.add(u.id)
+                    seen_mobiles[p10] = kept_id
+                else:
+                    dup_ids_to_exclude.add(u.id)
+            else:
+                seen_mobiles[p10] = u.id
+    if dup_ids_to_exclude:
+        users_qs = users_qs.exclude(id__in=dup_ids_to_exclude)
+
+    if request.GET.get('export') == 'csv':
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
+        if start_date_str:
+            users_qs = users_qs.filter(date_joined__date__gte=start_date_str)
+        if end_date_str:
+            users_qs = users_qs.filter(date_joined__date__lte=end_date_str)
+        import csv
+        from django.http import HttpResponse
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="users.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['ID', 'Username', 'Name', 'Email', 'Mobile', 'Login Method', 'Status', 'Superuser', 'Staff', 'Roles'])
+        for u in users_qs:
+            user_roles = ", ".join([a.role.name for a in u.role_assignments.all()]) or "No role assigned"
+            u_name = u.get_full_name() or getattr(getattr(u, 'userdetail', None), 'patient_name', '') or '-'
+            u_phone = getattr(getattr(u, 'userdetail', None), 'phone', '') or ''
+            if not u_phone and u.username.startswith('user_'):
+                u_phone = re.sub(r'\D', '', u.username)[:10]
+            elif not u_phone and u.username.isdigit() and len(u.username) == 10:
+                u_phone = u.username
+
+            is_google = False
+            if hasattr(u, 'social_auth'):
+                is_google = any('google' in sa.provider.lower() for sa in u.social_auth.all())
+            is_mobile_otp = u.username.startswith('user_') or (not u.has_usable_password() and u_phone and not is_google)
+
+            if is_google and (is_mobile_otp or u_phone):
+                login_method = "Google & Mobile OTP"
+            elif is_google:
+                login_method = "Google"
+            elif is_mobile_otp:
+                login_method = "Mobile OTP"
+            elif u.has_usable_password():
+                login_method = "Password"
+            else:
+                login_method = "Standard"
+
+            status = "Active" if u.is_active else "Inactive"
+            writer.writerow([
+                u.id,
+                u.username,
+                u_name,
+                u.email or '-',
+                u_phone or '-',
+                login_method,
+                status,
+                'Yes' if u.is_superuser else 'No',
+                'Yes' if u.is_staff else 'No',
+                user_roles
+            ])
+        return response
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -2059,6 +2792,8 @@ def users(request):
                     target_role = Role.objects.filter(id=role_id_int).first()
                     if not target_user or not target_role:
                         messages.error(request, "Invalid user or role selected.")
+                    elif target_user.is_superuser:
+                        messages.error(request, "Roles cannot be assigned to superusers.")
                     else:
                         from django.db import transaction
                         try:
@@ -2090,8 +2825,41 @@ def users(request):
         page_size_int = 10
     page_size = str(page_size_int)
 
-    paginator = Paginator(users, page_size_int)
+    paginator = Paginator(users_qs, page_size_int)
     page_obj = paginator.get_page(request.GET.get('page'))
+
+    # Annotate attributes on users in current page
+    for u in page_obj:
+        u.display_name = u.get_full_name() or getattr(getattr(u, 'userdetail', None), 'patient_name', '') or ''
+        u_phone = getattr(getattr(u, 'userdetail', None), 'phone', '') or ''
+        if not u_phone and u.username.startswith('user_'):
+            u_phone = re.sub(r'\D', '', u.username)[:10]
+        elif not u_phone and u.username.isdigit() and len(u.username) == 10:
+            u_phone = u.username
+        u.mobile_number = u_phone
+
+        is_google = False
+        if hasattr(u, 'social_auth'):
+            is_google = any('google' in sa.provider.lower() for sa in u.social_auth.all())
+        is_mobile_otp = u.username.startswith('user_') or (not u.has_usable_password() and u_phone and not is_google)
+        has_password = u.has_usable_password()
+
+        if is_google and (is_mobile_otp or u_phone):
+            u.login_method_label = "Google & OTP"
+            u.login_method_code = "google_mobile"
+        elif is_google:
+            u.login_method_label = "Google"
+            u.login_method_code = "google"
+        elif is_mobile_otp:
+            u.login_method_label = "Mobile OTP"
+            u.login_method_code = "mobile_otp"
+        elif has_password:
+            u.login_method_label = "Password"
+            u.login_method_code = "password"
+        else:
+            u.login_method_label = "Standard"
+            u.login_method_code = "standard"
+
     roles = Role.objects.all().order_by('name')
 
     return render(request, 'users.html', {
@@ -2117,6 +2885,21 @@ def roles(request):
     page_size = str(page_size_int)
 
     roles = Role.objects.all().order_by('name')
+    if q:
+        roles = roles.filter(name__icontains=q)
+
+    if request.GET.get('export') == 'csv':
+        import csv
+        from django.http import HttpResponse
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="roles.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['ID', 'Role Name', 'Description', 'Permissions'])
+        for r in roles:
+            perms = ", ".join(r.permission_list)
+            writer.writerow([r.id, r.name, r.description or '-', perms])
+        return response
+
     edit_role = None
     edit_role_id = request.GET.get('edit')
     if edit_role_id:
@@ -2246,7 +3029,7 @@ def return_cart_item(request, cart_item_id):
         return redirect("userdetail")
 
     rr.is_return_requested = True
-    rr.status = "pending"
+    rr.status = "return_request"
     rr.save(update_fields=["is_return_requested", "status"])
 
     try:
@@ -2263,6 +3046,11 @@ def return_cart_item(request, cart_item_id):
         )
     except Exception as e:
         print(f"[notification cart return error] {e}")
+
+    try:
+        send_booking_whatsapp(rr, force=True)
+    except Exception as e:
+        print(f"[whatsapp return_request error] {e}")
 
     messages.success(request, "Return request sent to admin for approval.")
     return redirect("userdetail")
@@ -2302,18 +3090,18 @@ def return_receipt(request, order_id):
     return_pickup_charge = max((rr.return_pickup_charge for rr in all_order_rentals), default=Decimal("0"))
     
     total_rent_with_extensions = breakdown["original_total_rent"] + breakdown["extension_total"]
-    total_amount = total_rent_with_extensions + delivery_charge + return_pickup_charge + donation_amount
+    total_amount = total_rent_with_extensions + delivery_charge + return_pickup_charge + final_deposit
     amount_paid = breakdown["amount_paid"]
 
-    net_balance = amount_paid - total_amount
-    if rental.deposit_donated:
+    if amount_paid < total_amount:
+        amount_remaining = total_amount - amount_paid
         refund_amount = Decimal("0")
-    elif net_balance > 0:
-        refund_amount = min(net_balance, final_deposit)
+    elif amount_paid > total_amount:
+        amount_remaining = Decimal("0")
+        refund_amount = Decimal("0") if rental.deposit_donated else (amount_paid - total_amount)
     else:
+        amount_remaining = Decimal("0")
         refund_amount = Decimal("0")
-
-    amount_remaining = max(total_amount - amount_paid, Decimal("0"))
 
     context = {
         "order": rental,          
@@ -2441,14 +3229,10 @@ def request_blood(request):
 
         send_submission_email("New Blood Request Received", details, attachment=blood_request.prescription if blood_request.prescription else None)
 
-        whatsapp_msg = (
-            f"Hello {blood_request.coordinator_name},\n\n"
-            f"Thank you for submitting a blood request for patient {blood_request.patient_name} ({blood_request.blood_group}). "
-            f"Our team is reviewing the request and will match with available blood banks/donors.\n\n"
-            f"Regards,\nKYS Bhayander Team"
-        )
-
-        send_whatsapp_message(blood_request.coordinator_contact, whatsapp_msg)
+        try:
+            send_new_blood_request_notification(blood_request)
+        except Exception as e:
+            print(f"[whatsapp new_blood_request error] {e}")
 
         if request.user.is_authenticated:
             try:
@@ -2474,7 +3258,7 @@ def request_blood(request):
             pass
 
         messages.success(request, "Your request for blood has been submitted successfully! We will coordinate shortly.")
-        return redirect('request_blood')
+        return redirect('index')
 
     # GET handling
     if user_has_permission(request.user, 'can_manage_blood_requests'):
@@ -2490,7 +3274,6 @@ def request_blood(request):
         page_size = str(page_size_int)
         qs = BloodRequest.objects.all().order_by('-created_at')
         if q:
-            from django.db.models import Q
             qs = qs.filter(
                 Q(request_id__icontains=q) |
                 Q(patient_name__icontains=q) |
@@ -2504,6 +3287,12 @@ def request_blood(request):
             )
 
         if request.GET.get('export') == 'csv':
+            start_date_str = request.GET.get('start_date')
+            end_date_str = request.GET.get('end_date')
+            if start_date_str:
+                qs = qs.filter(created_at__date__gte=start_date_str)
+            if end_date_str:
+                qs = qs.filter(created_at__date__lte=end_date_str)
             import csv
             from django.http import HttpResponse
             response = HttpResponse(content_type='text/csv; charset=utf-8')
@@ -2537,7 +3326,11 @@ def request_blood(request):
             'page_obj': page_obj,
             'search_query': q,
             'page_size': page_size,
-            'active_employees': User.objects.filter(is_active=True).order_by('username'),
+            'status_choices': BloodRequest.STATUS_CHOICES,
+            'active_employees': User.objects.filter(
+                Q(role_assignments__isnull=False) | Q(is_staff=True) | Q(is_superuser=True),
+                is_active=True
+            ).distinct().order_by('username'),
         })
 
     # Regular user: show submission form
@@ -2586,6 +3379,22 @@ def edit_blood_request(request, request_id):
                 except Exception:
                     pass
 
+            if blood_request.status == 'Fulfilled':
+                try:
+                    send_blood_request_fulfilled_notification(blood_request)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_fulfilled error] {e}")
+            elif blood_request.status in ('Received', 'Blood Received'):
+                try:
+                    send_blood_request_received_notification(blood_request)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_received error] {e}")
+            elif blood_request.status == 'Completed':
+                try:
+                    send_blood_request_completed_notification(blood_request)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_completed error] {e}")
+
             if blood_request.assigned_employee and blood_request.assigned_employee != request.user:
                 try:
                     send_notification(
@@ -2624,25 +3433,26 @@ def admin_view_blood_request(request, request_id):
 
 
 @login_required
-@user_passes_test(lambda u: user_has_permission(u, 'can_manage_blood_requests'))
 def assign_blood_request_employee(request, request_id):
     req = get_object_or_404(BloodRequest, id=request_id)
-    if request.method != 'POST':
-        messages.error(request, 'Invalid assignment request.')
+    is_allowed = (
+        request.user.is_superuser
+        or request.user.is_staff
+        or user_has_permission(request.user, 'can_manage_blood_requests')
+    )
+    if not is_allowed:
+        messages.error(request, "You do not have permission to assign blood requests.")
+        return redirect('index')
+
+    employee_id = request.POST.get('assigned_employee')
+    if not employee_id:
+        messages.error(request, 'Please select an employee.')
         return redirect('request_blood')
 
-    if req.status != 'Accepted':
-        messages.error(request, 'Only accepted requests can be assigned.')
-        return redirect('request_blood')
-
-    form = AssignEmployeeForm(request.POST)
-    if not form.is_valid():
-        messages.error(request, 'Please select a valid active user.')
-        return redirect('request_blood')
-
-    employee = form.cleaned_data['assigned_employee']
-    if req.assigned_employee_id:
-        messages.error(request, 'This request already has an assigned employee.')
+    try:
+        employee = User.objects.get(id=employee_id, is_active=True)
+    except User.DoesNotExist:
+        messages.error(request, 'Selected employee does not exist.')
         return redirect('request_blood')
 
     req.assigned_employee = employee
@@ -2650,9 +3460,9 @@ def assign_blood_request_employee(request, request_id):
     req.assigned_at = timezone.now()
     req.status = 'Assigned'
     req.updated_by = request.user
-    req.remarks = form.cleaned_data.get('remarks') or req.remarks
     req.save()
     req.append_status_history('Assigned', changed_by=request.user, note=f'Assigned to {employee.username}')
+
     try:
         send_notification(
             title='Blood Request Assigned',
@@ -2660,13 +3470,12 @@ def assign_blood_request_employee(request, request_id):
                 f'You have been assigned to blood request for {req.patient_name} '
                 f'({req.blood_group}) at {req.hospital_name}. Please review the request.'
             ),
-            notification_type='info',
-            link=f'/request-blood/view/{req.id}/',
             recipient=employee,
+            link=f'/request-blood/view/{req.id}/',
         )
     except Exception:
         pass
-    messages.success(request, 'Employee assigned successfully.')
+    messages.success(request, f'Successfully assigned blood request to {employee.get_full_name() or employee.username}.')
     return redirect('request_blood')
 
 
@@ -2685,15 +3494,52 @@ def admin_edit_blood_request_status(request, request_id):
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'accept':
-            if req.status != 'Pending':
-                messages.error(request, 'Only pending requests can be accepted.')
+            if req.status not in {'Pending', 'Accepted'}:
+                messages.error(request, 'Only pending or accepted requests can be updated.')
             else:
-                req.status = 'Accepted'
                 req.updated_by = request.user
-                req.remarks = request.POST.get('remarks', req.remarks)
-                req.save()
-                req.append_status_history('Accepted', changed_by=request.user, note='Accepted by admin')
-                messages.success(request, 'Request accepted.')
+                remarks_val = request.POST.get('remarks')
+                if remarks_val:
+                    req.remarks = remarks_val
+                
+                emp_id = request.POST.get('assigned_employee')
+                if emp_id:
+                    try:
+                        emp = User.objects.get(id=emp_id, is_active=True)
+                        req.assigned_employee = emp
+                        req.assigned_by = request.user
+                        req.assigned_at = timezone.now()
+                        req.status = 'Assigned'
+                        req.save()
+                        req.append_status_history('Assigned', changed_by=request.user, note=f'Accepted & Assigned to {emp.username}')
+                        try:
+                            send_notification(
+                                title='Blood Request Assigned',
+                                message=(
+                                    f'You have been assigned to blood request for {req.patient_name} '
+                                    f'({req.blood_group}) at {req.hospital_name}. Please review the request.'
+                                ),
+                                recipient=emp,
+                                link=f'/request-blood/view/{req.id}/',
+                            )
+                        except Exception:
+                            pass
+                        messages.success(request, f'Request accepted and assigned to {emp.get_full_name() or emp.username}.')
+                    except User.DoesNotExist:
+                        req.status = 'Accepted'
+                        req.save()
+                        req.append_status_history('Accepted', changed_by=request.user, note='Accepted by admin')
+                        messages.success(request, 'Request accepted.')
+                else:
+                    req.status = 'Accepted'
+                    req.save()
+                    req.append_status_history('Accepted', changed_by=request.user, note='Accepted by admin')
+                    messages.success(request, 'Request accepted.')
+
+                try:
+                    send_blood_request_accepted_notification(req)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_accepted error] {e}")
         elif action == 'reject':
             if req.status in {'Completed', 'Rejected'}:
                 messages.error(request, 'This request cannot be rejected again.')
@@ -2711,7 +3557,7 @@ def admin_edit_blood_request_status(request, request_id):
                 req.status = 'Searching'
             elif req.status == 'Searching':
                 req.status = 'Blood Available'
-            elif req.status == 'Blood Available':
+            elif req.status in {'Blood Available', 'Fulfilled'}:
                 req.status = 'Ready for Pickup'
             elif req.status == 'Ready for Pickup':
                 req.status = 'Received'
@@ -2723,35 +3569,184 @@ def admin_edit_blood_request_status(request, request_id):
             req.updated_by = request.user
             req.save()
             req.append_status_history(req.status, changed_by=request.user, note='Workflow advanced')
+
+            if req.status == 'Fulfilled':
+                try:
+                    send_blood_request_fulfilled_notification(req)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_fulfilled error] {e}")
+            elif req.status in ('Received', 'Blood Received'):
+                try:
+                    send_blood_request_received_notification(req)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_received error] {e}")
+            elif req.status == 'Completed':
+                try:
+                    send_blood_request_completed_notification(req)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_completed error] {e}")
+
             messages.success(request, f'Status updated to {req.status}.')
-        elif action == 'ready_for_pickup':
-            if req.status != 'Blood Available':
-                messages.error(request, 'Only blood-available requests can be marked ready for pickup.')
-            else:
-                req.status = 'Ready for Pickup'
-                req.updated_by = request.user
-                req.save()
-                req.append_status_history('Ready for Pickup', changed_by=request.user, note='Marked ready for pickup')
+        elif action in ('searching', 'employee_searching'):
+            req.status = 'Searching'
+            req.updated_by = request.user
+            req.remarks = request.POST.get('remarks', req.remarks)
+            req.save()
+            req.append_status_history('Searching', changed_by=request.user, note='Marked searching for blood')
+            if req.created_by:
                 try:
                     send_notification(
-                        title='Blood Ready for Pickup',
-                        message=f'Blood for {req.patient_name} is ready for pickup.',
+                        title='Blood Search Update',
+                        message=f'Blood request for {req.patient_name} is now searching.',
                         notification_type='info',
                         link=f'/request-blood/view/{req.id}/',
-                        user=req.created_by
+                        recipient=req.created_by,
                     )
                 except Exception:
                     pass
-                messages.success(request, 'Marked ready for pickup.')
+            messages.success(request, 'Status updated to Searching.')
+        elif action in ('blood_available', 'employee_blood_available'):
+            req.status = 'Blood Available'
+            req.updated_by = request.user
+            req.remarks = request.POST.get('remarks', req.remarks)
+            req.save()
+            req.append_status_history('Blood Available', changed_by=request.user, note='Marked blood available')
+            if req.created_by:
+                try:
+                    send_notification(
+                        title='Blood Available',
+                        message=f'Blood is available for patient {req.patient_name}.',
+                        notification_type='info',
+                        link=f'/request-blood/view/{req.id}/',
+                        recipient=req.created_by,
+                    )
+                except Exception:
+                    pass
+            messages.success(request, 'Status updated to Blood Available.')
+        elif action == 'ready_for_pickup':
+            req.status = 'Ready for Pickup'
+            req.updated_by = request.user
+            req.save()
+            req.append_status_history('Ready for Pickup', changed_by=request.user, note='Marked ready for pickup')
+            if req.created_by:
+                try:
+                    send_notification(
+                        title='Blood Ready for Pickup',
+                        message=f'Blood for patient {req.patient_name} is ready for pickup.',
+                        notification_type='info',
+                        link=f'/request-blood/view/{req.id}/',
+                        recipient=req.created_by,
+                    )
+                except Exception:
+                    pass
+            messages.success(request, 'Marked ready for pickup.')
+        elif action in ('mark_customer_received', 'user_received'):
+            if not req.blood_group:
+                messages.error(request, 'Blood group is required before marking as received.')
+                return redirect('request_blood')
+            if not req.blood_component:
+                messages.error(request, 'Blood component is required before marking as received.')
+                return redirect('request_blood')
+            if req.status not in {'Fulfilled', 'Ready for Pickup', 'Blood Available'}:
+                messages.error(request, 'Blood request must be in Fulfilled status before marking as received.')
+                return redirect('request_blood')
+            req.status = 'Received'
+            req.updated_by = request.user
+            req.save()
+            req.append_status_history('Received', changed_by=request.user, note='Blood received by customer — confirmed by admin')
+            if req.created_by:
+                try:
+                    send_notification(
+                        title='Blood Received Confirmation',
+                        message=f'Blood for patient {req.patient_name} has been confirmed as received. Thank you!',
+                        notification_type='info',
+                        link=f'/request-blood/view/{req.id}/',
+                        recipient=req.created_by,
+                    )
+                except Exception:
+                    pass
+
+            try:
+                send_blood_request_received_notification(req)
+            except Exception as e:
+                print(f"[whatsapp blood_request_received error] {e}")
+
+            messages.success(request, 'Blood marked as received by customer. You can now complete the request.')
         elif action == 'complete':
-            if req.status != 'Received':
-                messages.error(request, 'Only received requests can be completed.')
-            else:
-                req.status = 'Completed'
+            req.status = 'Completed'
+            req.updated_by = request.user
+            req.save()
+            req.append_status_history('Completed', changed_by=request.user, note='Completed by admin')
+            if req.created_by:
+                try:
+                    send_notification(
+                        title='Blood Request Completed',
+                        message=f'Your blood request for patient {req.patient_name} has been completed.',
+                        notification_type='info',
+                        link=f'/request-blood/view/{req.id}/',
+                        recipient=req.created_by,
+                    )
+                except Exception:
+                    pass
+
+            try:
+                send_blood_request_completed_notification(req)
+            except Exception as e:
+                print(f"[whatsapp blood_request_completed error] {e}")
+
+            messages.success(request, 'Request completed.')
+        elif action in ('change_status', 'set_status'):
+            new_status = request.POST.get('new_status')
+            valid_statuses = [c[0] for c in BloodRequest.STATUS_CHOICES]
+            if new_status in valid_statuses:
+                req.status = new_status
                 req.updated_by = request.user
+                remarks_val = request.POST.get('remarks')
+                if remarks_val:
+                    req.remarks = remarks_val
                 req.save()
-                req.append_status_history('Completed', changed_by=request.user, note='Completed by admin')
-                messages.success(request, 'Request completed.')
+                req.append_status_history(new_status, changed_by=request.user, note=f'Status updated to {new_status} by admin')
+                if req.created_by:
+                    try:
+                        send_notification(
+                            title=f'Blood Request Update: {new_status}',
+                            message=f'Your blood request for patient {req.patient_name} status was updated to {new_status}.',
+                            notification_type='info',
+                            link=f'/request-blood/view/{req.id}/',
+                            recipient=req.created_by,
+                        )
+                    except Exception:
+                        pass
+
+                if new_status == 'Accepted':
+                    try:
+                        send_blood_request_accepted_notification(req)
+                    except Exception as e:
+                        print(f"[whatsapp blood_request_accepted error] {e}")
+                elif new_status == 'Fulfilled':
+                    try:
+                        send_blood_request_fulfilled_notification(req)
+                    except Exception as e:
+                        print(f"[whatsapp blood_request_fulfilled error] {e}")
+                elif new_status in ('Received', 'Blood Received'):
+                    try:
+                        send_blood_request_received_notification(req)
+                    except Exception as e:
+                        print(f"[whatsapp blood_request_received error] {e}")
+                elif new_status == 'Completed':
+                    try:
+                        send_blood_request_completed_notification(req)
+                    except Exception as e:
+                        print(f"[whatsapp blood_request_completed error] {e}")
+                elif new_status == 'Cancelled':
+                    try:
+                        send_blood_request_cancelled_notification(req)
+                    except Exception as e:
+                        print(f"[whatsapp blood_request_cancelled error] {e}")
+
+                messages.success(request, f'Status successfully updated to {new_status}.')
+            else:
+                messages.error(request, 'Invalid status selected.')
         elif action == 'cancel':
             if req.status in {'Completed', 'Cancelled', 'Rejected'}:
                 messages.error(request, 'This request is already completed, cancelled, or rejected.')
@@ -2776,6 +3771,11 @@ def admin_edit_blood_request_status(request, request_id):
                         )
                     except Exception:
                         pass
+
+                try:
+                    send_blood_request_cancelled_notification(req)
+                except Exception as e:
+                    print(f"[whatsapp blood_request_cancelled error] {e}")
                 if req.assigned_employee and req.assigned_employee != request.user:
                     try:
                         send_notification(
@@ -2788,55 +3788,6 @@ def admin_edit_blood_request_status(request, request_id):
                     except Exception:
                         pass
                 messages.success(request, 'Blood request cancelled successfully.')
-        elif action == 'employee_searching':
-            if req.assigned_employee_id != request.user.id:
-                messages.error(request, 'You are not assigned to this request.')
-            else:
-                req.status = 'Searching'
-                req.updated_by = request.user
-                req.remarks = request.POST.get('remarks', req.remarks)
-                req.save()
-                req.append_status_history('Searching', changed_by=request.user, note='Employee continued searching')
-                try:
-                    send_notification(
-                        title='Blood Search Update',
-                        message=f'Employee updated request for {req.patient_name} to Searching.',
-                        notification_type='info',
-                        link=f'/request-blood/view/{req.id}/',
-                        user=req.created_by
-                    )
-                except Exception:
-                    pass
-                messages.success(request, 'Status updated to Searching.')
-        elif action == 'employee_blood_available':
-            if req.assigned_employee_id != request.user.id:
-                messages.error(request, 'You are not assigned to this request.')
-            else:
-                req.status = 'Blood Available'
-                req.updated_by = request.user
-                req.remarks = request.POST.get('remarks', req.remarks)
-                req.save()
-                req.append_status_history('Blood Available', changed_by=request.user, note='Employee marked blood available')
-                try:
-                    send_notification(
-                        title='Blood Available',
-                        message=f'Blood is available for {req.patient_name}.',
-                        notification_type='info',
-                        link=f'/request-blood/view/{req.id}/',
-                        user=req.created_by
-                    )
-                except Exception:
-                    pass
-                messages.success(request, 'Status updated to Blood Available.')
-        elif action == 'user_received':
-            if req.status != 'Ready for Pickup':
-                messages.error(request, 'Only ready-for-pickup requests can be marked received.')
-            else:
-                req.status = 'Received'
-                req.updated_by = request.user
-                req.save()
-                req.append_status_history('Received', changed_by=request.user, note='User marked received')
-                messages.success(request, 'Blood marked as received.')
         elif action == 'edit':
             return edit_blood_request(request, request_id)
         else:
@@ -2903,14 +3854,14 @@ def organize_camp(request):
                 f"Hello {camp.organizer_name},\n\n"
                 f"We deeply appreciate your initiative to organize a blood donation camp with {camp.organization_name} at {camp.proposed_venue} on {camp.proposed_date}. "
                 f"Our team will contact you shortly to coordinate details.\n\n"
-                f"Regards,\nKYS Bhayander Team"
+                f"Regards,\nHEMOAID Team"
             )
 
             send_whatsapp_message(camp.contact_number, whatsapp_msg)
 
             messages.success(
                 request,
-                "Thank you for organizing the blood donation camp! We will contact you shortly."
+                "Thank you for your intresting in organizing a camp! We will contact you shortly."
             )
             return redirect('index')
         else:
@@ -2937,6 +3888,23 @@ def organize_camp(request):
                 Q(contact_number__icontains=q) |
                 Q(proposed_venue__icontains=q)
             )
+
+        if request.GET.get('export') == 'csv':
+            start_date_str = request.GET.get('start_date')
+            end_date_str = request.GET.get('end_date')
+            if start_date_str:
+                qs = qs.filter(created_at__date__gte=start_date_str)
+            if end_date_str:
+                qs = qs.filter(created_at__date__lte=end_date_str)
+            import csv
+            from django.http import HttpResponse
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="camps.csv"'
+            writer = csv.writer(response)
+            writer.writerow(['ID', 'Organizer Name', 'Organization', 'Contact Number', 'Email', 'Proposed Date', 'Proposed Venue', 'Expected Donors', 'Status', 'Submitted Date'])
+            for c in qs:
+                writer.writerow([c.id, c.organizer_name, c.organization_name or '-', c.contact_number, c.email or '-', c.proposed_date.strftime('%d %b, %Y') if c.proposed_date else '-', c.proposed_venue, c.expected_donors, c.status, c.created_at.strftime('%d %b, %Y') if c.created_at else '-'])
+            return response
         paginator = Paginator(qs, page_size_int)
         page_obj = paginator.get_page(request.GET.get('page'))
         return render(request, 'camps_admin.html', {'page_obj': page_obj, 'search_query': q, 'page_size': page_size})
@@ -3001,7 +3969,7 @@ def be_donor(request):
 
             # Send Email to Admin
             details = {
-                "Donor Name": f"{donor.first_name} {donor.last_name}",
+                "Donor Name": donor.get_full_name(),
                 "Contact Number": donor.contact_number,
                 "DOB": donor.date_of_birth,
                 "Gender": donor.gender,
@@ -3016,10 +3984,10 @@ def be_donor(request):
 
             # Send WhatsApp notification
             whatsapp_msg = (
-                f"Hello {donor.first_name} {donor.last_name},\n\n"
+                f"Hello {donor.get_full_name()},\n\n"
                 f"Congratulations on registering as a blood donor! You are a hero. "
                 f"We will contact you whenever there is a requirement matching your blood group ({donor.blood_group}).\n\n"
-                f"Regards,\nKYS Bhayander Team"
+                f"Regards,\nHEMOAID Team"
             )
 
             send_whatsapp_message(donor.contact_number, whatsapp_msg)
@@ -3045,14 +4013,29 @@ def be_donor(request):
         page_size = str(page_size_int)
         qs = BloodDonor.objects.all().order_by('-created_at')
         if q:
-            from django.db.models import Q
             qs = qs.filter(
-                Q(first_name__icontains=q) |
-                Q(last_name__icontains=q) |
+                Q(full_name__icontains=q) |
                 Q(contact_number__icontains=q) |
                 Q(area_of_residence__icontains=q) |
                 Q(blood_group__icontains=q)
             )
+
+        if request.GET.get('export') == 'csv':
+            start_date_str = request.GET.get('start_date')
+            end_date_str = request.GET.get('end_date')
+            if start_date_str:
+                qs = qs.filter(created_at__date__gte=start_date_str)
+            if end_date_str:
+                qs = qs.filter(created_at__date__lte=end_date_str)
+            import csv
+            from django.http import HttpResponse
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="blood_donors.csv"'
+            writer = csv.writer(response)
+            writer.writerow(['ID', 'Full Name', 'Contact Number', 'Blood Group', 'Gender', 'Area of Residence', 'Last Donation Date', 'Is Available'])
+            for d in qs:
+                writer.writerow([d.id, d.get_full_name(), d.contact_number, d.blood_group, d.gender or '-', d.area_of_residence, d.last_donation_date.strftime('%d %b, %Y') if d.last_donation_date else '-', 'Yes' if d.is_available else 'No'])
+            return response
         paginator = Paginator(qs, page_size_int)
         page_obj = paginator.get_page(request.GET.get('page'))
         return render(request, 'donors_admin.html', {'page_obj': page_obj, 'search_query': q, 'page_size': page_size})
@@ -3084,6 +4067,24 @@ def medical_services(request):
                 Q(contacts__contact_name__icontains=q) |
                 Q(contacts__contact_number__icontains=q)
             ).distinct()
+
+        if request.GET.get('export') == 'csv':
+            start_date_str = request.GET.get('start_date')
+            end_date_str = request.GET.get('end_date')
+            if start_date_str:
+                qs = qs.filter(created_at__date__gte=start_date_str)
+            if end_date_str:
+                qs = qs.filter(created_at__date__lte=end_date_str)
+            import csv
+            from django.http import HttpResponse
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="medical_services.csv"'
+            writer = csv.writer(response)
+            writer.writerow(['ID', 'Service Name', 'Description', 'Status', 'Contacts'])
+            for s in qs:
+                contacts_str = "; ".join([f"{c.service_name}: {c.contact_name} ({c.contact_number})" for c in s.contacts.all()])
+                writer.writerow([s.id, s.name, s.description, 'Active' if s.is_active else 'Inactive', contacts_str])
+            return response
         paginator = Paginator(qs, page_size_int)
         page_obj = paginator.get_page(request.GET.get('page'))
         return render(request, 'services_admin.html', {'page_obj': page_obj, 'search_query': q, 'page_size': page_size})
@@ -3246,14 +4247,14 @@ def volunteer_event(request):
                 f"Thank you for registering as a volunteer with KYS Bhayander! "
                 f"Your dedication to community service helps us drive positive social impact. "
                 f"Our team will notify you regarding upcoming drives and events.\n\n"
-                f"Regards,\nKYS Bhayander Team"
+                f"Regards,\nHEMOAID Team"
             )
 
             send_whatsapp_message(volunteer.contact_number, whatsapp_msg)
 
             messages.success(
                 request,
-                "Thank you for volunteering! Your registration has been submitted successfully."
+                "Thank you for your intresting in volunteering! Your registration has been submitted successfully."
             )
             return redirect('index')
         else:
@@ -3279,6 +4280,23 @@ def volunteer_event(request):
                 Q(email__icontains=q) |
                 Q(area_of_residence__icontains=q)
             )
+
+        if request.GET.get('export') == 'csv':
+            start_date_str = request.GET.get('start_date')
+            end_date_str = request.GET.get('end_date')
+            if start_date_str:
+                qs = qs.filter(created_at__date__gte=start_date_str)
+            if end_date_str:
+                qs = qs.filter(created_at__date__lte=end_date_str)
+            import csv
+            from django.http import HttpResponse
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="volunteers.csv"'
+            writer = csv.writer(response)
+            writer.writerow(['ID', 'Full Name', 'Contact Number', 'Email', 'Area of Residence', 'Event Interest', 'Skills/Remarks', 'Registration Date'])
+            for v in qs:
+                writer.writerow([v.id, v.full_name, v.contact_number, v.email, v.area_of_residence, v.event_interest or 'General', v.skills_remarks or '-', v.created_at.strftime('%d %b, %Y') if v.created_at else '-'])
+            return response
         paginator = Paginator(qs, page_size_int)
         page_obj = paginator.get_page(request.GET.get('page'))
         return render(request, 'volunteers_admin.html', {'page_obj': page_obj, 'search_query': q, 'page_size': page_size})

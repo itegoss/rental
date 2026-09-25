@@ -21,7 +21,7 @@
   }
 
   .bookings-head h1 span {
-    color: var(--primary);
+    color: #d4af37 !important;
   }
 
   .bookings-head p {
@@ -201,6 +201,206 @@
     width: 180px;
   }
 
+  .status-th-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    user-select: none;
+  }
+
+  .status-th-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+
+  .status-filter-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: default;
+  }
+
+  .status-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    line-height: 1;
+  }
+
+  .status-filter-btn:hover {
+    background: rgba(255, 255, 255, 0.28);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
+  }
+
+  .status-filter-btn.is-active {
+    background: #ffffff;
+    color: var(--primary);
+    border-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .status-filter-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+    width: 210px;
+    z-index: 1050;
+    padding: 8px;
+    animation: filterFadeIn 0.18s ease-out;
+    text-align: left;
+    font-weight: normal;
+  }
+
+  .status-filter-dropdown.show {
+    display: block;
+  }
+
+  @keyframes filterFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .filter-dropdown-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px 8px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .filter-dropdown-head span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text);
+  }
+
+  .filter-all-btn {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+
+  .filter-all-btn:hover {
+    background: #fef2f2;
+    text-decoration: underline;
+  }
+
+  .filter-dropdown-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-top: 6px;
+  }
+
+  .filter-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 9px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    margin: 0;
+    user-select: none;
+  }
+
+  .filter-dropdown-item:hover {
+    background: #f8fafc;
+  }
+
+  .filter-dropdown-item input[type="radio"] {
+    display: none;
+  }
+
+  .filter-radio-mark {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.18s ease;
+  }
+
+  .filter-dropdown-item input[type="radio"]:checked + .filter-radio-mark {
+    border-color: var(--primary);
+    background: var(--primary);
+  }
+
+  .filter-dropdown-item input[type="radio"]:checked + .filter-radio-mark::after {
+    content: '';
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #ffffff;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .filter-dropdown-item .s-badge {
+    margin: 0;
+    font-size: 0.74rem;
+    padding: 4px 10px;
+  }
+
+  .filter-dropdown-sep {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 4px 0;
+  }
+
+  .filter-all-text {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .filter-dropdown-item:hover .filter-all-text {
+    color: var(--text);
+  }
+
   .bookings-table th.col-action,
   .bookings-table td.col-action {
     width: 290px;
@@ -274,10 +474,11 @@
   }
 
   .page-btn.active {
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-    border-color: #dc2626;
-    color: #fff;
-    box-shadow: 0 8px 20px rgba(220, 38, 38, 0.18);
+    background: #B84A5A !important;
+    background-color: #B84A5A !important;
+    border-color: #B84A5A !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(184, 74, 90, 0.3) !important;
   }
 
   .page-btn:disabled {
@@ -403,6 +604,11 @@
     color: #4b5563;
   }
 
+  .s-delivered {
+    background: #ccfbf1;
+    color: #0f766e;
+  }
+
   .act-btn {
     display: inline-flex;
     align-items: center;
@@ -523,6 +729,221 @@
     background: #059669;
     transform: translateY(-1px);
     color: #fff;
+  }
+
+  .act-deliver {
+    background: #0d9488;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  }
+
+  .act-deliver:hover {
+    background: #0f766e;
+    transform: translateY(-1px);
+    color: #fff;
+  }
+
+  /* Deliver Modal Styles */
+  .deliver-modal-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 30px;
+    max-width: 520px;
+    width: 92%;
+    text-align: left;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    animation: scaleIn 0.25s ease;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  .deliver-modal-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .deliver-modal-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: #ccfbf1;
+    color: #0d9488;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+  .deliver-modal-title h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.18rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .deliver-modal-title span {
+    font-size: 0.83rem;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .deliver-breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .breakdown-box {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .breakdown-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+  }
+  .breakdown-value {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1e293b;
+  }
+  .total-payable-banner {
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border: 1.5px solid #86efac;
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .total-payable-banner .tp-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #166534;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .total-payable-banner .tp-val {
+    font-size: 1.38rem;
+    font-weight: 900;
+    color: #15803d;
+  }
+  .deliver-input-section {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 18px;
+  }
+  .deliver-input-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .deliver-input-header label {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .quick-pay-btns {
+    display: flex;
+    gap: 6px;
+  }
+  .btn-quick-fill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    cursor: pointer;
+    color: #475569;
+    transition: all 0.15s;
+  }
+  .btn-quick-fill:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+  .deliver-paid-input-wrap {
+    position: relative;
+    margin-bottom: 14px;
+  }
+  .deliver-paid-input-wrap span.currency-prefix {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: 800;
+    color: #64748b;
+    font-size: 1.1rem;
+  }
+  .deliver-paid-input {
+    width: 100%;
+    padding: 11px 14px 11px 34px;
+    border: 2px solid #cbd5e1;
+    border-radius: 10px;
+    font-family: var(--font);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.2s;
+    background: #fff;
+  }
+  .deliver-paid-input:focus {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  }
+  .remaining-calc-card {
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s;
+  }
+  .remaining-calc-card.is-cleared {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+  }
+  .remaining-calc-card.is-due {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+  }
+  .remaining-calc-card.is-overpaid {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+  }
+  .remaining-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+  .remaining-val {
+    font-size: 1.18rem;
+    font-weight: 900;
+  }
+  .remaining-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
   }
 
   .report-card {
@@ -1105,15 +1526,15 @@
       {% csrf_token %}
       <div class="report-inputs">
         <div class="input-group">
-          <label for="report_start_date">Start Date</label>
+          <label for="report_start_date">START DATE</label>
           <input type="date" id="report_start_date" name="start_date" required>
         </div>
         <div class="input-group">
-          <label for="report_end_date">End Date</label>
+          <label for="report_end_date">END DATE</label>
           <input type="date" id="report_end_date" name="end_date" required>
         </div>
-        <button type="submit" class="btn-primary-red report-btn">
-          <i class="fas fa-download"></i> Download Report
+        <button type="submit" class="report-btn" data-bs-toggle="tooltip" title="Download Report">
+          <i class="fas fa-download"></i>
         </button>
       </div>
     </form>
@@ -1125,6 +1546,7 @@
       <i class="fas fa-search"></i>
       <input type="search" id="bookingSearch" placeholder="Search by order, item, date, customer, status">
     </div>
+
     <label class="page-size" for="pageSize">
       Show
       <select id="pageSize">
@@ -1150,7 +1572,50 @@
             {% endif %}
             <th class="col-item" data-sort="text">Item <i class="fas fa-sort sort-icon"></i></th>
             <th class="col-qty" data-sort="number">Quantity <i class="fas fa-sort sort-icon"></i></th>
-            <th class="col-status" data-sort="text">Status <i class="fas fa-sort sort-icon"></i></th>
+            <th class="col-status" data-sort="text">
+              <div class="status-th-content">
+                <span class="status-th-title">Status <i class="fas fa-sort sort-icon"></i></span>
+                <div class="status-filter-wrap" id="statusFilterWrap">
+                  <button type="button" class="status-filter-btn is-active" id="statusFilterBtn" title="Filtered: Delivered (Click to change)" aria-label="Filter status">
+                    <i class="fas fa-filter"></i>
+                  </button>
+                  <div class="status-filter-dropdown" id="statusFilterDropdown">
+                    <div class="filter-dropdown-head">
+                      <span><i class="fas fa-filter"></i> Filter Status</span>
+                      <button type="button" class="filter-all-btn" id="filterResetAllBtn">Reset All</button>
+                    </div>
+                    <div class="filter-dropdown-menu">
+                      <label class="filter-dropdown-item" data-value="delivered">
+                        <input type="radio" name="tblStatusFilter" value="delivered" checked>
+                        <span class="filter-radio-mark"></span>
+                        <span class="s-badge s-delivered"><i class="fas fa-truck"></i> Delivered</span>
+                      </label>
+                      <label class="filter-dropdown-item" data-value="approved">
+                        <input type="radio" name="tblStatusFilter" value="approved">
+                        <span class="filter-radio-mark"></span>
+                        <span class="s-badge s-approved"><i class="fas fa-check-circle"></i> Approved</span>
+                      </label>
+                      <label class="filter-dropdown-item" data-value="pending">
+                        <input type="radio" name="tblStatusFilter" value="pending">
+                        <span class="filter-radio-mark"></span>
+                        <span class="s-badge s-pending"><i class="fas fa-clock"></i> Pending</span>
+                      </label>
+                      <label class="filter-dropdown-item" data-value="returned">
+                        <input type="radio" name="tblStatusFilter" value="returned">
+                        <span class="filter-radio-mark"></span>
+                        <span class="s-badge s-returned"><i class="fas fa-check-circle"></i> Returned</span>
+                      </label>
+                      <div class="filter-dropdown-sep"></div>
+                      <label class="filter-dropdown-item filter-all-item" data-value="all">
+                        <input type="radio" name="tblStatusFilter" value="all">
+                        <span class="filter-radio-mark"></span>
+                        <span class="filter-all-text"><i class="fas fa-list-ul"></i> All Statuses</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </th>
             <th class="col-action no-sort">Action</th>
           </tr>
         </thead>
@@ -1173,7 +1638,7 @@
             <td class="col-item" data-value="{{ rr.display_item_title }}"><span class="item-name">{{ rr.display_item_title }}</span></td>
             <td class="col-qty" data-value="{{ rr.quantity }}">{{ rr.quantity }}</td>
             <td class="col-status"
-              data-value="{% if rr.is_returned %}Returned{% elif rr.is_return_requested %}Return Pending{% elif rr.status == 'pending' %}Booking Pending{% elif rr.status == 'rejected' %}Booking Rejected{% elif rr.status == 'cancelled' %}Cancelled{% elif rr.status == 'approved' %}Approved{% else %}Pending{% endif %}">
+              data-value="{% if rr.is_returned %}Returned{% elif rr.is_return_requested %}Return Pending{% elif rr.status == 'pending' %}Booking Pending{% elif rr.status == 'rejected' %}Booking Rejected{% elif rr.status == 'cancelled' %}Cancelled{% elif rr.status == 'approved' %}Approved{% elif rr.status == 'delivered' %}Delivered{% else %}Pending{% endif %}">
               {% if rr.is_returned %}
               <span class="s-badge s-returned"><i class="fas fa-check-circle"></i> Returned</span>
               {% elif rr.is_return_requested %}
@@ -1186,6 +1651,8 @@
               <span class="s-badge s-cancelled"><i class="fas fa-ban"></i> Cancelled</span>
               {% elif rr.status == "approved" %}
               <span class="s-badge s-approved"><i class="fas fa-check-circle"></i> Approved</span>
+              {% elif rr.status == "delivered" %}
+              <span class="s-badge s-delivered"><i class="fas fa-truck"></i> Delivered</span>
               {% else %}
               <span class="s-badge s-pending"><i class="fas fa-clock"></i> Pending</span>
               {% endif %}
@@ -1198,15 +1665,15 @@
                 {% if rr.is_return_requested %}
                 <!-- Return Pending -->
                 <a href="{% url 'approve_return_order' booking.order_id %}" class="act-btn act-approve"
-                  data-tooltip="Approve Return"><i class="fas fa-check"></i> Approve Return</a>
+                  data-tooltip="Approve Return"><i class="fas fa-check"></i></a>
                 <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"><i
-                    class="fas fa-ban"></i> Cancel</a>
+                    class="fas fa-ban"></i></a>
                 {% elif rr.status == "pending" %}
                 <!-- Booking Pending -->
                 <a href="{% url 'approve_order' booking.order_id %}" class="act-btn act-approve"
-                  data-tooltip="Approve Booking"><i class="fas fa-check"></i> Approve</a>
+                  data-tooltip="Approve Booking"><i class="fas fa-check"></i></a>
                 <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"><i
-                    class="fas fa-ban"></i> Cancel</a>
+                    class="fas fa-ban"></i></a>
                 {% elif rr.status == "approved" %}
                 <!-- Approved -->
                 <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return" data-tooltip="Return"
@@ -1216,6 +1683,27 @@
                   data-tooltip="Extend" aria-label="Extend"><i class="fas fa-calendar-plus"></i> </a>
                 <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"
                   aria-label="Cancel"><i class="fas fa-ban"></i> </a>
+                <button type="button" class="act-btn act-deliver" data-tooltip="Delivered" aria-label="Delivered"
+                  data-order-id="{{ booking.order_id }}"
+                  data-rent="{{ booking.total_rent }}"
+                  data-deposit="{{ booking.total_deposit }}"
+                  data-delivery="{{ booking.delivery_charge }}"
+                  data-delivery-option="{{ booking.delivery_option }}"
+                  data-is-home-delivery="{% if booking.is_home_delivery %}true{% else %}false{% endif %}"
+                  data-pending-delivery="{{ booking.pending_delivery_charge }}"
+                  data-total="{{ booking.total_payable }}"
+                  data-paid="{{ booking.amount_paid }}"
+                  data-renter="{% if rr.renter_name %}{{ rr.renter_name }}{% elif booking.customer %}{{ booking.customer.username }}{% endif %}"
+                  onclick="openDeliverModalFromBtn(event, this)"><i class="fas fa-truck"></i> </button>
+                <a href="{% url 'view_rental' rr.id %}" class="act-btn act-view" data-tooltip="Receipt"
+                  aria-label="Receipt"><i class="fas fa-eye"></i> </a>
+                {% elif rr.status == "delivered" %}
+                <!-- Delivered -->
+                <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return" data-tooltip="Return"
+                  data-deposit="{{ booking.total_deposit }}"
+                  onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> </a>
+                <a href="{% url 'extend_return_date' booking.order_id %}" class="act-btn act-extend"
+                  data-tooltip="Extend" aria-label="Extend"><i class="fas fa-calendar-plus"></i> </a>
                 <a href="{% url 'view_rental' rr.id %}" class="act-btn act-view" data-tooltip="Receipt"
                   aria-label="Receipt"><i class="fas fa-eye"></i> </a>
                 {% endif %}
@@ -1228,15 +1716,19 @@
                 {% else %}
                 <!-- Customer Actions -->
                 {% if not rr.is_returned %}
-                {% if rr.status == "approved" %}
+                {% if rr.status == "approved" or rr.status == "delivered" %}
                 {% if not rr.is_return_requested %}
+                {% if rr.status == "delivered" %}
                 <a href="{% url 'return_order' booking.order_id %}" class="act-btn act-return"
                   data-tooltip="Request Return" data-deposit="{{ booking.total_deposit }}"
                   onclick="openDepositModal(event, this.href, this.dataset.deposit)"><i class="fas fa-undo"></i> </a>
+                {% endif %}
                 <a href="{% url 'extend_return_date' booking.order_id %}" class="act-btn act-extend"
                   data-tooltip="Extend" aria-label="Extend"><i class="fas fa-calendar-plus"></i> </a>
+                {% if rr.status == "approved" %}
                 <a href="{% url 'cancel_order' booking.order_id %}" class="act-btn act-cancel" data-tooltip="Cancel"
                   aria-label="Cancel"><i class="fas fa-ban"></i> </a>
+                {% endif %}
                 {% endif %}
                 <a href="{% url 'view_rental' rr.id %}" class="act-btn act-view" data-tooltip="Receipt"
                   aria-label="Receipt"><i class="fas fa-eye"></i> </a>
@@ -1325,6 +1817,117 @@
   </div>
 </div>
 
+<!-- Delivered Modal -->
+<div class="d-modal-overlay" id="deliverModal">
+  <div class="deliver-modal-card">
+    <button class="d-close" type="button" onclick="closeDeliverModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+    <div class="deliver-modal-head">
+      <div class="deliver-modal-icon"><i class="fas fa-truck"></i></div>
+      <div class="deliver-modal-title">
+        <h3>Mark Order as Delivered</h3>
+        <span id="deliverOrderSubtitle">Order #</span>
+      </div>
+    </div>
+
+    <!-- Order Bill Summary Bar -->
+    <div style="background: #f1f5f9; border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+      <span style="font-size: 0.88rem; font-weight: 700; color: #475569;">
+        <i class="fas fa-file-invoice-dollar" style="color: var(--primary);"></i> Total Order Amount:
+      </span>
+      <span style="font-size: 1.25rem; font-weight: 900; color: var(--primary);">
+        ₹<span id="deliverOrderBillTotal">0.00</span>
+      </span>
+    </div>
+
+    <!-- Form for submitting delivery -->
+    <form id="deliverOrderForm" method="POST" action="">
+      {% csrf_token %}
+      
+      <!-- 3 Input Fields Container: Rent, Deposit, Delivery Charges -->
+      <div style="background: #f8fafc; border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="font-size: 0.82rem; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="fas fa-coins" style="color: #0d9488;"></i> Payment Received Fields
+          </span>
+          <div class="quick-pay-btns">
+            <button type="button" class="btn-quick-fill" onclick="fillAllExpected()">Pay Full</button>
+            <button type="button" class="btn-quick-fill" onclick="clearAllFields()">₹0 All</button>
+          </div>
+        </div>
+
+        <!-- 1. Rent Field -->
+        <div style="margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label for="deliverRentInput" style="font-size: 0.82rem; font-weight: 700; color: #475569;">
+              Rent Amount
+            </label>
+            <span style="font-size: 0.76rem; color: var(--muted); font-weight: 600;">Due: ₹<span id="deliverExpectedRent">0.00</span></span>
+          </div>
+          <div class="deliver-paid-input-wrap" style="margin-bottom: 0;">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="deliverRentInput" name="rent_paid" class="deliver-paid-input" min="0" step="0.01" placeholder="0.00" oninput="updateDeliverCalculations()">
+          </div>
+        </div>
+
+        <!-- 2. Deposit Field -->
+        <div style="margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label for="deliverDepositInput" style="font-size: 0.82rem; font-weight: 700; color: #475569;">
+              Deposit
+            </label>
+            <span style="font-size: 0.76rem; color: var(--muted); font-weight: 600;">Due: ₹<span id="deliverExpectedDeposit">0.00</span></span>
+          </div>
+          <div class="deliver-paid-input-wrap" style="margin-bottom: 0;">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="deliverDepositInput" name="deposit_paid" class="deliver-paid-input" min="0" step="0.01" placeholder="0.00" oninput="updateDeliverCalculations()">
+          </div>
+        </div>
+
+        <!-- 3. Delivery Charges Field -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label for="deliverDeliveryInput" style="font-size: 0.82rem; font-weight: 700; color: #475569;">
+              Delivery Charges
+            </label>
+            <span style="font-size: 0.76rem; color: var(--muted); font-weight: 600;">Due: ₹<span id="deliverExpectedDelivery">0.00</span></span>
+          </div>
+          <div class="deliver-paid-input-wrap" style="margin-bottom: 0;">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="deliverDeliveryInput" name="delivery_paid" class="deliver-paid-input" min="0" step="0.01" placeholder="0.00" oninput="updateDeliverCalculations()">
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Calculations Summary Card -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+        <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 12px 14px;">
+          <div style="font-size: 0.74rem; font-weight: 700; color: #166534; text-transform: uppercase;">Total Paid</div>
+          <div style="font-size: 1.25rem; font-weight: 900; color: #15803d;">₹<span id="deliverTotalPaidDisplay">0.00</span></div>
+        </div>
+        <div id="deliverRemainingCard" class="remaining-calc-card is-cleared" style="border-radius: 12px; padding: 12px 14px;">
+          <div>
+            <div class="remaining-label" id="deliverRemainingLabel" style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase;">Remaining Due</div>
+            <div class="remaining-val" id="deliverRemainingDisplay" style="font-size: 1.25rem; font-weight: 900;">₹0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery Notes / Remarks -->
+      <div class="d-field" style="margin-bottom: 20px;">
+        <label for="deliverNotes" style="font-weight: 700; font-size: 0.78rem; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; display: block;">Delivery Notes / Remarks (Optional)</label>
+        <input type="text" id="deliverNotes" name="notes" style="width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-family: var(--font); font-size: 0.9rem; outline: none; box-sizing: border-box;">
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button type="button" class="act-btn act-cancel" style="padding: 10px 20px; font-size: 0.88rem;" onclick="closeDeliverModal()">Cancel</button>
+        <button type="submit" class="act-btn act-deliver" style="padding: 10px 24px; font-size: 0.88rem; background: #0d9488; color: #fff; font-weight: 800;">
+          <i class="fas fa-check-circle"></i> Confirm Delivery
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
   const bookingsTable = document.getElementById('bookingsTable');
   if (bookingsTable) {
@@ -1362,9 +1965,37 @@
       return aValue.localeCompare(bValue, undefined, { numeric: true, sensitivity: 'base' });
     }
 
-    function applySearch() {
-      const query = searchInput.value.trim().toLowerCase();
-      filteredRows = rows.filter(row => row.textContent.toLowerCase().includes(query));
+    let currentStatusFilter = 'delivered'; // Default status is Delivered
+
+    function matchesStatus(row, filterVal) {
+      if (!filterVal || filterVal === 'all') return true;
+      const statusCell = row.querySelector('.col-status');
+      if (!statusCell) return true;
+      const val = (statusCell.dataset.value || statusCell.textContent || '').trim().toLowerCase();
+      
+      if (filterVal === 'delivered') {
+        return val.includes('delivered');
+      }
+      if (filterVal === 'approved') {
+        return val.includes('approved');
+      }
+      if (filterVal === 'pending') {
+        return val.includes('pending');
+      }
+      if (filterVal === 'returned') {
+        return val.includes('returned') || val === 'return';
+      }
+      return val.includes(filterVal.toLowerCase());
+    }
+
+    function applyFilters() {
+      const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+      filteredRows = rows.filter(row => {
+        const matchesSearch = !query || row.textContent.toLowerCase().includes(query);
+        const matchesStat = matchesStatus(row, currentStatusFilter);
+        return matchesSearch && matchesStat;
+      });
+
       currentPage = 1;
       if (sortColumn !== null) {
         const header = bookingsTable.querySelectorAll('th')[sortColumn];
@@ -1423,6 +2054,18 @@
       tableBody.appendChild(noResultsRow);
 
       if (totalRows === 0) {
+        let emptyMsg = 'No bookings match your search.';
+        if (currentStatusFilter !== 'all') {
+          const cap = currentStatusFilter.charAt(0).toUpperCase() + currentStatusFilter.slice(1);
+          emptyMsg = `No bookings found with status "<strong>${cap}</strong>". <button type="button" id="btnClearEmptyFilter" style="margin-left: 8px; background: none; border: none; color: var(--primary); font-weight: 800; cursor: pointer; text-decoration: underline; font-family: inherit;">Show All Bookings</button>`;
+        }
+        noResultsRow.querySelector('td').innerHTML = emptyMsg;
+        const clearBtn = document.getElementById('btnClearEmptyFilter');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => {
+            setStatusFilter('all');
+          });
+        }
         pageInfo.textContent = 'Showing 0 bookings';
         pageButtons.innerHTML = '';
       } else {
@@ -1431,8 +2074,72 @@
       }
     }
 
+    function setStatusFilter(val) {
+      currentStatusFilter = val;
+      const radio = document.querySelector(`input[name="tblStatusFilter"][value="${val}"]`);
+      if (radio) radio.checked = true;
+
+      const btn = document.getElementById('statusFilterBtn');
+      if (btn) {
+        if (val === 'all') {
+          btn.classList.remove('is-active');
+          btn.title = 'Filter by Status';
+        } else {
+          const cap = val.charAt(0).toUpperCase() + val.slice(1);
+          btn.classList.add('is-active');
+          btn.title = `Filtered: ${cap} (Click to change)`;
+        }
+      }
+      applyFilters();
+    }
+
+    const filterBtn = document.getElementById('statusFilterBtn');
+    const filterDropdown = document.getElementById('statusFilterDropdown');
+    const filterResetAll = document.getElementById('filterResetAllBtn');
+
+    if (filterBtn && filterDropdown) {
+      filterBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        filterDropdown.classList.toggle('show');
+      });
+
+      filterDropdown.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+
+      document.querySelectorAll('input[name="tblStatusFilter"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          setStatusFilter(e.target.value);
+          filterDropdown.classList.remove('show');
+        });
+      });
+
+      if (filterResetAll) {
+        filterResetAll.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setStatusFilter('all');
+          filterDropdown.classList.remove('show');
+        });
+      }
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#statusFilterWrap')) {
+          filterDropdown.classList.remove('show');
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          filterDropdown.classList.remove('show');
+        }
+      });
+    }
+
     bookingsTable.querySelectorAll('th:not(.no-sort)').forEach(header => {
-      header.addEventListener('click', () => {
+      header.addEventListener('click', (e) => {
+        if (e.target.closest('#statusFilterWrap')) {
+          return;
+        }
         const columnIndex = header.cellIndex;
         sortDirection = sortColumn === columnIndex && sortDirection === 'asc' ? 'desc' : 'asc';
         sortColumn = columnIndex;
@@ -1445,9 +2152,13 @@
       });
     });
 
-    searchInput.addEventListener('input', applySearch);
-    pageSizeSelect.addEventListener('change', () => { currentPage = 1; renderTable(); });
-    renderTable();
+    if (searchInput) {
+      searchInput.addEventListener('input', applyFilters);
+    }
+    if (pageSizeSelect) {
+      pageSizeSelect.addEventListener('change', () => { currentPage = 1; renderTable(); });
+    }
+    applyFilters();
   }
 
   let depositReturnHref = null;
@@ -1632,5 +2343,204 @@
     const booked = Math.max(0, total - available);
     document.getElementById('bookedQuantity').value = booked;
   });
+
+  // Deliver Modal Functions
+  let currentDeliverTotal = 0;
+
+  function openDeliverModalFromBtn(event, btn) {
+    if (event) event.preventDefault();
+    openDeliverModal(
+      event,
+      btn.dataset.orderId,
+      btn.dataset.rent,
+      btn.dataset.deposit,
+      btn.dataset.delivery,
+      btn.dataset.total,
+      btn.dataset.paid,
+      btn.dataset.renter,
+      btn.dataset.deliveryOption,
+      btn.dataset.isHomeDelivery,
+      btn.dataset.pendingDelivery
+    );
+  }
+
+  function openDeliverModal(event, orderId, rent, deposit, delivery, total, paid, renter, deliveryOption, isHomeDelivery, pendingDelivery) {
+    if (event) event.preventDefault();
+    const form = document.getElementById('deliverOrderForm');
+    if (form) {
+      form.action = '/deliver-order/' + encodeURIComponent(orderId) + '/';
+    }
+
+    const isHomeDel = (isHomeDelivery === true || isHomeDelivery === 'true' ||
+      (deliveryOption && (deliveryOption.toLowerCase().trim() === 'delivery' || deliveryOption.toLowerCase().trim() === 'home delivery')));
+
+    currentExpectedRent = parseFloat(rent || '0') || 0;
+    currentExpectedDeposit = parseFloat(deposit || '0') || 0;
+    currentExpectedDelivery = isHomeDel ? (parseFloat(delivery || '0') || 0) : 0;
+
+    let totalNum = parseFloat(total || '0') || 0;
+    if (totalNum <= 0 || !isHomeDel) {
+      totalNum = currentExpectedRent + currentExpectedDeposit + currentExpectedDelivery;
+    }
+    currentExpectedTotal = totalNum;
+
+    const paidNum = parseFloat(paid || '0') || 0;
+
+    const subtitle = document.getElementById('deliverOrderSubtitle');
+    if (subtitle) {
+      subtitle.textContent = 'Order #' + orderId + (renter ? ' • ' + renter : '') + ' • ' + (isHomeDel ? 'Home Delivery' : 'Self Pickup');
+    }
+
+    document.getElementById('deliverOrderBillTotal').textContent = currentExpectedTotal.toFixed(2);
+    document.getElementById('deliverExpectedRent').textContent = currentExpectedRent.toFixed(2);
+    document.getElementById('deliverExpectedDeposit').textContent = currentExpectedDeposit.toFixed(2);
+    document.getElementById('deliverExpectedDelivery').textContent = isHomeDel ? currentExpectedDelivery.toFixed(2) : '0.00';
+
+    const rentInput = document.getElementById('deliverRentInput');
+    const depositInput = document.getElementById('deliverDepositInput');
+    const deliveryInput = document.getElementById('deliverDeliveryInput');
+
+    let pendingDeliveryVal = 0;
+    if (isHomeDel) {
+      if (pendingDelivery !== undefined && pendingDelivery !== null && pendingDelivery !== '') {
+        pendingDeliveryVal = parseFloat(pendingDelivery) || 0;
+      } else {
+        const rentDepTotal = currentExpectedRent + currentExpectedDeposit;
+        if (paidNum >= currentExpectedTotal) {
+          pendingDeliveryVal = 0;
+        } else if (paidNum > rentDepTotal) {
+          pendingDeliveryVal = Math.max(0, currentExpectedDelivery - (paidNum - rentDepTotal));
+        } else {
+          pendingDeliveryVal = currentExpectedDelivery;
+        }
+      }
+    } else {
+      pendingDeliveryVal = 0;
+    }
+
+    if (!isHomeDel) {
+      // Pickup / Self Pickup: Delivery charges must show 0.00
+      deliveryInput.value = '0.00';
+      if (paidNum >= currentExpectedTotal && currentExpectedTotal > 0) {
+        rentInput.value = currentExpectedRent.toFixed(2);
+        depositInput.value = currentExpectedDeposit.toFixed(2);
+      } else if (paidNum > 0) {
+        let rem = paidNum;
+        let rPaid = Math.min(rem, currentExpectedRent);
+        rem -= rPaid;
+        let dPaid = Math.min(rem, currentExpectedDeposit);
+        rentInput.value = rPaid.toFixed(2);
+        depositInput.value = dPaid.toFixed(2);
+      } else {
+        rentInput.value = currentExpectedRent.toFixed(2);
+        depositInput.value = currentExpectedDeposit.toFixed(2);
+      }
+    } else {
+      // Home Delivery:
+      // When order was originally placed with Home Delivery, Delivery Charges field must automatically show pending delivery charge
+      if (paidNum >= currentExpectedTotal && currentExpectedTotal > 0) {
+        rentInput.value = currentExpectedRent.toFixed(2);
+        depositInput.value = currentExpectedDeposit.toFixed(2);
+        deliveryInput.value = currentExpectedDelivery.toFixed(2);
+      } else if (paidNum > 0) {
+        let rem = paidNum;
+        let rPaid = Math.min(rem, currentExpectedRent);
+        rem -= rPaid;
+        let dPaid = Math.min(rem, currentExpectedDeposit);
+        rentInput.value = rPaid.toFixed(2);
+        depositInput.value = dPaid.toFixed(2);
+        deliveryInput.value = pendingDeliveryVal.toFixed(2);
+      } else {
+        rentInput.value = currentExpectedRent.toFixed(2);
+        depositInput.value = currentExpectedDeposit.toFixed(2);
+        deliveryInput.value = pendingDeliveryVal > 0 ? pendingDeliveryVal.toFixed(2) : currentExpectedDelivery.toFixed(2);
+      }
+    }
+
+    updateDeliverCalculations();
+
+    document.getElementById('deliverModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDeliverModal() {
+    const modal = document.getElementById('deliverModal');
+    if (modal) modal.classList.remove('open');
+    document.body.style.overflow = 'auto';
+  }
+
+  function fillAllExpected() {
+    document.getElementById('deliverRentInput').value = currentExpectedRent.toFixed(2);
+    document.getElementById('deliverDepositInput').value = currentExpectedDeposit.toFixed(2);
+    document.getElementById('deliverDeliveryInput').value = currentExpectedDelivery.toFixed(2);
+    updateDeliverCalculations();
+  }
+
+  function clearAllFields() {
+    document.getElementById('deliverRentInput').value = '0.00';
+    document.getElementById('deliverDepositInput').value = '0.00';
+    document.getElementById('deliverDeliveryInput').value = '0.00';
+    updateDeliverCalculations();
+  }
+
+  function updateDeliverCalculations() {
+    const rVal = parseFloat(document.getElementById('deliverRentInput').value || '0') || 0;
+    const dVal = parseFloat(document.getElementById('deliverDepositInput').value || '0') || 0;
+    const delVal = parseFloat(document.getElementById('deliverDeliveryInput').value || '0') || 0;
+
+    const totalPaid = rVal + dVal + delVal;
+    document.getElementById('deliverTotalPaidDisplay').textContent = totalPaid.toFixed(2);
+
+    const baki = currentExpectedTotal - totalPaid;
+    const card = document.getElementById('deliverRemainingCard');
+    const label = document.getElementById('deliverRemainingLabel');
+    const display = document.getElementById('deliverRemainingDisplay');
+    const badge = document.getElementById('deliverStatusBadge');
+
+    if (Math.abs(baki) < 0.01) {
+      card.className = 'remaining-calc-card is-cleared';
+      label.textContent = 'Remaining Due';
+      label.style.color = '#15803d';
+      display.textContent = '₹0.00';
+      display.style.color = '#15803d';
+      if (badge) {
+        badge.style.background = '#dcfce7';
+        badge.style.color = '#166534';
+        badge.innerHTML = '<i class="fas fa-check-circle"></i> Fully Paid';
+      }
+    } else if (baki >= 0.01) {
+      card.className = 'remaining-calc-card is-due';
+      label.textContent = 'Remaining Due';
+      label.style.color = '#b45309';
+      display.textContent = '₹' + baki.toFixed(2);
+      display.style.color = '#b45309';
+      if (badge) {
+        badge.style.background = '#fef3c7';
+        badge.style.color = '#92400e';
+        badge.innerHTML = '<i class="fas fa-exclamation-circle"></i> ₹' + baki.toFixed(2) + ' Due';
+      }
+    } else {
+      const extra = Math.abs(baki);
+      card.className = 'remaining-calc-card is-overpaid';
+      label.textContent = 'Advance / Extra Paid';
+      label.style.color = '#1d4ed8';
+      display.textContent = '₹' + extra.toFixed(2);
+      display.style.color = '#1d4ed8';
+      if (badge) {
+        badge.style.background = '#dbeafe';
+        badge.style.color = '#1e40af';
+        badge.innerHTML = '<i class="fas fa-info-circle"></i> Extra Paid';
+      }
+    }
+  }
+
+  const delivModalOverlay = document.getElementById('deliverModal');
+  if (delivModalOverlay) {
+    delivModalOverlay.addEventListener('click', e => {
+      if (e.target === delivModalOverlay) {
+        closeDeliverModal();
+      }
+    });
+  }
 </script>
 {% endblock %}

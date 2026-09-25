@@ -15,7 +15,7 @@
   margin-bottom: 6px;
 }
 .services-page-head h1 span {
-  color: var(--primary);
+  color: goldenrod;
 }
 .services-page-head p {
   color: var(--muted);
@@ -39,8 +39,8 @@
   max-width: 520px;
 }
 .btn-add-service {
-  background-color: var(--primary, #ec2427) !important;
-  border-color: var(--primary, #ec2427) !important;
+  background: linear-gradient(135deg, var(--primary, #6B0F24) 0%, var(--primary-dark, #4A0717) 100%) !important;
+  border: 1px solid var(--accent-gold, #C59B27) !important;
   color: #ffffff !important;
   font-weight: 600;
   padding: 10px 24px;
@@ -51,14 +51,14 @@
   justify-content: center;
   gap: 8px;
   transition: all 0.2s ease-in-out;
-  box-shadow: 0 4px 12px rgba(236, 36, 39, 0.2);
+  box-shadow: 0 4px 12px rgba(107, 15, 36, 0.2);
   white-space: nowrap;
 }
 .btn-add-service:hover {
-  background-color: #c0181b !important;
-  border-color: #c0181b !important;
+  background: linear-gradient(135deg, #85132D 0%, var(--primary, #6B0F24) 100%) !important;
+  border-color: var(--accent-gold, #C59B27) !important;
   color: #ffffff !important;
-  box-shadow: 0 6px 16px rgba(236, 36, 39, 0.35);
+  box-shadow: 0 6px 16px rgba(107, 15, 36, 0.35);
   transform: translateY(-1px);
 }
 @media (max-width: 767.98px) {
@@ -81,6 +81,30 @@
     <h1>Medical <span>Services</span></h1>
     <p>Manage medical service listings</p>
     <div class="underline-bar"></div>
+  </div>
+
+  <div class="report-card">
+    <div class="report-header">
+      <i class="fas fa-file-alt report-icon"></i>
+      <h2>Generate Medical Services Report</h2>
+    </div>
+    <form method="GET" action="{% url 'medical_services' %}" class="report-form">
+      <input type="hidden" name="export" value="csv">
+      {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+      <div class="report-inputs">
+        <div class="input-group">
+          <label for="srv_start_date">START DATE</label>
+          <input type="date" id="srv_start_date" name="start_date">
+        </div>
+        <div class="input-group">
+          <label for="srv_end_date">END DATE</label>
+          <input type="date" id="srv_end_date" name="end_date">
+        </div>
+        <button type="submit" class="report-btn" data-bs-toggle="tooltip" title="Download Report">
+          <i class="fas fa-download"></i>
+        </button>
+      </div>
+    </form>
   </div>
 
   <!-- Toolbar: search left, Add Service button right -->

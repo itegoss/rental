@@ -10,7 +10,7 @@
 }
 .auth-brand {
   flex: 1;
-  background: linear-gradient(145deg, #ec2427 0%, #a00f11 100%);
+  background: linear-gradient(145deg, #A83D4D 0%, #B84A5A 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -38,17 +38,20 @@
   bottom: -80px; right: -60px;
 }
 .auth-brand-logo {
-  width: 90px;
-  height: 90px;
-  background: rgba(255,255,255,0.18);
-  border-radius: 24px;
+  width: 150px;
+  height: 150px;
+  background: rgba(255,255,255,0.15);
+  border: 2px solid var(--accent-gold);
+  border-radius: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2.2rem;
-  margin-bottom: 28px;
+  color: var(--accent-gold);
+  margin-bottom: 24px;
   position: relative;
   z-index: 1;
+  overflow: hidden;
 }
 .auth-brand h1 {
   font-size: 2rem;
@@ -116,7 +119,7 @@
 .form-field input:focus {
   border-color: var(--primary);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(236,36,39,0.1);
+  box-shadow: 0 0 0 3px rgba(107,15,36,0.1);
 }
 .form-field .field-icon {
   position: absolute;
@@ -132,22 +135,23 @@
 .btn-signin {
   width: 100%;
   padding: 13px;
-  background: var(--primary);
+  background: linear-gradient(135deg, #B84A5A 0%, #A83D4D 100%);
   color: #fff;
-  border: none;
+  border: 1.5px solid #D4AF37;
   border-radius: 10px;
   font-size: 1rem;
   font-weight: 700;
   font-family: var(--font);
   cursor: pointer;
   transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 14px rgba(236,36,39,0.28);
+  box-shadow: 0 4px 14px rgba(184,74,90,0.25);
   margin-top: 6px;
 }
 .btn-signin:hover {
-  background: var(--primary-dark);
+  background: linear-gradient(135deg, #A83D4D 0%, #962E3E 100%);
+  color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(236,36,39,0.34);
+  box-shadow: 0 8px 22px rgba(168,61,77,0.35);
 }
 .auth-divider {
   display: flex;
@@ -208,22 +212,63 @@
 }
 .msg-list li.error { background: #fef2f2; color: #991b1b; border-left: 3px solid #dc2626; }
 .msg-list li.success { background: #f0fdf4; color: #166534; border-left: 3px solid #16a34a; }
-@media (max-width: 768px) {
-  .auth-brand { display: none; }
-  .auth-form-side { padding: 32px 20px; }
-  .auth-wrap { min-height: calc(100vh - 64px); }
+@media (max-width: 1044px) {
+  .auth-wrap {
+    flex-direction: column;
+    min-height: auto;
+  }
+  .auth-brand {
+    width: 100%;
+    padding: 36px 20px;
+    flex: none;
+  }
+  .auth-brand-logo {
+    width: 120px;
+    height: 120px;
+    border-radius: 28px;
+    margin-bottom: 16px;
+  }
+  .auth-brand h1 {
+    font-size: 1.6rem;
+    margin-bottom: 8px;
+  }
+  .auth-brand p {
+    font-size: 0.95rem;
+    max-width: 480px;
+  }
+  .auth-form-side {
+    width: 100%;
+    padding: 36px 20px;
+    flex: none;
+  }
+}
+.auth-brand-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: scale(1.8);
 }
 </style>
 
 <div class="auth-wrap">
   <div class="auth-brand">
-    <div class="auth-brand-logo"><i class="fas fa-procedures"></i></div>
-    <h1>Sick Bed Services</h1>
+    <div class="auth-brand-logo">
+    <img src="/static/images/Hemoaid_logo1.png" alt="Logo">
+</div>
+    <h1>HEMOAID</h1>
     <p>Quality hospital equipment on rent, delivered to your doorstep with care.</p>
   </div>
 
   <div class="auth-form-side">
     <div class="auth-box">
+      {% if messages %}
+        <ul class="msg-list">
+          {% for message in messages %}
+            <li class="{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}success{% else %}{{ message.tags }}{% endif %}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
       {% if user.is_authenticated %}
         <p style="text-align:center; color: var(--success); font-weight:600; margin-bottom:16px;">
           <i class="fas fa-check-circle"></i> Welcome, {{ user.username }}!
@@ -258,6 +303,10 @@
 
       <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn-google">
         <i class="fab fa-google"></i> Continue with Google
+      </a>
+
+      <a href="{% url 'signin_mobile' %}" class="btn-google" style="margin-top: 10px;">
+        <i class="fab fa-whatsapp" style="color: #25D366; font-size: 1.15rem;"></i> Sign in using mobile number
       </a>
 
       <div class="auth-links">

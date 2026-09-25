@@ -5,7 +5,7 @@ def create_sample_blood_banks(apps, schema_editor):
     BloodBank = apps.get_model('app', 'BloodBank')
     samples = [
         {
-            'name': 'KYS Blood Bank',
+            'name': 'HEMOAID Blood Bank',
             'address': 'Station Road, Bhayander West, Thane, Maharashtra 401101',
             'person_name': 'Rajesh Sharma',
             'contact': '9820247550'

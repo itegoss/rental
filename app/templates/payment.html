@@ -72,7 +72,7 @@
     },
     prefill: { name: "{{ user.get_full_name }}", email: "{{ user.email }}", contact: "9999999999" },
     notes: { rental_id: "{{ rental_id }}", internal_order_id: "{{ payment.id }}" },
-    theme: { color: "#ec2427" }
+    theme: { color: "#6B0F24" }
   };
   const rzp1 = new Razorpay(options);
   rzp1.on("payment.failed", function(response) { alert("Payment Failed: " + response.error.description); });

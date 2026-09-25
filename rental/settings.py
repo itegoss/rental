@@ -17,8 +17,10 @@ CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 
 ALLOWED_HOSTS = [
+    "https://rental-testing-319338334172.us-central1.run.app",
     "rental-856395380155.us-central1.run.app",
     "sickbed.itegoss.in","*"
+   
 ]
 
 
@@ -96,7 +98,6 @@ else:
      }
  }
 
-
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -133,16 +134,19 @@ SOCIAL_AUTH_NEW_USER_REDIRECT_URL = "/"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True") == "True"
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "bhayander@kutchyuvaksangh.org")
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "vuyx siqh uvvh rfjd")
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "bhayander@kutchyuvaksangh.org")
-ADMIN_EMAIL = "varsha@itegoss.in"
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "")
+ADMIN_EMAIL = ""
 
 RAZORPAY_API_KEY = os.environ.get("RAZORPAY_API_KEY")
 RAZORPAY_API_SECRET = os.environ.get("RAZORPAY_API_SECRET")
 
-WHATSAPP_PHONE_ID = os.environ.get("WHATSAPP_PHONE_ID")
 WHATSAPP_ACCESS_TOKEN = os.environ.get("WHATSAPP_ACCESS_TOKEN")
+WHATSAPP_PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID") or os.environ.get("WHATSAPP_PHONE_ID")
+WHATSAPP_BUSINESS_ACCOUNT_ID = os.environ.get("WHATSAPP_BUSINESS_ACCOUNT_ID")
+WHATSAPP_API_VERSION = os.environ.get("WHATSAPP_API_VERSION", "v18.0")
+WHATSAPP_PHONE_ID = WHATSAPP_PHONE_NUMBER_ID
 
 TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
@@ -155,6 +159,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "https://sickbed.itegoss.in",
+    "https://rental-testing-319338334172.us-central1.run.app",
 ]
 
 SESSION_COOKIE_SAMESITE = "Lax"
@@ -184,21 +189,37 @@ GS_SA_EMAIL = os.getenv(
 )
 
 if GS_BUCKET_NAME:
-    STORAGES = {
-        "default": {
-            "BACKEND": "app.storage.CustomGoogleCloudStorage",
-            "OPTIONS": {
-                "bucket_name": GS_BUCKET_NAME,
-                "project_id": GS_PROJECT_ID,
-                "querystring_auth": False,
+    try:
+        from storages.backends.gcloud import GoogleCloudStorage
+        can_use_gcs = True
+    except Exception:
+        can_use_gcs = False
+
+    if can_use_gcs:
+        STORAGES = {
+            "default": {
+                "BACKEND": "app.storage.CustomGoogleCloudStorage",
+                "OPTIONS": {
+                    "bucket_name": GS_BUCKET_NAME,
+                    "project_id": GS_PROJECT_ID,
+                    "querystring_auth": False,
+                },
             },
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
-    }
-    GS_DEFAULT_ACL = None
-    GS_QUERYSTRING_AUTH = False
+            "staticfiles": {
+                "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+            },
+        }
+        GS_DEFAULT_ACL = None
+        GS_QUERYSTRING_AUTH = False
+    else:
+        STORAGES = {
+            "default": {
+                "BACKEND": "django.core.files.storage.FileSystemStorage",
+            },
+            "staticfiles": {
+                "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+            },
+        }
 else:
     STORAGES = {
         "default": {
@@ -211,3 +232,10 @@ else:
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+
+import os
+
+WHATSAPP_API = os.getenv("WHATSAPP_API")
+WHATSAPP_ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
+

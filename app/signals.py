@@ -122,7 +122,7 @@ def update_inventory_on_booking(sender, instance, **kwargs):
     except Exception:
         try:
             booked_qty = inventory.rentalrequest_set.filter(
-                status='approved',
+                status__in=['approved', 'delivered'],
                 is_returned=False
             ).aggregate(total=models.Sum('quantity'))['total'] or 0
             new_available_qty = max(inventory.total_quantity - booked_qty, 0)

@@ -5,13 +5,13 @@
 <style>
 .auth-wrap { min-height:calc(100vh - 64px); display:flex; align-items:stretch; }
 .auth-brand {
-  flex:1; background:linear-gradient(145deg,#ec2427 0%,#a00f11 100%);
+  flex:1; background:linear-gradient(145deg,#660A1D 0%,#88132B 50%,#730E24 100%);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   padding:60px 40px; color:#fff; text-align:center; position:relative; overflow:hidden;
 }
 .auth-brand::before { content:''; position:absolute; width:500px; height:500px; background:rgba(255,255,255,0.05); border-radius:50%; top:-120px; left:-120px; }
 .auth-brand::after  { content:''; position:absolute; width:300px; height:300px; background:rgba(255,255,255,0.07); border-radius:50%; bottom:-80px; right:-60px; }
-.auth-brand-logo { width:90px; height:90px; background:rgba(255,255,255,0.18); border-radius:24px; display:flex; align-items:center; justify-content:center; font-size:2.2rem; margin-bottom:28px; position:relative; z-index:1; }
+.auth-brand-logo { width:90px; height:90px; background:rgba(255,255,255,0.15); border:2px solid var(--accent-gold); border-radius:24px; display:flex; align-items:center; justify-content:center; font-size:2.2rem; color:var(--accent-gold); margin-bottom:28px; position:relative; z-index:1; }
 .auth-brand h1 { font-size:2rem; font-weight:800; margin-bottom:12px; position:relative; z-index:1; }
 .auth-brand p  { font-size:1rem; opacity:0.82; line-height:1.7; max-width:300px; position:relative; z-index:1; }
 .auth-form-side { flex:1; display:flex; align-items:center; justify-content:center; padding:40px 32px; background:#fff; overflow-y:auto; }
@@ -26,16 +26,16 @@
   font-size:0.92rem; font-family:var(--font); color:var(--text);
   background:#fafafa; transition:border-color 0.2s,box-shadow 0.2s,background 0.2s; outline:none;
 }
-.form-field input:focus { border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
+.form-field input:focus { border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(107,15,36,0.1); }
 .field-icon { position:absolute; right:13px; bottom:11px; color:var(--muted); font-size:0.95rem; cursor:pointer; }
 .field-icon:hover { color:var(--primary); }
 .btn-signup {
-  width:100%; padding:13px; background:var(--primary); color:#fff; border:none;
+  width:100%; padding:13px; background:linear-gradient(135deg, #B84A5A 0%, #A83D4D 100%); color:#fff; border:1.5px solid #D4AF37;
   border-radius:10px; font-size:1rem; font-weight:700; font-family:var(--font);
-  cursor:pointer; box-shadow:0 4px 14px rgba(236,36,39,0.28); margin-top:6px;
+  cursor:pointer; box-shadow:0 4px 14px rgba(184,74,90,0.25); margin-top:6px;
   transition:background 0.2s,transform 0.2s,box-shadow 0.2s;
 }
-.btn-signup:hover { background:var(--primary-dark); transform:translateY(-1px); box-shadow:0 8px 22px rgba(236,36,39,0.34); }
+.btn-signup:hover { background:linear-gradient(135deg, #A83D4D 0%, #962E3E 100%); color:#fff; transform:translateY(-1px); box-shadow:0 8px 22px rgba(168,61,77,0.35); }
 .auth-divider { display:flex; align-items:center; gap:12px; margin:18px 0; color:var(--muted); font-size:0.82rem; }
 .auth-divider::before,.auth-divider::after { content:''; flex:1; height:1px; background:var(--border); }
 .btn-google { width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:12px; background:#fff; border:1.5px solid var(--border); border-radius:10px; font-size:0.92rem; font-weight:600; color:#444; text-decoration:none; font-family:var(--font); transition:background 0.2s,box-shadow 0.2s; }
@@ -48,12 +48,37 @@
 .msgs-box .msg { padding:9px 13px; border-radius:8px; font-size:0.85rem; font-weight:500; margin-bottom:6px; }
 .msgs-box .msg.error { background:#fef2f2; color:#991b1b; border-left:3px solid #dc2626; }
 .msgs-box .msg.success { background:#f0fdf4; color:#166534; border-left:3px solid #16a34a; }
-.otp-box { margin-top:20px; padding:20px; background:#fef2f2; border-radius:12px; border:1.5px solid #fca5a5; }
-.otp-box h3 { font-size:1rem; font-weight:700; color:var(--primary); margin-bottom:12px; }
-.otp-box input { width:100%; padding:11px 13px; border:1.5px solid var(--border); border-radius:10px; font-size:0.95rem; font-family:var(--font); outline:none; margin-bottom:10px; }
-.otp-box input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(236,36,39,0.1); }
-.otp-box button { width:100%; padding:11px; background:var(--primary); color:#fff; border:none; border-radius:10px; font-weight:700; font-family:var(--font); cursor:pointer; font-size:0.95rem; }
-@media (max-width:768px) { .auth-brand{display:none;} .auth-form-side{padding:28px 18px;} }
+@media (max-width: 1044px) {
+  .auth-wrap {
+    flex-direction: column;
+    min-height: auto;
+  }
+  .auth-brand {
+    width: 100%;
+    padding: 36px 20px;
+    flex: none;
+  }
+  .auth-brand-logo {
+    width: 70px;
+    height: 70px;
+    border-radius: 18px;
+    margin-bottom: 16px;
+    font-size: 1.8rem;
+  }
+  .auth-brand h1 {
+    font-size: 1.6rem;
+    margin-bottom: 8px;
+  }
+  .auth-brand p {
+    font-size: 0.95rem;
+    max-width: 480px;
+  }
+  .auth-form-side {
+    width: 100%;
+    padding: 36px 20px;
+    flex: none;
+  }
+}
 </style>
 
 <div class="auth-wrap">
@@ -112,21 +137,6 @@
         </div>
         <button type="submit" class="btn-signup">Create Account</button>
       </form>
-
-      {% if show_otp %}
-        <div class="otp-box">
-          <h3><i class="fas fa-sms"></i> Enter OTP sent to {{ mobile }}</h3>
-          {% if debug_otp %}
-            <p style="color:#b71c1c; font-weight:700; margin-bottom:10px;">DEBUG OTP: {{ debug_otp }}</p>
-          {% endif %}
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="mobile" value="{{ mobile }}">
-            <input type="text" name="otp" placeholder="6-digit OTP" maxlength="6" required>
-            <button type="submit">Verify &amp; Continue</button>
-          </form>
-        </div>
-      {% endif %}
 
       <div class="auth-divider">or</div>
       <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn-google">

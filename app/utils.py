@@ -11,16 +11,17 @@ import requests
 from decimal import Decimal
 from django.utils import timezone
 
-def receipt_filename(order):
+def receipt_filename(order, receipt_type="booking"):
     renter_name = (
         getattr(order, "renter_name", None)
-        or order.user.get_full_name()
-        or order.user.username
+        or (order.user.get_full_name() if hasattr(order, "user") and order.user else None)
+        or (order.user.username if hasattr(order, "user") and order.user else None)
         or getattr(order, "order_id", None)
         or "receipt"
     )
     filename = get_valid_filename(str(renter_name).strip()).strip("._")
-    return f"{filename or 'receipt'}.pdf"
+    prefix = "Return_" if receipt_type == "return" else ""
+    return f"{prefix}{filename or 'receipt'}.pdf"
 
 def send_overdue_email(user, rental):
     order_id = getattr(rental, 'order_id', None) or 'N/A'
@@ -161,11 +162,9 @@ def build_booking_receipt_breakdown(rental, related_rentals):
 
     if rental.is_delivery_paid:
         delivery_paid = delivery_charge
-        unpaid_delivery = delivery_charge - mathematical_delivery_paid
-        amount_remaining = max(final_total_amount - amount_paid - unpaid_delivery, Decimal("0"))
     else:
         delivery_paid = mathematical_delivery_paid
-        amount_remaining = max(final_total_amount - amount_paid, Decimal("0"))
+    amount_remaining = max(final_total_amount - amount_paid, Decimal("0"))
 
     original_days = (rental.end_date - rental.start_date).days + 1 if rental.start_date and rental.end_date else 0
     total_extra_days = sum((ext["extra_days"] for ext in extension_history), 0)
@@ -193,7 +192,7 @@ def build_booking_receipt_breakdown(rental, related_rentals):
         "total_quantity": total_quantity,
     }
 
-def generate_receipt(order):
+def generate_receipt(order, receipt_type="booking"):
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
@@ -267,25 +266,34 @@ def generate_receipt(order):
     )
 
     # 1. Header Title
-    elements.append(Paragraph("Kutch Yuvak Sangh, Bhayandar", title_style))
-    elements.append(Paragraph("RENTAL BOOKING RECEIPT", ParagraphStyle('SubTitle', parent=title_style, fontSize=12, textColor=HexColor('#333333'), spaceAfter=15)))
+    elements.append(Paragraph("HEMOAID, Bhayandar", title_style))
+    subtitle = "RENTAL RETURN RECEIPT" if receipt_type == "return" else "RENTAL BOOKING RECEIPT"
+    elements.append(Paragraph(subtitle, ParagraphStyle('SubTitle', parent=title_style, fontSize=12, textColor=HexColor('#333333'), spaceAfter=15)))
     elements.append(Spacer(1, 10))
 
     # Fetch breakdown details
     related_rentals = History.objects.filter(order_id=order.order_id).select_related("rental_item")
     breakdown = build_booking_receipt_breakdown(order, related_rentals)
 
-    # 2. Patient & Booking Details
-    elements.append(Paragraph("Patient & Booking Details", section_title_style))
+    # 2. Patient & Booking / Return Details
+    sec_title = "Patient & Return Details" if receipt_type == "return" else "Patient & Booking Details"
+    elements.append(Paragraph(sec_title, section_title_style))
     user_detail = UserDetail.objects.filter(user=order.user).first()
     renter_name = order.renter_name or (user_detail.patient_name if user_detail else (order.user.get_full_name() or order.user.username))
     patient_name = order.patient_name or (user_detail.patient_name if user_detail else "N/A")
     address = order.address or (user_detail.address_line1 if user_detail else "N/A")
     phone = order.phone or (user_detail.phone if user_detail else "N/A")
 
+    if receipt_type == "return":
+        ret_date_str = (getattr(order, 'actual_return_date', None) or timezone.now().date()).strftime('%d %b %Y')
+        ret_label = "Return Date:"
+    else:
+        ret_date_str = breakdown['effective_return_date'].strftime('%d %b %Y')
+        ret_label = "Return Date:"
+
     details_data = [
         [Paragraph("<b>Renter Name:</b>", normal_style), Paragraph(str(renter_name), normal_style), Paragraph("<b>Booking Date:</b>", normal_style), Paragraph(breakdown['original_start_date'].strftime('%d %b %Y'), normal_style)],
-        [Paragraph("<b>Address:</b>", normal_style), Paragraph(str(address), normal_style), Paragraph("<b>Return Date:</b>", normal_style), Paragraph(breakdown['effective_return_date'].strftime('%d %b %Y'), normal_style)],
+        [Paragraph("<b>Address:</b>", normal_style), Paragraph(str(address), normal_style), Paragraph(f"<b>{ret_label}</b>", normal_style), Paragraph(ret_date_str, normal_style)],
         [Paragraph("<b>Contact No:</b>", normal_style), Paragraph(str(phone), normal_style), Paragraph("<b>Rent Days:</b>", normal_style), Paragraph(f"{breakdown['total_rent_days']} Days", normal_style)],
         [Paragraph("<b>Patient Name:</b>", normal_style), Paragraph(str(patient_name), normal_style), Paragraph("", normal_style), Paragraph("", normal_style)],
     ]
@@ -376,7 +384,8 @@ def generate_receipt(order):
         elements.append(Spacer(1, 10))
 
     # 6. Final Summary / Totals
-    elements.append(Paragraph("Final Invoice Details", section_title_style))
+    inv_title = "Final Return Invoice Details" if receipt_type == "return" else "Final Invoice Details"
+    elements.append(Paragraph(inv_title, section_title_style))
     delivery_charge = order.delivery_charge if order.delivery_option == "delivery" else Decimal("0")
     return_pickup_charge = max((rr.return_pickup_charge for rr in related_rentals), default=Decimal("0"))
     
@@ -414,16 +423,55 @@ def generate_receipt(order):
             [Paragraph("<b>Donation Amount:</b>", normal_style), Paragraph(f"Rs. {don_amt:.2f}", ParagraphStyle('RightGreen', parent=bold_style, textColor=HexColor('#1b8a4b'), alignment=2))]
         )
     
-    summary_rows.append(
-        [Paragraph("<b>Total Amount:</b>", ParagraphStyle('LargeBold', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b'))), 
-         Paragraph(f"Rs. {breakdown['final_total_amount']:.2f}", ParagraphStyle('LargeBoldRight', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b'), alignment=2))]
-    )
-    summary_rows.append(
-        [Paragraph("<b>Paid Amount:</b>", normal_style), Paragraph(f"Rs. {breakdown['amount_paid']:.2f}", ParagraphStyle('PaidAmtRight', parent=bold_style, textColor=HexColor('#1b8a4b'), alignment=2))]
-    )
-    summary_rows.append(
-        [Paragraph("<b>Balanced Amount:</b>", normal_style), Paragraph(f"Rs. {breakdown['amount_remaining']:.2f}", ParagraphStyle('RemainAmtRight', parent=bold_style, textColor=HexColor('#ec2427'), alignment=2))]
-    )
+    if receipt_type == "return":
+        donation_amount = sum((rr.donation_amount for rr in related_rentals), Decimal("0"))
+        total_deposit = breakdown["original_total_deposit"]
+        additional_deposit = sum((ext["additional_deposit"] for ext in breakdown["extension_history"]), Decimal("0"))
+        final_deposit = total_deposit + additional_deposit
+        total_rent_with_extensions = breakdown["original_total_rent"] + breakdown["extension_total"]
+        total_amount = total_rent_with_extensions + delivery_charge + return_pickup_charge + final_deposit
+        amount_paid = breakdown["amount_paid"]
+
+        if amount_paid < total_amount:
+            amount_remaining = total_amount - amount_paid
+            refund_amount = Decimal("0")
+        elif amount_paid > total_amount:
+            amount_remaining = Decimal("0")
+            refund_amount = Decimal("0") if order.deposit_donated else (amount_paid - total_amount)
+        else:
+            amount_remaining = Decimal("0")
+            refund_amount = Decimal("0")
+
+        summary_rows.append(
+            [Paragraph("<b>Total Amount:</b>", ParagraphStyle('LargeBold', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b'))), 
+             Paragraph(f"Rs. {total_amount:.2f}", ParagraphStyle('LargeBoldRight', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b'), alignment=2))]
+        )
+        summary_rows.append(
+            [Paragraph("<b>Paid Amount:</b>", normal_style), Paragraph(f"Rs. {amount_paid:.2f}", ParagraphStyle('PaidAmtRight', parent=bold_style, textColor=HexColor('#1b8a4b'), alignment=2))]
+        )
+        if refund_amount > 0:
+            summary_rows.append(
+                [Paragraph("<b>Refund Amount:</b>", normal_style), Paragraph(f"Rs. {refund_amount:.2f}", ParagraphStyle('RefundAmtRight', parent=bold_style, textColor=HexColor('#1b8a4b'), alignment=2))]
+            )
+        elif amount_remaining > 0:
+            summary_rows.append(
+                [Paragraph("<b>Balanced Amount:</b>", normal_style), Paragraph(f"Rs. {amount_remaining:.2f}", ParagraphStyle('RemainAmtRight', parent=bold_style, textColor=HexColor('#ec2427'), alignment=2))]
+            )
+        else:
+            summary_rows.append(
+                [Paragraph("<b>Status:</b>", normal_style), Paragraph("Settled (Rs. 0.00)", ParagraphStyle('SettledRight', parent=bold_style, textColor=HexColor('#1b8a4b'), alignment=2))]
+            )
+    else:
+        summary_rows.append(
+            [Paragraph("<b>Total Amount:</b>", ParagraphStyle('LargeBold', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b'))), 
+             Paragraph(f"Rs. {breakdown['final_total_amount']:.2f}", ParagraphStyle('LargeBoldRight', parent=bold_style, fontSize=10, textColor=HexColor('#1b8a4b'), alignment=2))]
+        )
+        summary_rows.append(
+            [Paragraph("<b>Paid Amount:</b>", normal_style), Paragraph(f"Rs. {breakdown['amount_paid']:.2f}", ParagraphStyle('PaidAmtRight', parent=bold_style, textColor=HexColor('#1b8a4b'), alignment=2))]
+        )
+        summary_rows.append(
+            [Paragraph("<b>Balanced Amount:</b>", normal_style), Paragraph(f"Rs. {breakdown['amount_remaining']:.2f}", ParagraphStyle('RemainAmtRight', parent=bold_style, textColor=HexColor('#ec2427'), alignment=2))]
+        )
 
     summary_table = Table(summary_rows, colWidths=[200, 120])
     summary_table.hAlign = 'RIGHT'
@@ -441,12 +489,13 @@ def generate_receipt(order):
     elements.append(Paragraph("You hereby agree to all terms &amp; conditions mentioned on our booking portal <a href='https://sickbed.itegoss.in' color='#1b8a4b'>Sickbed</a>", 
                               ParagraphStyle('Terms', parent=normal_style, fontSize=8, alignment=1, textColor=HexColor('#7f8c8d'))))
     elements.append(Spacer(1, 5))
-    elements.append(Paragraph("Thank you for booking with us.", 
+    thank_text = "Thank you for returning the equipment with us." if receipt_type == "return" else "Thank you for booking with us."
+    elements.append(Paragraph(thank_text, 
                               ParagraphStyle('ThankYou', parent=bold_style, fontSize=10, alignment=1, textColor=HexColor('#1b8a4b'))))
 
     doc.build(elements)
     buffer.seek(0)
-    return ContentFile(buffer.getvalue(), receipt_filename(order))
+    return ContentFile(buffer.getvalue(), receipt_filename(order, receipt_type=receipt_type))
 
 def send_telegram_message(message):
     token = getattr(settings, 'TELEGRAM_BOT_TOKEN', None)
@@ -670,9 +719,10 @@ def send_whatsapp_message(mobile, message):
     mobile: string digits or with leading +countrycode
     message: text to send
     """
+    print(f"[DEBUG WA - utils] Stage A: send_whatsapp_message entered | mobile={mobile}")
     m = re.sub(r"\D", "", str(mobile or ""))
     if not m:
-        print("[whatsapp] no mobile provided; message not sent")
+        print("[DEBUG WA - utils] Stage B Failed: Exits before API request - no mobile provided")
         return False
 
     if len(m) == 10:
@@ -695,23 +745,28 @@ def send_whatsapp_message(mobile, message):
                 "type": "text",
                 "text": {"body": message}
             }
+            print(f"[DEBUG WA - utils] Stage C Passed: Meta Cloud API request about to be sent | URL={url} | To={to_clean}")
             resp = requests.post(url, json=payload, headers=headers, timeout=10)
             try:
                 body = resp.json()
             except Exception:
                 body = resp.text
+            print(f"[DEBUG WA - utils] API response status code: {resp.status_code}")
+            print(f"[DEBUG WA - utils] API response body: {body}")
             if resp.status_code in (200, 201):
-                print(f"[whatsapp cloud sent] To: {to_number} Response: {body}")
+                print(f"[DEBUG WA - utils] Stage D/E: Meta Cloud API sent to {to_number}")
                 return True
             else:
-                print(f"[whatsapp cloud error] status={resp.status_code} body={body}")
+                print(f"[DEBUG WA - utils] Stage D Failed: Meta Cloud API status={resp.status_code}")
         except Exception as e:
-            print(f"[whatsapp cloud exception] {e}")
+            print(f"[DEBUG WA - utils] Stage D Failed: Meta Cloud exception {e}")
+    else:
+        print(f"[DEBUG WA - utils] Stage C Failed: Meta Cloud API configuration missing (WHATSAPP_PHONE_ID={phone_id})")
 
     try:
         from twilio.rest import Client
     except Exception:
-        print(f"[whatsapp simulated] To: {to_number} Message: {message}")
+        print(f"[DEBUG WA - utils] [whatsapp simulated] To: {to_number} Message: {message}")
         return True
 
     sid = getattr(settings, "TWILIO_ACCOUNT_SID", None)
@@ -719,16 +774,17 @@ def send_whatsapp_message(mobile, message):
     from_whatsapp = getattr(settings, "TWILIO_WHATSAPP_FROM", None)
 
     if not all([sid, token, from_whatsapp]):
+        print(f"[DEBUG WA - utils] Stage C Failed: Twilio configuration missing (sid={bool(sid)}, token={bool(token)}, from={bool(from_whatsapp)})")
         print(f"[whatsapp config missing] To: {to_number} Message: {message}")
         return True
 
     try:
         client = Client(sid, token)
         client.messages.create(body=message, from_=from_whatsapp, to=to_number)
-        print(f"[whatsapp sent] To: {to_number}")
+        print(f"[DEBUG WA - utils] Stage D/E: Twilio WhatsApp sent to {to_number}")
         return True
     except Exception as e:
-        print(f"[whatsapp error] {e}")
+        print(f"[DEBUG WA - utils] Stage D Failed: Twilio error {e}")
         return False
 
 def generate_rental_report_pdf(queryset, start_date, end_date):

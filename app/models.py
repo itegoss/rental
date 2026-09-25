@@ -69,7 +69,7 @@ class Inventory(models.Model):
         from django.db.models import Sum
         from django.utils import timezone
         try:
-            booked = self.rentalrequest_set.filter(status='approved', is_returned=False).aggregate(total=Sum('quantity'))['total'] or 0
+            booked = self.rentalrequest_set.filter(status__in=['approved', 'delivered'], is_returned=False).aggregate(total=Sum('quantity'))['total'] or 0
             self.booked_quantity = booked
             new_available = max((self.total_quantity or 0) - booked, 0)
             self.available_quantity = new_available
@@ -159,8 +159,11 @@ class History(models.Model):
         choices=[
             ('pending', 'Pending'),
             ('approved', 'Approved'),
+            ('delivered', 'Delivered'),
             ('rejected', 'Rejected'),
             ('cancelled', 'Cancelled'),
+            ('returned', 'Returned'),
+            ('return_request', 'Return Request'),
         ],
         default='pending',
         db_index=True
@@ -234,16 +237,8 @@ class History(models.Model):
 
         # Calculate remaining amount
         if not getattr(self, '_amount_remaining_manually_changed', False):
-            rent_deposit_total = rent_dec + (deposit_dec * self.quantity)
             paid_dec = Decimal(str(self.amount_paid or '0'))
-            mathematical_delivery_paid = max(paid_dec - rent_deposit_total, Decimal("0"))
-            mathematical_delivery_paid = min(mathematical_delivery_paid, delivery_dec)
-
-            if self.is_delivery_paid:
-                unpaid_delivery = delivery_dec - mathematical_delivery_paid
-                self.amount_remaining = max(self.total_amount - paid_dec - unpaid_delivery, Decimal('0'))
-            else:
-                self.amount_remaining = max(self.total_amount - paid_dec, Decimal('0'))
+            self.amount_remaining = max(self.total_amount - paid_dec, Decimal('0'))
             
         super().save(*args, **kwargs)
 
@@ -589,6 +584,8 @@ class BloodRequest(models.Model):
         ('AB-', 'AB-'),
         ('O+', 'O+'),
         ('O-', 'O-'),
+        ('BB', 'BB'),
+        ("Don't Know", "Don't Know"),
     ]
     STATUS_CHOICES = [
         ('Pending', 'Pending'),
@@ -617,7 +614,7 @@ class BloodRequest(models.Model):
     patient_name = models.CharField(max_length=255)
     hospital_name = models.CharField(max_length=255)
     hospital_area = models.CharField(max_length=255)
-    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, blank=True, null=True)
+    blood_group = models.CharField(max_length=20, choices=BLOOD_GROUP_CHOICES, blank=True, null=True)
     units_required = models.PositiveIntegerField(default=1, blank=True, null=True)
     coordinator_name = models.CharField(max_length=255)
     coordinator_contact = models.CharField(max_length=15)
@@ -691,7 +688,26 @@ class BloodRequest(models.Model):
     def save(self, *args, **kwargs):
         if not self.request_id:
             self.request_id = self.generate_request_id()
-        super().save(*args, **kwargs)
+        try:
+            super().save(*args, **kwargs)
+        except Exception as e:
+            if 'value too long for type character varying' in str(e) or 'character varying(5)' in str(e):
+                from django.db import connection
+                try:
+                    with connection.cursor() as cursor:
+                        cursor.execute("ALTER TABLE app_bloodrequest ALTER COLUMN blood_group TYPE varchar(20);")
+                    super().save(*args, **kwargs)
+                    return
+                except Exception:
+                    pass
+            raise e
+
+    @property
+    def formatted_request_id(self):
+        if self.request_id:
+            return self.request_id
+        dt = self.created_at or timezone.now()
+        return f"BR{dt.strftime('%Y%m')}{str(self.id or 1).zfill(3)}"
 
     @property
     def formatted_request_id(self):
@@ -770,7 +786,7 @@ class BloodRequest(models.Model):
         self.status_history = json.dumps(history)
         self.last_status_changed_at = timezone.now()
         self.last_status_changed_by = changed_by
-        self.save(update_fields=['status_history', 'last_status_changed_at', 'last_status_changed_by'])
+        self.save()
 
 
 class BloodBank(models.Model):
@@ -835,6 +851,8 @@ class BloodDonor(models.Model):
         ('AB-', 'AB-'),
         ('O+', 'O+'),
         ('O-', 'O-'),
+        ('BB', 'BB'),
+        ("Don't Know", "Don't Know"),
     ]
     STATUS_CHOICES = [
         ('Pending', 'Pending'),
@@ -842,12 +860,11 @@ class BloodDonor(models.Model):
         ('Cancelled', 'Cancelled'),
         ('Fulfilled', 'Fulfilled'),
     ]
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
+    full_name = models.CharField(max_length=255, blank=True, null=True)
     contact_number = models.CharField(max_length=15)
     date_of_birth = models.DateField()
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
-    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES)
+    blood_group = models.CharField(max_length=20, choices=BLOOD_GROUP_CHOICES)
     area_of_residence = models.CharField(max_length=255)
     reference_name = models.CharField(max_length=255, blank=True, null=True)
     reference_contact = models.CharField(max_length=15, blank=True, null=True)
@@ -859,8 +876,48 @@ class BloodDonor(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
     remarks = models.TextField(blank=True, null=True)
 
+    @property
+    def first_name(self):
+        if self.full_name and self.full_name.strip():
+            return self.full_name.strip().split(None, 1)[0]
+        return ""
+
+    @property
+    def last_name(self):
+        if self.full_name and self.full_name.strip():
+            parts = self.full_name.strip().split(None, 1)
+            return parts[1] if len(parts) > 1 else ""
+        return ""
+
+    def get_full_name(self):
+        return (self.full_name or "").strip()
+
+    def save(self, *args, **kwargs):
+        if self.full_name:
+            self.full_name = self.full_name.strip()
+        try:
+            super().save(*args, **kwargs)
+        except Exception as e:
+            if 'value too long for type character varying' in str(e) or 'character varying(5)' in str(e):
+                from django.db import connection
+                try:
+                    with connection.cursor() as cursor:
+                        cursor.execute("ALTER TABLE app_blooddonor ALTER COLUMN blood_group TYPE varchar(20);")
+                    super().save(*args, **kwargs)
+                    return
+                except Exception:
+                    pass
+            raise e
+
+    @property
+    def age(self):
+        if not self.date_of_birth:
+            return None
+        today = timezone.now().date()
+        return today.year - self.date_of_birth.year - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
+
     def __str__(self):
-        return f"{self.first_name} {self.last_name} - {self.blood_group} ({self.status})"
+        return f"{self.get_full_name()} - {self.blood_group} ({self.status})"
 
 
 class EventVolunteer(models.Model):
@@ -886,6 +943,13 @@ class EventVolunteer(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def age(self):
+        if not self.date_of_birth:
+            return None
+        today = timezone.now().date()
+        return today.year - self.date_of_birth.year - ((today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='volunteers_created')
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='volunteers_updated')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
