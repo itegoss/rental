@@ -890,6 +890,35 @@ class DeliverOrderTests(TestCase):
         self.assertEqual(self.rental.amount_remaining, Decimal("250.00"))
 
 
+class SocialAuthExceptionMiddlewareTests(TestCase):
+    def test_auth_canceled_redirects_to_signin_with_message(self):
+        from app.middleware import CustomSocialAuthExceptionMiddleware
+        from social_core.exceptions import AuthCanceled
+        from django.test import RequestFactory
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        from django.contrib.sessions.middleware import SessionMiddleware
+
+        rf = RequestFactory()
+        request = rf.get('/auth/complete/google-oauth2/')
+
+        # Mock session and messages
+        session_middleware = SessionMiddleware(lambda r: None)
+        session_middleware.process_request(request)
+        request.session.save()
+        request._messages = FallbackStorage(request)
+
+        middleware = CustomSocialAuthExceptionMiddleware(lambda r: None)
+        exc = AuthCanceled('google-oauth2', 'Authentication process canceled')
+        response = middleware.process_exception(request, exc)
+
+        self.assertIsNotNone(response)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/signin/')
+        messages_list = [str(m) for m in request._messages]
+        self.assertTrue(any('Google sign-in was canceled' in m for m in messages_list))
+
+
+
 
 
 

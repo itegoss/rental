@@ -49,7 +49,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "social_django.middleware.SocialAuthExceptionMiddleware",
+    "app.middleware.CustomSocialAuthExceptionMiddleware",
 ]
 
 ROOT_URLCONF = "rental.urls"
@@ -130,6 +130,9 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = "/"
 SOCIAL_AUTH_NEW_USER_REDIRECT_URL = "/"
+SOCIAL_AUTH_LOGIN_ERROR_URL = "/signin/"
+LOGIN_ERROR_URL = "/signin/"
+SOCIAL_AUTH_RAISE_EXCEPTIONS = False
 
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
