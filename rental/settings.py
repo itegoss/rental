@@ -11,7 +11,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "insecure-secret-key")
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 
 SECURE_SSL_REDIRECT = False
-SECURE_PROXY_SSL_HEADER = None if DEBUG else ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
@@ -87,16 +87,16 @@ if 'test' in sys.argv:
     }
 
 else:
-    DATABASES = {
-     'default': {
-         'ENGINE': 'django.db.backends.postgresql',
-         'NAME': 'kys',
-         'USER': 'postgres',
-         'PASSWORD': 'admin',
-         'HOST': 'localhost',
-         'PORT': '5432',
+     DATABASES = {
+             'default': {
+                 'ENGINE': 'django.db.backends.postgresql',
+                 'NAME': os.getenv('DB_NAME'),
+                 'USER': os.getenv('DB_USER'),
+                 'PASSWORD': os.getenv('DB_PASSWORD'),
+                 'HOST': os.getenv('DB_HOST'),
+                 'PORT': os.getenv('DB_PORT'),
      }
- }
+     }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -159,12 +159,18 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "https://sickbed.itegoss.in",
+    "http://sickbed.itegoss.in",
     "https://rental-testing-319338334172.us-central1.run.app",
+    "https://rental-856395380155.us-central1.run.app",
 ]
 
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+# Allow up to 50MB for mobile phone prescription camera uploads
+DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")

@@ -52,7 +52,7 @@ class BloodRequestForm(forms.ModelForm):
     blood_component = forms.ChoiceField(choices=BloodRequest.BLOOD_COMPONENT_CHOICES, required=False, initial='', label='Blood Component')
     prescription = forms.FileField(
         required=True,
-        widget=forms.FileInput(attrs={'accept': '.jpg,.jpeg,.png,.pdf,.img'}),
+        widget=forms.FileInput(attrs={'accept': 'image/*,.jpg,.jpeg,.png,.pdf,.heic,.heif'}),
         error_messages={'required': "Doctor's prescription image/document is mandatory. Please upload a file."}
     )
     consent = forms.BooleanField(

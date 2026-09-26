@@ -188,6 +188,18 @@
     color: #111827;
     transform: translateY(-1px);
   }
+
+  @media (max-width: 768px) {
+    .form-container {
+      padding: 24px 16px;
+      margin: 20px auto 40px;
+    }
+    .form-group-custom input,
+    .form-group-custom select,
+    .form-group-custom textarea {
+      font-size: 16px !important;
+    }
+  }
 </style>
 
 <div class="blood-banner">
@@ -198,7 +210,7 @@
 
 <div class="container">
   <div class="form-container">
-    <form method="POST" enctype="multipart/form-data" novalidate>
+    <form method="POST" action="{% if is_edit %}{% url 'edit_blood_request' req.id %}{% else %}{% url 'request_blood' %}{% endif %}" enctype="multipart/form-data" novalidate id="bloodRequestForm">
       {% csrf_token %}
 
       {% if form.non_field_errors %}
@@ -257,7 +269,7 @@
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_coordinator_contact">Coordinator’s Contact number <span class="text-danger">*</span></label>
-          <input type="tel" name="coordinator_contact" id="id_coordinator_contact" required placeholder="Enter WhatsApp number" value="{{ form.coordinator_contact.value|default_if_none:'' }}" class="{% if form.coordinator_contact.errors %}is-invalid{% endif %}">
+          <input type="tel" name="coordinator_contact" id="id_coordinator_contact" inputmode="numeric" required placeholder="Enter WhatsApp number" value="{{ form.coordinator_contact.value|default_if_none:'' }}" class="{% if form.coordinator_contact.errors %}is-invalid{% endif %}">
           <div class="whatsapp-hint-text">Enter WhatsApp number for further updates</div>
           {% if form.coordinator_contact.errors %}
             <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.coordinator_contact.errors.0 }}</div>
@@ -275,7 +287,7 @@
         </div>
         <div class="col-md-6 form-group-custom">
           <label for="id_reference_contact">Reference contact number</label>
-          <input type="tel" name="reference_contact" id="id_reference_contact" placeholder="10-digit reference contact" value="{{ form.reference_contact.value|default_if_none:'' }}" class="{% if form.reference_contact.errors %}is-invalid{% endif %}">
+          <input type="tel" name="reference_contact" id="id_reference_contact" inputmode="numeric" placeholder="10-digit reference contact" value="{{ form.reference_contact.value|default_if_none:'' }}" class="{% if form.reference_contact.errors %}is-invalid{% endif %}">
           {% if form.reference_contact.errors %}
             <div class="error-msg"><i class="fas fa-exclamation-circle"></i> {{ form.reference_contact.errors.0 }}</div>
           {% endif %}
@@ -283,8 +295,8 @@
       </div>
 
       <div class="form-group-custom mt-3">
-        <label for="id_prescription">Upload Doctor’s prescription image (jpg, jpeg, png, pdf, img) <span class="text-danger">*</span></label>
-        <input type="file" name="prescription" id="id_prescription" {% if not is_edit or not req.prescription %}required{% endif %} accept=".jpg,.jpeg,.png,.pdf,.img," class="{% if form.prescription.errors %}is-invalid{% endif %}">
+        <label for="id_prescription">Upload Doctor’s prescription image (jpg, jpeg, png, pdf, heic) <span class="text-danger">*</span></label>
+        <input type="file" name="prescription" id="id_prescription" {% if not is_edit or not req.prescription %}required{% endif %} accept="image/*,.jpg,.jpeg,.png,.pdf,.heic,.heif" class="{% if form.prescription.errors %}is-invalid{% endif %}">
         {% if req.prescription %}
         <small class="text-muted d-block mt-1">Current prescription: <a href="{{ req.prescription.url }}" target="_blank" style="color:#3b82f6;text-decoration:underline;">View File</a></small>
         {% endif %}
@@ -369,9 +381,81 @@
         {% if is_edit %}
         <a href="{% if req %}{% url 'admin_view_blood_request' req.id %}{% else %}{% url 'request_blood' %}{% endif %}" class="btn-cancel-custom">Cancel</a>
         {% endif %}
-        <button type="submit" class="btn-signin" style="flex:1;">{% if is_edit %}Update Request{% else %}Submit{% endif %}</button>
+        <button type="submit" id="bloodSubmitBtn" class="btn-signin" style="flex:1;">{% if is_edit %}Update Request{% else %}Submit{% endif %}</button>
       </div>
     </form>
   </div>
 </div>
+
+<script>
+(function() {
+  // Mobile prescription image auto-compressor for ultra-fast, error-free upload
+  const fileInput = document.getElementById('id_prescription');
+  if (fileInput) {
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      // Only process image types exceeding 1.5MB
+      if (file.type && file.type.startsWith('image/') && file.size > 1.5 * 1024 * 1024) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const img = new Image();
+          img.onload = function() {
+            const maxDim = 1920;
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob(function(blob) {
+              if (blob && window.DataTransfer) {
+                try {
+                  const dt = new DataTransfer();
+                  const cleanName = (file.name || 'prescription').replace(/\.[^/.]+$/, "") + ".jpg";
+                  const compressedFile = new File([blob], cleanName, { type: 'image/jpeg', lastModified: Date.now() });
+                  dt.items.add(compressedFile);
+                  fileInput.files = dt.files;
+                } catch(err) {
+                  console.warn('DataTransfer compression skipped:', err);
+                }
+              }
+            }, 'image/jpeg', 0.85);
+          };
+          img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  // Prevent multiple taps on submit button on mobile devices
+  const form = document.getElementById('bloodRequestForm');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      if (form.checkValidity && form.checkValidity()) {
+        const btn = document.getElementById('bloodSubmitBtn');
+        if (btn) {
+          setTimeout(function() {
+            btn.style.opacity = '0.75';
+            btn.style.pointerEvents = 'none';
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Submitting...';
+          }, 50);
+        }
+      }
+    });
+  }
+})();
+</script>
 {% endblock %}
