@@ -709,6 +709,13 @@ class BloodRequest(models.Model):
         dt = self.created_at or timezone.now()
         return f"BR{dt.strftime('%Y%m')}{str(self.id or 1).zfill(3)}"
 
+    @property
+    def formatted_request_id(self):
+        if self.request_id:
+            return self.request_id
+        dt = self.created_at or timezone.now()
+        return f"BR{dt.strftime('%Y%m')}{str(self.id or 1).zfill(3)}"
+
     def __str__(self):
         req_id = self.request_id or self.formatted_request_id
         return f"{req_id} - {self.patient_name} - {self.blood_group} ({self.status})"
